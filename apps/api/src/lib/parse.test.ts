@@ -54,7 +54,10 @@ describe("parseDeadline", () => {
 describe("splitGradDegree", () => {
   it("换行分隔的届别 + 学历", () => {
     expect(splitGradDegree("2027届\n\n本科及以上")).toEqual({ graduationYear: "2027届", degree: "本科及以上" });
-    expect(splitGradDegree("2026/2027届\n\n本科及以上")).toEqual({ graduationYear: "2026/2027届", degree: "本科及以上" });
+    expect(splitGradDegree("2026/2027届\n\n本科及以上")).toEqual({
+      graduationYear: "2026/2027届",
+      degree: "本科及以上",
+    });
   });
   it("只有一项", () => {
     expect(splitGradDegree("2027届")).toEqual({ graduationYear: "2027届", degree: null });

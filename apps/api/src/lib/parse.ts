@@ -1,6 +1,6 @@
 import { dateKey, daysBetween } from "./dates";
 
-const SEPARATORS = /[、，,\/|\s]+/;
+const SEPARATORS = /[、，,/|\s]+/;
 
 export function splitMulti(text: string | null | undefined): string[] {
   if (!text) return [];
@@ -46,7 +46,10 @@ export function parseDeadline(text: string | null | undefined, todayKey: string 
 
 const DEGREE_HINT = /及以上|本科|硕士|博士|不限|大专|研究生/;
 
-export function splitGradDegree(cell: string | null | undefined): { graduationYear: string | null; degree: string | null } {
+export function splitGradDegree(cell: string | null | undefined): {
+  graduationYear: string | null;
+  degree: string | null;
+} {
   if (!cell) return { graduationYear: null, degree: null };
   let graduationYear: string | null = null;
   let degree: string | null = null;

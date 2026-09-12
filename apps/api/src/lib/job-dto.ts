@@ -1,6 +1,6 @@
-import type { Job } from "@/generated/prisma/client";
-import type { AppStatus } from "@/generated/prisma/enums";
-import { CATEGORY, isCategoryId, type JobListItem } from "@entities/job";
+import { CATEGORY, isCategoryId, type JobListItem } from "@job-hunt/shared";
+import type { Job } from "../generated/prisma/client";
+import type { AppStatus } from "../generated/prisma/enums";
 import { dateKey, daysBetween, dbDateToKey } from "./dates";
 import { splitMulti } from "./parse";
 

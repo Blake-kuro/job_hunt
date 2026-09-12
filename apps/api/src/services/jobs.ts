@@ -1,11 +1,10 @@
-import "server-only";
-import type { Prisma } from "@/generated/prisma/client";
-import type { AppStatus } from "@/generated/prisma/enums";
-import { prisma } from "@/server/db";
-import { NotFoundError } from "@/server/lib/http";
-import { dateKey, daysBetween, dbDateToKey, keyToDate, keyToInstant, weekStartKey } from "@/server/lib/dates";
-import { toJobListItem } from "@/server/lib/job-dto";
-import type { JobListQuery, JobListResult, JobProgress } from "@entities/job";
+import type { JobListQuery, JobListResult, JobProgress } from "@job-hunt/shared";
+import { prisma } from "../db";
+import type { Prisma } from "../generated/prisma/client";
+import type { AppStatus } from "../generated/prisma/enums";
+import { dateKey, daysBetween, dbDateToKey, keyToDate, keyToInstant, weekStartKey } from "../lib/dates";
+import { NotFoundError } from "../lib/errors";
+import { toJobListItem } from "../lib/job-dto";
 
 const userState = (userId: string) => ({
   favorites: { where: { userId }, select: { userId: true } },

@@ -1,8 +1,8 @@
-import "dotenv/config";
+import "../src/load-env";
 import ExcelJS from "exceljs";
-import { prisma } from "../src/server/db";
-import { dateKey } from "../src/server/lib/dates";
-import { mapJobRow, type RawRow } from "../src/server/lib/job-row";
+import { prisma } from "../src/db";
+import { dateKey } from "../src/lib/dates";
+import { mapJobRow, type RawRow } from "../src/lib/job-row";
 
 let usedIdKey = false;
 
@@ -48,7 +48,8 @@ async function importSheet(ws: ExcelJS.Worksheet, today: string) {
       usedIdKey = true;
       const exists = await prisma.job.findUnique({ where: { id: key.id }, select: { id: true } });
       await prisma.job.upsert({ where: { id: key.id }, update: data, create: { id: key.id, ...data } });
-      if (exists) updated++; else created++;
+      if (exists) updated++;
+      else created++;
     } else if (key.serialNumber !== undefined) {
       const exists = await prisma.job.findFirst({ where: { serialNumber: key.serialNumber }, select: { id: true } });
       if (exists) {
@@ -80,8 +81,8 @@ async function main() {
   for (const ws of wb.worksheets) await importSheet(ws, today);
   if (usedIdKey) {
     console.log(
-      '⚠️  本次按 id 列 upsert 过数据，请让自增序列跟上：\n' +
-      `   npx prisma db execute --stdin <<< "SELECT setval(pg_get_serial_sequence('\\"Job\\"','id'), (SELECT MAX(id) FROM \\"Job\\"));"`,
+      "⚠️  本次按 id 列 upsert 过数据，请让自增序列跟上：\n" +
+        `   npx prisma db execute --stdin <<< "SELECT setval(pg_get_serial_sequence('\\"Job\\"','id'), (SELECT MAX(id) FROM \\"Job\\"));"`,
     );
   }
 }

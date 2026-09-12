@@ -1,5 +1,5 @@
-import "dotenv/config";
-import { prisma } from "../src/server/db";
+import "../src/load-env";
+import { prisma } from "../src/db";
 
 const DEV_USER_EMAIL = "dev@local";
 
