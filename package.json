@@ -16,7 +16,7 @@
     "db:up": "docker compose up -d",
     "db:migrate": "pnpm --filter @job-hunt/api exec prisma migrate dev",
     "db:seed": "pnpm --filter @job-hunt/api exec prisma db seed",
-    "db:import": "pnpm --filter @job-hunt/api import"
+    "db:import": "pnpm --filter @job-hunt/api run import-jobs"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.13",
