@@ -18,6 +18,11 @@ export function keyToDate(key: string): Date {
   return new Date(`${key}T00:00:00Z`);
 }
 
+/** @db.Date 列读出的 Date（UTC 零点）转回 "YYYY-MM-DD"；keyToDate 的逆 */
+export function dbDateToKey(d: Date): string {
+  return d.toISOString().slice(0, 10);
+}
+
 /** 上海零点的真实时刻；和 DateTime 列比较时用 */
 export function keyToInstant(key: string): Date {
   return new Date(`${key}T00:00:00+08:00`);

@@ -2,8 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   addDays,
   computeStreak,
-  daysBetween,
   dateKey,
+  daysBetween,
+  dbDateToKey,
   dueLabel,
   keyToDate,
   keyToInstant,
@@ -23,6 +24,10 @@ describe("keyToDate / keyToInstant", () => {
   });
   it("keyToInstant 是上海零点", () => {
     expect(keyToInstant("2026-09-12").toISOString()).toBe("2026-09-11T16:00:00.000Z");
+  });
+  it("dbDateToKey 是 keyToDate 的逆", () => {
+    expect(dbDateToKey(keyToDate("2026-11-30"))).toBe("2026-11-30");
+    expect(dbDateToKey(new Date("2026-09-10T00:00:00Z"))).toBe("2026-09-10");
   });
 });
 

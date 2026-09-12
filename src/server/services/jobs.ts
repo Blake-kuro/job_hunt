@@ -3,7 +3,7 @@ import type { Prisma } from "@/generated/prisma/client";
 import type { AppStatus } from "@/generated/prisma/enums";
 import { prisma } from "@/server/db";
 import { NotFoundError } from "@/server/lib/http";
-import { dateKey, daysBetween, keyToDate, keyToInstant, weekStartKey } from "@/server/lib/dates";
+import { dateKey, daysBetween, dbDateToKey, keyToDate, keyToInstant, weekStartKey } from "@/server/lib/dates";
 import { toJobListItem } from "@/server/lib/job-dto";
 import type { JobListQuery, JobListResult, JobProgress } from "@entities/job";
 
@@ -114,7 +114,7 @@ export async function getProgress(userId: string): Promise<JobProgress> {
       ? {
           jobId: next.job.id,
           company: next.job.enterpriseName,
-          daysLeft: daysBetween(today, next.job.deadlineAt.toISOString().slice(0, 10)),
+          daysLeft: daysBetween(today, dbDateToKey(next.job.deadlineAt)),
         }
       : null,
   };

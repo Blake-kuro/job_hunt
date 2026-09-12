@@ -1,7 +1,7 @@
 import type { Job } from "@/generated/prisma/client";
 import type { AppStatus } from "@/generated/prisma/enums";
 import { CATEGORY, isCategoryId, type JobListItem } from "@entities/job";
-import { dateKey, daysBetween } from "./dates";
+import { dateKey, daysBetween, dbDateToKey } from "./dates";
 import { splitMulti } from "./parse";
 
 export type JobRowWithUserState = Job & {
@@ -11,7 +11,7 @@ export type JobRowWithUserState = Job & {
 
 export function toJobListItem(row: JobRowWithUserState, todayKey: string): JobListItem {
   const category = isCategoryId(row.categoryId) ? row.categoryId : 1;
-  const deadlineAt = row.deadlineAt ? row.deadlineAt.toISOString().slice(0, 10) : null;
+  const deadlineAt = row.deadlineAt ? dbDateToKey(row.deadlineAt) : null;
   return {
     id: row.id,
     company: row.enterpriseName,
