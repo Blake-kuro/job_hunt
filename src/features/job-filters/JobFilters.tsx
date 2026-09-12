@@ -37,7 +37,11 @@ export function JobFilters({
 }: JobFiltersProps) {
   // 搜索框本地缓冲 + 300ms 防抖，避免每个字符都改 URL
   const [draft, setDraft] = useState(query);
-  useEffect(() => setDraft(query), [query]);
+  const [prevQuery, setPrevQuery] = useState(query);
+  if (query !== prevQuery) {
+    setPrevQuery(query);
+    setDraft(query);
+  }
   useEffect(() => {
     if (draft === query) return;
     const t = setTimeout(() => onQueryChange(draft), 300);

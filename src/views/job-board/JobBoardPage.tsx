@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Navbar } from "@widgets/navbar/Navbar";
 import { ProgressCard } from "@widgets/progress-card/ProgressCard";
@@ -57,7 +57,12 @@ export function JobBoardPage({ query, result, progress }: JobBoardPageProps) {
   const router = useRouter();
 
   const [items, setItems] = useState(result.items);
-  useEffect(() => setItems(result.items), [result.items]);
+  // 导航带来新的 result 时重置本地乐观状态（渲染期间比较，避免 effect 内 setState）
+  const [prevResult, setPrevResult] = useState(result);
+  if (prevResult !== result) {
+    setPrevResult(result);
+    setItems(result.items);
+  }
 
   const navigate = useCallback(
     (patch: NavPatch) => {
