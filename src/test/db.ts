@@ -5,6 +5,9 @@ import type { Prisma } from "../generated/prisma/client";
 export const hasDb = Boolean(process.env.DATABASE_URL);
 
 export async function resetDb() {
+  if (!process.env.DATABASE_URL || !new URL(process.env.DATABASE_URL).pathname.endsWith("_test")) {
+    throw new Error("拒绝清空非测试数据库");
+  }
   await prisma.$executeRawUnsafe(
     'TRUNCATE "Attempt","WrongBookEntry","Question","CompanySet","QuestionCategory","Application","Favorite","Job","User" RESTART IDENTITY CASCADE',
   );
