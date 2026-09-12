@@ -17,7 +17,7 @@
 | 层 | 选择 | 版本（2026-09-13 npm latest） | 不选的 |
 |---|---|---|---|
 | 包管理 | pnpm workspace（`corepack enable pnpm`） | corepack 0.34 | npm workspaces |
-| 语言 | TypeScript 7（Go 原生编译器，`tsgo --noEmit` 做类型检查） | 7.0.2 | — |
+| 语言 | TypeScript 7（Go 原生编译器；npm 包 `typescript@7` 的二进制仍叫 `tsc`，`tsc --noEmit` 做类型检查） | 7.0.2 | — |
 | 后端 | Hono + `@hono/node-server` + `@hono/zod-validator` | hono 4.13 | Fastify（TS 样板多、无 RPC 客户端） |
 | ORM | Prisma 7 + `@prisma/adapter-pg`（不变） | 7.10 | — |
 | 前端构建 | Vite 8 + `@vitejs/plugin-react` + `@tailwindcss/vite` | vite 8.3 | — |
@@ -241,11 +241,11 @@ RPC 的 query 参数只接受字符串，`jobsQuery` 内部把 `JobListQuery` �
 - `const search = Route.useSearch()`；`const { data: result } = useSuspenseQuery(jobsQuery(search))`；`const { data: progress } = useSuspenseQuery(progressQuery())`。
 - 删除：`useState(result.items)`、`prevResult` 渲染期同步、`patchItem`、手写 `fetch`。
 - `navigate = useNavigate({ from: "/" })`；所有筛选/翻页调用 `navigate({ search: (prev) => ({ ...prev, ...patch, page: 1 }) })`（翻页不重置 page）；`replace: true`。
-- `buildHref` 删除（Router 序列化 search）。默认值（`sort=deadline`、`page=1`、`pageSize`）不出现在 URL：`jobListQuerySchema` 用 `.default()`，Router 的 `search` 中间件 `stripSearchParams(defaults)` 去掉等于默认值的项。
+- `buildHref` 删除（Router 序列化 search）。`Route` 对象通过 `getRouteApi("/")` 取得，避免 route 文件与页面文件互相 import。默认值（`sort=deadline`、`page=1`、`pageSize`）不出现在 URL：`jobListQuerySchema` 用 `.default()`，Router 的 `search` 中间件 `stripSearchParams(defaults)` 去掉等于默认值的项。
 - 导出 CSV、进度卡片、分页 UI 不变。
 
 **`features/job-filters/JobFilters.tsx`**
-- 删除 `prevQuery` 渲染期同步；组件外层 `key={search.q}` 由页面传入，使 URL 变化时 draft 重挂载。300ms 防抖 effect 保留。
+- 不改：`prevQuery` 渲染期同步 + 300ms 防抖保留（用 `key` 重挂载会让输入框在防抖导航后失焦）。只把 `@entities/job` 的导入指向保留下来的 facade。
 
 **`views/practice/PracticePage.tsx`**（替代原 Task 12）
 - `useSuspenseQuery` 读 today / dashboard / companySets。
@@ -270,7 +270,7 @@ RPC 的 query 参数只接受字符串，`jobsQuery` 内部把 `JobListQuery` �
 dev        pnpm -r --parallel --filter ./apps/* dev        （api :3001，web :5173）
 build      pnpm -r --filter @job-hunt/shared --filter @job-hunt/api --filter @job-hunt/web build
 test       pnpm -r test
-typecheck  pnpm -r typecheck            （每包：tsgo --noEmit）
+typecheck  pnpm -r typecheck            （每包：tsc --noEmit）
 lint       biome check .
 format     biome format --write .
 db:up      docker compose up -d
@@ -279,9 +279,9 @@ db:seed    pnpm --filter @job-hunt/api exec prisma db seed
 db:import  pnpm --filter @job-hunt/api import       （api 包脚本 import = tsx scripts/import-jobs.ts）
 ```
 
-`apps/api`：`dev = tsx watch src/index.ts`，`build = tsgo`（输出到 dist，`start = node dist/index.js`），`test = vitest run`。
-`apps/web`：`dev = vite`，`build = tsgo --noEmit && vite build`，`preview = vite preview`。
-`packages/shared`：`test = vitest run`，`typecheck = tsgo --noEmit`。
+`apps/api`：`dev = tsx watch src/index.ts`，`build = tsc --noEmit`（只做类型检查；`start = tsx src/index.ts`——shared 包以 TS 源码形式导出，api 不单独产出 dist，生产部署不在本次范围），`test = vitest run`。
+`apps/web`：`dev = vite`，`build = tsc --noEmit && vite build`，`preview = vite preview`。
+`packages/shared`：`test = vitest run`，`typecheck = tsc --noEmit`。
 
 ## 8. 迁移顺序（分支 `feat/monorepo-split`）
 
@@ -293,7 +293,7 @@ db:import  pnpm --filter @job-hunt/api import       （api 包脚本 import = ts
 6. `apps/web` 骨架：Vite/Tailwind/Router/Query/RPC client、`__root`、`git mv` FSD 目录、别名；空页面可打开。
 7. `apps/web` 看板页：`routes/index.tsx`、JobBoardPage / JobFilters 重写。
 8. `apps/web` 刷题页：`routes/practice.tsx`、PracticePage 及三个子组件接线、删 mock。
-9. 清理：删 `src/`（剩余 Next 部分）、`next.config.*`、`next-env.d.ts`、`.next`、`eslint.config.*`、`postcss.config.*`、旧 `tsconfig.json`/`vitest.config.ts`/`prisma.config.ts`；根依赖里删 `next`、`eslint*`、`server-only`、`@tailwindcss/postcss`、`react*`（挪到 web）；`AGENTS.md` 去掉 Next 段落；README 重写；`.gitignore` 增加 `apps/api/src/generated`、`apps/web/dist`、`apps/api/dist`。
+9. 清理：删 `src/`（剩余 Next 部分）、`next.config.*`、`next-env.d.ts`、`.next`、`eslint.config.*`、`postcss.config.*`、旧 `tsconfig.json`/`vitest.config.ts`/`prisma.config.ts`；根依赖里删 `next`、`eslint*`、`server-only`、`@tailwindcss/postcss`、`react*`（挪到 web）；`AGENTS.md` 去掉 Next 段落；README 重写；`.gitignore` 增加 `apps/api/src/generated`、`apps/web/dist`。
 
 每步一个或多个提交；每步结束 `pnpm typecheck && pnpm lint && pnpm test` 对已存在的包必须全绿。
 
@@ -309,7 +309,7 @@ db:import  pnpm --filter @job-hunt/api import       （api 包脚本 import = ts
 
 ## 10. 风险与应对
 
-- **TS 7 与 typescript-eslint/biome 兼容**：只用 Biome，不引 typescript-eslint；若 `tsgo` 对某个包报不支持的选项（如 `plugins`），删掉该选项。
+- **TS 7 与 typescript-eslint/biome 兼容**：只用 Biome，不引 typescript-eslint；若 `tsc`（TS 7）对某个包报不支持的选项（如 `plugins`），删掉该选项。
 - **Hono RPC 的类型推导在大路由树上变慢**：三个路由文件、13 个端点，远未到阈值；若出现，按 Hono 文档把 `AppType` 拆成按路由文件的类型。
 - **`stripSearchParams` 与 `.default()` 配合**：Router 的 `validateSearch` 输入是原始字符串对象，`jobListQuerySchema` 已用 `z.coerce`，可直接复用；若默认值剥离行为与预期不符，退化为手写 `search` 序列化（等价于现在的 `buildHref`）。
 - **集成测试串行**：`fileParallelism: false` 使 api 测试总时长增加，当前规模（十几个文件）可接受。
