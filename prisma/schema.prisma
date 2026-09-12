@@ -1,0 +1,139 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ── 用户 ──────────────────────────────────────────────
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  createdAt DateTime @default(now())
+
+  favorites    Favorite[]
+  applications Application[]
+  attempts     Attempt[]
+  wrongBook    WrongBookEntry[]
+}
+
+// ── 岗位（用户现有 Excel 结构）────────────────────────
+
+model Job {
+  id               Int       @id @default(autoincrement())
+  serialNumber     String?
+  categoryId       Int
+  recruitmentBatch String?
+  enterpriseNature String?
+  industry         String?
+  workLocation     String?
+  position         String
+  enterpriseName   String
+  graduationYear   String?
+  degree           String?
+  announcementLink String?
+  deliveryAddress  String?
+  deadline         String?
+  deadlineAt       DateTime? @db.Date
+  createTime       DateTime  @default(now())
+  updateTime       DateTime  @updatedAt
+
+  favorites    Favorite[]
+  applications Application[]
+
+  @@index([categoryId, deadlineAt])
+  @@index([createTime])
+}
+
+model Favorite {
+  userId String
+  jobId  Int
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  job    Job  @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@id([userId, jobId])
+}
+
+enum AppStatus {
+  APPLIED
+  INTERVIEWING
+}
+
+model Application {
+  userId    String
+  jobId     Int
+  status    AppStatus
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  job       Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@id([userId, jobId])
+}
+
+// ── 刷题 ──────────────────────────────────────────────
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+model QuestionCategory {
+  id        String     @id @default(cuid())
+  name      String     @unique
+  questions Question[]
+}
+
+model CompanySet {
+  id        String     @id @default(cuid())
+  company   String
+  track     String
+  focus     String
+  questions Question[]
+}
+
+model Question {
+  id           String            @id @default(cuid())
+  categoryId   String
+  companySetId String?
+  prompt       String
+  options      Json
+  answer       String
+  explanation  String[]
+  difficulty   Difficulty
+  source       String
+  category     QuestionCategory  @relation(fields: [categoryId], references: [id])
+  companySet   CompanySet?       @relation(fields: [companySetId], references: [id])
+  attempts     Attempt[]
+  wrongBook    WrongBookEntry[]
+}
+
+model Attempt {
+  id         String   @id @default(cuid())
+  userId     String
+  questionId String
+  picked     String
+  correct    Boolean
+  answeredAt DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@index([userId, answeredAt])
+  @@index([questionId])
+}
+
+model WrongBookEntry {
+  userId       String
+  questionId   String
+  nextReviewAt DateTime
+  mastered     Boolean  @default(false)
+  addedAt      DateTime @default(now())
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  question     Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@id([userId, questionId])
+}
