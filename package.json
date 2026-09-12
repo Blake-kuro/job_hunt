@@ -14,7 +14,7 @@
     "build": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "import": "tsx scripts/import-jobs.ts",
+    "import-jobs": "tsx scripts/import-jobs.ts",
     "postinstall": "prisma generate"
   },
   "dependencies": {
