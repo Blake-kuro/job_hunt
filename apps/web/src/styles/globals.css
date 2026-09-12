@@ -1,0 +1,7 @@
+@import "tailwindcss";
+@import "./tokens.css";
+
+:root {
+  --font-barlow: "Barlow";
+  --font-barlow-condensed: "Barlow Condensed";
+}

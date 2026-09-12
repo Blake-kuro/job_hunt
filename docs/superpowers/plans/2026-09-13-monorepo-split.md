@@ -1,5 +1,7 @@
 # 前后端分离重构（Monorepo）Implementation Plan
 
+> 2026-09-13 接续状态：前 4 项见已有提交，Task 5–9 的实现和验证已完成，改动未提交。实际版本兼容修正、测试结果及保留的 `.next` 缓存说明见 [交接记录](../../reports/2026-09-13-monorepo-handoff.md)。下文保留原始计划供追溯。
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 把 Next.js 单体拆成 pnpm monorepo：`apps/api`（Hono + Prisma）、`apps/web`（React 19 + Vite + TanStack Router/Query）、`packages/shared`（zod + DTO），并在新架构里完成刷题模块。

@@ -8,7 +8,7 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "test": "echo \"web: no tests\""
+    "test": "vitest run"
   },
   "dependencies": {
     "@job-hunt/shared": "workspace:*",
@@ -30,6 +30,7 @@
     "@vitejs/plugin-react": "^6.1.1",
     "tailwindcss": "^4",
     "typescript": "7.0.2",
-    "vite": "^8.3.0"
+    "vite": "^8.3.0",
+    "vitest": "^5.0.0"
   }
 }
