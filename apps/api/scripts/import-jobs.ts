@@ -70,9 +70,9 @@ async function importSheet(ws: ExcelJS.Worksheet, today: string) {
 }
 
 async function main() {
-  const file = process.argv[2];
+  const file = process.argv.slice(2).find((arg) => arg !== "--");
   if (!file) {
-    console.error("用法：npm run db:import -- <文件.xlsx>");
+    console.error("用法：pnpm db:import -- <文件.xlsx>");
     process.exit(1);
   }
   const wb = new ExcelJS.Workbook();
@@ -81,8 +81,8 @@ async function main() {
   for (const ws of wb.worksheets) await importSheet(ws, today);
   if (usedIdKey) {
     console.log(
-      "⚠️  本次按 id 列 upsert 过数据，请让自增序列跟上：\n" +
-        `   npx prisma db execute --stdin <<< "SELECT setval(pg_get_serial_sequence('\\"Job\\"','id'), (SELECT MAX(id) FROM \\"Job\\"));"`,
+      "本次按 id 列更新过数据，请在数据库执行以下 SQL 同步自增序列：\n" +
+        `SELECT setval(pg_get_serial_sequence('"Job"', 'id'), (SELECT MAX(id) FROM "Job"));`,
     );
   }
 }
