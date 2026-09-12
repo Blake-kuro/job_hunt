@@ -81,7 +81,7 @@ async function main() {
   if (usedIdKey) {
     console.log(
       '⚠️  本次按 id 列 upsert 过数据，请让自增序列跟上：\n' +
-      `   npx prisma db execute --stdin <<< "SELECT setval(pg_get_serial_sequence('"Job"','id'), (SELECT MAX(id) FROM "Job"));"`,
+      `   npx prisma db execute --stdin <<< "SELECT setval(pg_get_serial_sequence('\\"Job\\"','id'), (SELECT MAX(id) FROM \\"Job\\"));"`,
     );
   }
 }
