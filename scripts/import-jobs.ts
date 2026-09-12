@@ -4,10 +4,12 @@ import { prisma } from "../src/server/db";
 import { dateKey } from "../src/server/lib/dates";
 import { mapJobRow, type RawRow } from "../src/server/lib/job-row";
 
+let usedIdKey = false;
+
 function cellText(cell: ExcelJS.Cell): string {
   const v = cell.value;
   if (v === null || v === undefined) return "";
-  if (v instanceof Date) return `${v.getFullYear()}/${v.getMonth() + 1}/${v.getDate()}`;
+  if (v instanceof Date) return dateKey(v);
   if (typeof v === "object" && "hyperlink" in v && typeof v.hyperlink === "string") return v.hyperlink;
   return cell.text ?? String(v);
 }
@@ -43,9 +45,10 @@ async function importSheet(ws: ExcelJS.Worksheet, today: string) {
     const { data, key } = r;
 
     if (key.id !== undefined) {
+      usedIdKey = true;
       const exists = await prisma.job.findUnique({ where: { id: key.id }, select: { id: true } });
       await prisma.job.upsert({ where: { id: key.id }, update: data, create: { id: key.id, ...data } });
-      exists ? updated++ : created++;
+      if (exists) updated++; else created++;
     } else if (key.serialNumber !== undefined) {
       const exists = await prisma.job.findFirst({ where: { serialNumber: key.serialNumber }, select: { id: true } });
       if (exists) {
@@ -75,6 +78,12 @@ async function main() {
   await wb.xlsx.readFile(file);
   const today = dateKey();
   for (const ws of wb.worksheets) await importSheet(ws, today);
+  if (usedIdKey) {
+    console.log(
+      '⚠️  本次按 id 列 upsert 过数据，请让自增序列跟上：\n' +
+      `   npx prisma db execute --stdin <<< "SELECT setval(pg_get_serial_sequence('"Job"','id'), (SELECT MAX(id) FROM "Job"));"`,
+    );
+  }
 }
 
 main()
