@@ -1,33 +1,20 @@
 "use client";
 
-import type { Job } from "@entities/job";
-import { actionLabel, deadlineNote, statusVariant } from "@entities/job";
+import { useState, type ReactNode } from "react";
+import type { JobListItem } from "@entities/job";
+import { isExpired, statusLabel, statusVariant } from "@entities/job";
 import { Button } from "@shared/ui/Button";
 import { Tag } from "@shared/ui/Tag";
 import { DataTable, type Column } from "@shared/ui/DataTable";
 import { cn } from "@shared/lib/cn";
 
 interface JobTableProps {
-  jobs: Job[];
-  starredIds: Set<string>;
-  appliedIds: Set<string>;
-  onToggleStar: (id: string) => void;
-  onMarkApplied: (id: string) => void;
+  jobs: JobListItem[];
+  onToggleStar: (id: number) => void;
+  onMarkApplied: (id: number) => void;
 }
 
-function isApplied(job: Job, appliedIds: Set<string>): boolean {
-  return appliedIds.has(job.id) || job.status === "已投递" || job.status === "面试中";
-}
-
-function StarButton({
-  starred,
-  onClick,
-  className,
-}: {
-  starred: boolean;
-  onClick: () => void;
-  className?: string;
-}) {
+function StarButton({ starred, onClick, className }: { starred: boolean; onClick: () => void; className?: string }) {
   return (
     <button
       type="button"
@@ -45,78 +32,82 @@ function StarButton({
   );
 }
 
-function DeadlineCell({ job }: { job: Job }) {
-  const note = deadlineNote(job);
+/** 前 3 个岗位 + "等 N 个"，点击展开 */
+function Positions({ positions, className }: { positions: string[]; className?: string }) {
+  const [open, setOpen] = useState(false);
+  const shown = open ? positions : positions.slice(0, 3);
+  const rest = positions.length - 3;
+  return (
+    <span className={cn("leading-snug", className)}>
+      {shown.join("、")}
+      {!open && rest > 0 && (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="ml-1.5 cursor-pointer text-xs text-accent-700 hover:text-accent-900"
+        >
+          等 {positions.length} 个
+        </button>
+      )}
+    </span>
+  );
+}
+
+function DeadlineCell({ job }: { job: JobListItem }) {
+  if (job.deadlineAt === null || job.daysLeft === null) {
+    return <span className="text-[13px] text-neutral-700">{job.deadlineText ?? "—"}</span>;
+  }
+  const expired = job.daysLeft < 0;
   return (
     <span className="whitespace-nowrap">
-      <span className="tabular-nums">{job.deadline}</span>
-      <span className={cn("ml-1.5 text-[11px] tabular-nums", note.urgent ? "text-accent-800" : "text-neutral-700")}>
-        {note.text}
+      <span className="tabular-nums">{job.deadlineAt.slice(5)}</span>
+      <span className={cn("ml-1.5 text-[11px] tabular-nums", !expired && job.daysLeft <= 10 ? "text-accent-800" : "text-neutral-700")}>
+        {expired ? "已截止" : `剩 ${job.daysLeft} 天`}
       </span>
     </span>
   );
 }
 
-export function JobTable({ jobs, starredIds, appliedIds, onToggleStar, onMarkApplied }: JobTableProps) {
-  const columns: Column<Job>[] = [
-    {
-      id: "star",
-      header: "收藏",
-      headerSrOnly: true,
-      width: "3%",
-      cell: (job) => <StarButton starred={starredIds.has(job.id)} onClick={() => onToggleStar(job.id)} />,
-    },
-    {
-      id: "company",
-      header: "公司",
-      width: "11.5%",
-      cell: (job) => <span className="block truncate font-medium">{job.company}</span>,
-    },
-    {
-      id: "role",
-      header: "岗位名称",
-      width: "16%",
-      cell: (job) => (
-        <div className="flex items-center gap-2">
-          <span className="truncate">{job.role}</span>
-          {job.referral && (
-            <Tag variant="outline" className="px-1.5 py-px text-[10px]">
-              内推
-            </Tag>
-          )}
-        </div>
-      ),
-    },
-    { id: "city", header: "地点", width: "7%", cell: (job) => <span className="whitespace-nowrap text-neutral-800">{job.city}</span> },
-    { id: "type", header: "类型", width: "7%", cell: (job) => <span className="whitespace-nowrap text-neutral-800">{job.type}</span> },
-    {
-      id: "degree",
-      header: "学历要求",
-      width: "10%",
-      cell: (job) => <span className="whitespace-nowrap text-neutral-800">{job.degree}</span>,
-    },
-    { id: "deadline", header: "投递截止", width: "11%", cell: (job) => <DeadlineCell job={job} /> },
-    { id: "posted", header: "发布时间", width: "9%", cell: (job) => <span className="tabular-nums text-neutral-700">{job.posted}</span> },
-    { id: "status", header: "投递状态", width: "9.5%", cell: (job) => <Tag variant={statusVariant[job.status]}>{job.status}</Tag> },
-    {
-      id: "link",
-      header: "官方链接",
-      width: "7%",
-      cell: () => (
-        <a href="#" onClick={(e) => e.preventDefault()} className="text-[13px] text-accent-700 hover:text-accent-900">
-          查看 ↗
-        </a>
-      ),
-    },
+function ActionButton({ job, onMarkApplied }: { job: JobListItem; onMarkApplied: (id: number) => void }) {
+  const applied = job.applicationStatus !== null;
+  return (
+    <Button size="sm" disabled={applied || isExpired(job)} onClick={() => onMarkApplied(job.id)}>
+      {applied ? "已投递" : "标记已投"}
+    </Button>
+  );
+}
+
+function ExternalLink({ href, children }: { href: string | null; children: ReactNode }) {
+  if (!href) return <span className="text-[13px] text-neutral-500">—</span>;
+  return (
+    <a href={href} target="_blank" rel="noopener noreferrer" className="text-[13px] text-accent-700 hover:text-accent-900">
+      {children}
+    </a>
+  );
+}
+
+export function JobTable({ jobs, onToggleStar, onMarkApplied }: JobTableProps) {
+  const columns: Column<JobListItem>[] = [
+    { id: "star", header: "收藏", headerSrOnly: true, width: "3%", cell: (j) => <StarButton starred={j.starred} onClick={() => onToggleStar(j.id)} /> },
+    { id: "company", header: "公司", width: "11%", cell: (j) => <span className="block truncate font-medium">{j.company}</span> },
+    { id: "positions", header: "岗位", width: "22%", cell: (j) => <Positions positions={j.positions} /> },
+    { id: "cities", header: "地点", width: "9%", cell: (j) => <span className="block truncate text-neutral-800">{j.cities.join(" · ")}</span> },
+    { id: "category", header: "分类", width: "8%", cell: (j) => <span className="whitespace-nowrap text-neutral-800">{j.categoryLabel}</span> },
+    { id: "degree", header: "学历要求", width: "9%", cell: (j) => <span className="whitespace-nowrap text-neutral-800">{j.degree ?? "—"}</span> },
+    { id: "deadline", header: "投递截止", width: "12%", cell: (j) => <DeadlineCell job={j} /> },
+    { id: "posted", header: "发布", width: "7%", cell: (j) => <span className="tabular-nums text-neutral-700">{j.postedAt.slice(5)}</span> },
+    { id: "status", header: "投递状态", width: "8%", cell: (j) => <Tag variant={statusVariant(j.applicationStatus, isExpired(j))}>{statusLabel(j.applicationStatus, isExpired(j))}</Tag> },
+    { id: "link", header: "公告", width: "5%", cell: (j) => <ExternalLink href={j.announcementLink}>查看 ↗</ExternalLink> },
     {
       id: "action",
       header: "操作",
-      width: "9%",
+      width: "6%",
       align: "right",
-      cell: (job) => (
-        <Button size="sm" disabled={isApplied(job, appliedIds)} onClick={() => onMarkApplied(job.id)}>
-          {isApplied(job, appliedIds) ? "已投递" : actionLabel(job.status)}
-        </Button>
+      cell: (j) => (
+        <span className="inline-flex items-center gap-2">
+          <ExternalLink href={j.deliveryAddress}>去投递</ExternalLink>
+          <ActionButton job={j} onMarkApplied={onMarkApplied} />
+        </span>
       ),
     },
   ];
@@ -125,46 +116,37 @@ export function JobTable({ jobs, starredIds, appliedIds, onToggleStar, onMarkApp
     <DataTable
       columns={columns}
       rows={jobs}
-      rowKey={(job) => job.id}
-      caption="在招岗位列表"
-      emptyMessage="没有匹配的岗位，换个筛选条件试试。"
-      renderCard={(job) => {
-        const note = deadlineNote(job);
-        const applied = isApplied(job, appliedIds);
+      rowKey={(j) => String(j.id)}
+      caption="招聘公告列表"
+      emptyMessage="没有匹配的公告，换个筛选条件试试。"
+      minWidthClassName="min-w-[1040px]"
+      renderCard={(j) => {
+        const expired = isExpired(j);
         return (
           <div className="flex items-start gap-3">
-            <StarButton
-              starred={starredIds.has(job.id)}
-              onClick={() => onToggleStar(job.id)}
-              className="mt-1"
-            />
+            <StarButton starred={j.starred} onClick={() => onToggleStar(j.id)} className="mt-1" />
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="font-heading text-[17px]">{job.role}</span>
-                <Tag>{job.type}</Tag>
-                {job.referral && (
-                  <Tag variant="outline" className="px-1.5 py-px text-[10px]">
-                    内推
-                  </Tag>
-                )}
+                <span className="font-heading text-[17px]">{j.company}</span>
+                <Tag>{j.categoryLabel}</Tag>
               </div>
+              <Positions positions={j.positions} className="mt-1 block text-sm text-neutral-800" />
               <p className="mt-1 text-xs text-neutral-700">
-                <span className="text-text">{job.company}</span>
-                <span className="mx-1.5">·</span>
-                {job.city}
-                <span className="mx-1.5">·</span>
-                {job.degree}
+                {j.cities.join(" · ")}
+                {j.degree && (
+                  <>
+                    <span className="mx-1.5">·</span>
+                    {j.degree}
+                  </>
+                )}
               </p>
               <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-2">
-                <span className="text-[13px] tabular-nums">截止 {job.deadline}</span>
-                <span className={cn("text-[11px] tabular-nums", note.urgent ? "text-accent-800" : "text-neutral-700")}>
-                  {note.text}
-                </span>
-                <Tag variant={statusVariant[job.status]}>{job.status}</Tag>
+                <DeadlineCell job={j} />
+                <Tag variant={statusVariant(j.applicationStatus, expired)}>{statusLabel(j.applicationStatus, expired)}</Tag>
                 <span className="flex-1" />
-                <Button size="sm" disabled={applied} onClick={() => onMarkApplied(job.id)}>
-                  {applied ? "已投递" : actionLabel(job.status)}
-                </Button>
+                <ExternalLink href={j.announcementLink}>公告 ↗</ExternalLink>
+                <ExternalLink href={j.deliveryAddress}>去投递</ExternalLink>
+                <ActionButton job={j} onMarkApplied={onMarkApplied} />
               </div>
             </div>
           </div>
