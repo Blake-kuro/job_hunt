@@ -21,3 +21,4 @@ src/generated/
 
 # superpowers scratch
 .superpowers/
+apps/web/.env.local
