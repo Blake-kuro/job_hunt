@@ -1,4 +1,4 @@
-import type { QuizToday, QuizDashboard, CompanySetItem, WrongBookItem } from "@job-hunt/shared";
+import type { QuizToday, QuizDashboard, CompanySetItem, WrongBookItem } from "../contract";
 import { beforeEach, describe, expect, it } from "vitest";
 import app from "../app";
 import { prisma } from "../db";

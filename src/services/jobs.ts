@@ -1,4 +1,4 @@
-import type { JobListQuery, JobListResult, JobProgress } from "@job-hunt/shared";
+import type { JobListQuery, JobListResult, JobProgress } from "../contract";
 import { prisma } from "../db";
 import type { Prisma } from "../generated/prisma/client";
 import type { AppStatus } from "../generated/prisma/enums";

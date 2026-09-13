@@ -1,5 +1,5 @@
 import { zValidator } from "@hono/zod-validator";
-import { jobListQuerySchema } from "@job-hunt/shared";
+import { jobListQuerySchema } from "../contract";
 import { Hono } from "hono";
 import { z } from "zod";
 import type { Env } from "../env";

@@ -1,4 +1,4 @@
-import { CATEGORY, isCategoryId, type JobListItem } from "@job-hunt/shared";
+import { CATEGORY, isCategoryId, type JobListItem } from "../contract";
 import type { Job } from "../generated/prisma/client";
 import type { AppStatus } from "../generated/prisma/enums";
 import { dateKey, daysBetween, dbDateToKey } from "./dates";

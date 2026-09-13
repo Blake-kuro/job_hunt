@@ -1,0 +1,8 @@
+node_modules/
+.DS_Store
+*.log
+*.tsbuildinfo
+.env*
+!.env.example
+src/generated/
+.superpowers/

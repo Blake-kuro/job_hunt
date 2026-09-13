@@ -1,4 +1,4 @@
-import type { JobListResult } from "@job-hunt/shared";
+import type { JobListResult } from "../contract";
 import { beforeEach, describe, expect, it } from "vitest";
 import app from "../app";
 import { addDays, dateKey } from "../lib/dates";

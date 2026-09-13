@@ -8,7 +8,7 @@ import {
   type WrongBookItem,
   quizOptionsSchema,
   quizOptionLetterSchema,
-} from "@job-hunt/shared";
+} from "../contract";
 import { prisma } from "../db";
 import { addDays, computeStreak, dateKey, dueLabel, keyToInstant, weekStartKey } from "../lib/dates";
 import { NotFoundError } from "../lib/errors";

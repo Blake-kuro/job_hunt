@@ -1,4 +1,4 @@
-import { isCategoryId, type CategoryId } from "@job-hunt/shared";
+import { isCategoryId, type CategoryId } from "../contract";
 import { keyToDate, keyToInstant } from "./dates";
 import { parseDeadline, splitGradDegree } from "./parse";
 
