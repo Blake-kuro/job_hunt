@@ -348,7 +348,7 @@ export interface operations {
     listJobs: {
         parameters: {
             query?: {
-                category?: number;
+                category?: 1 | 2 | 3;
                 city?: string;
                 q?: string;
                 sort?: "deadline" | "posted";
@@ -490,7 +490,7 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: {
+        requestBody: {
             content: {
                 "application/json": components["schemas"]["ApplicationBody"];
             };
@@ -592,7 +592,7 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: {
+        requestBody: {
             content: {
                 "application/json": components["schemas"]["SubmitAttempt"];
             };
@@ -676,7 +676,7 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: {
+        requestBody: {
             content: {
                 "application/json": components["schemas"]["SetMastered"];
             };
