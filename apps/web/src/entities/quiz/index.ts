@@ -7,4 +7,4 @@ export type {
   QuizQuestionPublic,
   QuizToday,
   WrongBookItem,
-} from "@job-hunt/shared";
+} from "@api/types";

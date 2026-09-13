@@ -1,8 +1,8 @@
-import type { AppType } from "@job-hunt/api";
-import type { ApiErrorBody } from "@job-hunt/shared";
-import { type ClientResponse, hc } from "hono/client";
+import createClient from "openapi-fetch";
+import type { paths } from "./schema";
+import type { ApiErrorBody } from "./types";
 
-export const api = hc<AppType>("/");
+export const client = createClient<paths>({ baseUrl: "/" });
 
 export class ApiError extends Error {
   constructor(
@@ -14,32 +14,34 @@ export class ApiError extends Error {
   }
 }
 
-/** 解包 RPC 响应：非 2xx 抛 ApiError；204 返回 undefined */
-type SuccessBody<R> =
-  R extends ClientResponse<infer T, infer S>
-    ? S extends import("hono/utils/http-status").SuccessStatusCode
-      ? T
-      : never
-    : never;
+const CODES = ["VALIDATION", "NOT_FOUND", "INTERNAL"];
 
-export async function unwrap<R extends ClientResponse<unknown>>(req: Promise<R>): Promise<SuccessBody<R>> {
-  const res = await req;
-  if (!res.ok) {
-    const value: unknown = await res.json().catch(() => null);
-    const body =
-      value &&
-      typeof value === "object" &&
-      "error" in value &&
-      value.error &&
-      typeof value.error === "object" &&
-      "message" in value.error &&
-      typeof value.error.message === "string" &&
-      "code" in value.error &&
-      ["VALIDATION", "NOT_FOUND", "INTERNAL"].includes(String(value.error.code))
-        ? (value as ApiErrorBody)
-        : { error: { code: "INTERNAL" as const, message: `HTTP ${res.status}` } };
-    throw new ApiError(res.status, body);
+function toErrorBody(value: unknown, status: number): ApiErrorBody {
+  if (
+    value &&
+    typeof value === "object" &&
+    "error" in value &&
+    value.error &&
+    typeof value.error === "object" &&
+    "message" in value.error &&
+    typeof value.error.message === "string" &&
+    "code" in value.error &&
+    CODES.includes(String(value.error.code))
+  ) {
+    return value as ApiErrorBody;
   }
-  if (res.status === 204) return undefined as SuccessBody<R>;
-  return (await res.json()) as SuccessBody<R>;
+  return { error: { code: "INTERNAL", message: `HTTP ${status}` } };
+}
+
+interface FetchResult<T> {
+  data?: T;
+  error?: unknown;
+  response: Response;
+}
+
+/** 解包 openapi-fetch 结果：非 2xx 抛 ApiError；204 返回 undefined */
+export async function unwrap<T>(p: Promise<FetchResult<T>>): Promise<T> {
+  const { data, error, response } = await p;
+  if (!response.ok || error !== undefined) throw new ApiError(response.status, toErrorBody(error, response.status));
+  return data as T;
 }

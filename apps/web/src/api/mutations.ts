@@ -1,7 +1,7 @@
-import type { ApplicationStatus, JobListQuery, JobListResult, QuizDashboard, QuizOptionLetter } from "@job-hunt/shared";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { api, unwrap } from "./client";
+import { client, unwrap } from "./client";
 import { jobsQuery, quizDashboardQuery } from "./queries";
+import type { ApplicationStatus, JobListQuery, JobListResult, QuizDashboard, QuizOptionLetter } from "./types";
 
 function patchItem(result: JobListResult | undefined, id: number, patch: Partial<JobListResult["items"][number]>) {
   if (!result) return result;
@@ -12,12 +12,12 @@ export function useToggleFavorite(q: JobListQuery) {
   const qc = useQueryClient();
   const key = jobsQuery(q).queryKey;
   return useMutation({
-    mutationFn: ({ id, starred }: { id: number; starred: boolean }) => {
-      const param = { id: String(id) };
-      return unwrap(
-        starred ? api.api.jobs[":id"].favorite.$put({ param }) : api.api.jobs[":id"].favorite.$delete({ param }),
-      );
-    },
+    mutationFn: ({ id, starred }: { id: number; starred: boolean }) =>
+      unwrap(
+        starred
+          ? client.PUT("/api/jobs/{id}/favorite", { params: { path: { id } } })
+          : client.DELETE("/api/jobs/{id}/favorite", { params: { path: { id } } }),
+      ),
     onMutate: async ({ id, starred }) => {
       await qc.cancelQueries({ queryKey: key });
       const prev = qc.getQueryData(key);
@@ -37,7 +37,7 @@ export function useMarkApplied(q: JobListQuery) {
   const status: ApplicationStatus = "APPLIED";
   return useMutation({
     mutationFn: ({ id }: { id: number }) =>
-      unwrap(api.api.jobs[":id"].application.$put({ param: { id: String(id) }, json: { status } })),
+      unwrap(client.PUT("/api/jobs/{id}/application", { params: { path: { id } }, body: { status } })),
     onMutate: async ({ id }) => {
       await qc.cancelQueries({ queryKey: key });
       const prev = qc.getQueryData(key);
@@ -55,7 +55,7 @@ export function useSubmitAttempt() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (vars: { questionId: string; picked: QuizOptionLetter }) =>
-      unwrap(api.api.quiz.attempts.$post({ json: vars })),
+      unwrap(client.POST("/api/quiz/attempts", { body: vars })),
     // 答完题打卡/错题本会变；today 留到用户点"下一题"再失效
     onSuccess: () => qc.invalidateQueries({ queryKey: quizDashboardQuery().queryKey }),
   });
@@ -66,7 +66,7 @@ export function useSetMastered() {
   const key = quizDashboardQuery().queryKey;
   return useMutation({
     mutationFn: ({ questionId, mastered }: { questionId: string; mastered: boolean }) =>
-      unwrap(api.api.quiz["wrong-book"][":questionId"].$put({ param: { questionId }, json: { mastered } })),
+      unwrap(client.PUT("/api/quiz/wrong-book/{questionId}", { params: { path: { questionId } }, body: { mastered } })),
     onMutate: async ({ questionId, mastered }) => {
       await qc.cancelQueries({ queryKey: key });
       const prev = qc.getQueryData(key);

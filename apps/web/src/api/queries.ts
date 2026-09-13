@@ -1,37 +1,30 @@
-import type { JobListQuery } from "@job-hunt/shared";
 import { queryOptions } from "@tanstack/react-query";
-import { api, unwrap } from "./client";
-
-/** RPC 的 query 只收字符串；省略 undefined */
-function toQuery(q: JobListQuery): Record<string, string> {
-  const out: Record<string, string> = {};
-  for (const [k, v] of Object.entries(q)) if (v !== undefined) out[k] = String(v);
-  return out;
-}
+import { client, unwrap } from "./client";
+import type { JobListQuery } from "./types";
 
 export const jobsQuery = (q: JobListQuery) =>
   queryOptions({
     queryKey: ["jobs", "list", q] as const,
-    queryFn: () => unwrap(api.api.jobs.$get({ query: toQuery(q) })),
+    queryFn: () => unwrap(client.GET("/api/jobs", { params: { query: q } })),
   });
 
 export const progressQuery = () =>
-  queryOptions({ queryKey: ["jobs", "progress"] as const, queryFn: () => unwrap(api.api.jobs.progress.$get()) });
+  queryOptions({ queryKey: ["jobs", "progress"] as const, queryFn: () => unwrap(client.GET("/api/jobs/progress")) });
 
 export const quizTodayQuery = () =>
   queryOptions({
-    staleTime: Infinity,
+    staleTime: Number.POSITIVE_INFINITY,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
     queryKey: ["quiz", "today"] as const,
-    queryFn: () => unwrap(api.api.quiz.today.$get()),
+    queryFn: () => unwrap(client.GET("/api/quiz/today")),
   });
 
 export const quizDashboardQuery = () =>
-  queryOptions({ queryKey: ["quiz", "dashboard"] as const, queryFn: () => unwrap(api.api.quiz.dashboard.$get()) });
+  queryOptions({ queryKey: ["quiz", "dashboard"] as const, queryFn: () => unwrap(client.GET("/api/quiz/dashboard")) });
 
 export const companySetsQuery = () =>
   queryOptions({
     queryKey: ["quiz", "company-sets"] as const,
-    queryFn: () => unwrap(api.api.quiz["company-sets"].$get()),
+    queryFn: () => unwrap(client.GET("/api/quiz/company-sets")),
   });

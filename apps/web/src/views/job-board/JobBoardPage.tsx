@@ -1,4 +1,4 @@
-import type { CategoryId, JobListItem, JobListQuery } from "@job-hunt/shared";
+import type { CategoryId, JobListItem, JobListQuery } from "@entities/job";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { getRouteApi, useNavigate } from "@tanstack/react-router";
 import { useMarkApplied, useToggleFavorite } from "@api/mutations";
