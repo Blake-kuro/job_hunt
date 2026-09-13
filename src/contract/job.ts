@@ -16,16 +16,18 @@ export function isCategoryId(n: number): n is CategoryId {
   return n === 1 || n === 2 || n === 3;
 }
 
-export const jobListQuerySchema = z
-  .object({
-    category: z.coerce.number().pipe(CategoryIdSchema).optional(),
-    city: z.string().trim().min(1).optional(),
-    q: z.string().trim().min(1).optional(),
-    sort: z.enum(["deadline", "posted"]).default("deadline"),
-    page: z.coerce.number().int().min(1).default(1),
-    pageSize: z.coerce.number().int().min(1).max(100).default(20),
-  })
-  .openapi("JobListQuery");
+export const jobListQuerySchema = z.object({
+  category: z.coerce
+    .number()
+    .pipe(CategoryIdSchema)
+    .optional()
+    .openapi({ type: "integer", enum: [1, 2, 3] }),
+  city: z.string().trim().min(1).optional(),
+  q: z.string().trim().min(1).optional(),
+  sort: z.enum(["deadline", "posted"]).default("deadline"),
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).default(20),
+});
 export type JobListQuery = z.infer<typeof jobListQuerySchema>;
 
 export const ApplicationStatusSchema = z.enum(["APPLIED", "INTERVIEWING"]).openapi("ApplicationStatus");

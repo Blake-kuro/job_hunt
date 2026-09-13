@@ -658,7 +658,12 @@
         "parameters": [
           {
             "schema": {
-              "type": "number"
+              "type": "integer",
+              "enum": [
+                1,
+                2,
+                3
+              ]
             },
             "required": false,
             "name": "category",
@@ -882,6 +887,7 @@
           }
         ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -1001,6 +1007,7 @@
         ],
         "operationId": "submitAttempt",
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -1102,6 +1109,7 @@
           }
         ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {

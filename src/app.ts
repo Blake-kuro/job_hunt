@@ -34,11 +34,14 @@ api.route("/quiz", quizRoutes);
 const app = new OpenAPIHono<Env>({ defaultHook: validationHook });
 app.use(cors({ origin: corsOrigins() }));
 app.use(process.env.NODE_ENV === "test" ? async (_c, next) => next() : logger());
+// doc31/docs 必须在 `app.route("/api", api)` 之前注册：Hono 按注册顺序匹配路由，
+// 更早注册且直接返回响应（不调用 next()）的 handler 会短路，
+// 不会再走到之后才注册的 `/api/*` 通配中间件（api 上的 requestUser）——
+// 这样 /api/openapi.json 与 /api/docs 就不依赖数据库/登录态。
+app.doc31("/api/openapi.json", OPENAPI_INFO);
+app.get("/api/docs", swaggerUI({ url: "/api/openapi.json" }));
 app.route("/api", api);
 app.notFound((c) => c.json({ error: { code: "NOT_FOUND", message: "接口不存在" } }, 404));
 app.onError(errorHandler);
-
-app.doc31("/api/openapi.json", OPENAPI_INFO);
-app.get("/api/docs", swaggerUI({ url: "/api/openapi.json" }));
 
 export default app;

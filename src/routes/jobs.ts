@@ -57,7 +57,10 @@ const setApplicationRoute = createRoute({
   path: "/{id}/application",
   tags: ["jobs"],
   operationId: "setApplication",
-  request: { params: IdParamSchema, body: { content: { "application/json": { schema: ApplicationBodySchema } } } },
+  request: {
+    params: IdParamSchema,
+    body: { required: true, content: { "application/json": { schema: ApplicationBodySchema } } },
+  },
   responses: { 200: json(ApplicationResultSchema, "投递状态"), 400: badRequest, 404: notFound },
 });
 

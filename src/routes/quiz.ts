@@ -38,7 +38,7 @@ const attemptsRoute = createRoute({
   path: "/attempts",
   tags: ["quiz"],
   operationId: "submitAttempt",
-  request: { body: { content: { "application/json": { schema: SubmitAttemptSchema } } } },
+  request: { body: { required: true, content: { "application/json": { schema: SubmitAttemptSchema } } } },
   responses: { 200: json(QuizAnswerResultSchema, "判题结果"), 400: badRequest, 404: notFound },
 });
 
@@ -63,7 +63,10 @@ const setMasteredRoute = createRoute({
   path: "/wrong-book/{questionId}",
   tags: ["quiz"],
   operationId: "setWrongBookMastered",
-  request: { params: QuestionIdParamSchema, body: { content: { "application/json": { schema: SetMasteredSchema } } } },
+  request: {
+    params: QuestionIdParamSchema,
+    body: { required: true, content: { "application/json": { schema: SetMasteredSchema } } },
+  },
   responses: { 204: { description: "已更新" }, 400: badRequest, 404: notFound },
 });
 
