@@ -1,24 +1,8 @@
 node_modules/
-.pnp
-.pnp.*
 .DS_Store
-*.pem
 *.log
 *.tsbuildinfo
-
-# env
 .env*
 !.env.example
-
-# build output
-next-env.d.ts
-apps/web/dist/
-.next/
-
-# prisma generated client
-apps/api/src/generated/
-src/generated/
-
-# superpowers scratch
+dist/
 .superpowers/
-apps/web/.env.local
