@@ -213,11 +213,11 @@ export interface components {
       announcementLink: string | null;
       deliveryAddress: string | null;
       starred: boolean;
-      applicationStatus: components["schemas"]["ApplicationStatus"];
+      applicationStatus: components["schemas"]["ApplicationStatus"] | null;
     };
     CategoryId: 1 | 2 | 3;
-    /** @enum {string|null} */
-    ApplicationStatus: "APPLIED" | "INTERVIEWING" | null;
+    /** @enum {string} */
+    ApplicationStatus: "APPLIED" | "INTERVIEWING";
     ApiError: {
       error: {
         code: components["schemas"]["ApiErrorCode"];
@@ -243,13 +243,13 @@ export interface components {
       starred: boolean;
     };
     ApplicationResult: {
-      applicationStatus: components["schemas"]["ApplicationStatus"];
+      applicationStatus: components["schemas"]["ApplicationStatus"] | null;
     };
     ApplicationBody: {
       status: components["schemas"]["ApplicationStatus"];
     };
     QuizToday: {
-      question: components["schemas"]["QuizQuestionPublic"];
+      question: components["schemas"]["QuizQuestionPublic"] | null;
       indexLabel: string;
       attemptedToday: number;
       date: string;
@@ -261,7 +261,7 @@ export interface components {
       category: string;
       difficulty: string;
       source: string;
-    } | null;
+    };
     QuizOption: {
       letter: components["schemas"]["QuizOptionLetter"];
       text: string;

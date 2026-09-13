@@ -21,15 +21,7 @@ export type JobListResult = S["JobListResult"];
 export type JobProgress = S["JobProgress"];
 export type QuizOptionLetter = S["QuizOptionLetter"];
 export type QuizOption = S["QuizOption"];
-/**
- * 后端对 `QuizToday.question` 用 `QuizQuestionPublicSchema.nullable()`，但 @hono/zod-openapi
- * 把这个 nullable 烘焙进了被引用的组件本身（`components.schemas.QuizQuestionPublic` 的
- * `type` 变成 `["object","null"]`），而不是只在引用处加 nullable。这样生成的
- * `S["QuizQuestionPublic"]` 会带 `| null`，而组件层（QuizQuestion.tsx）的 props 一直按
- * "非空" 使用（调用方在渲染前已判空）。这里剥掉 null，保持字段级类型与组件层预期一致；
- * `QuizToday` 不受影响 —— 它的 `question` 字段本就该是 `QuizQuestionPublic | null`。
- */
-export type QuizQuestionPublic = NonNullable<S["QuizQuestionPublic"]>;
+export type QuizQuestionPublic = S["QuizQuestionPublic"];
 export type QuizToday = S["QuizToday"];
 export type QuizAnswerResult = S["QuizAnswerResult"];
 export type WrongBookItem = S["WrongBookItem"];
