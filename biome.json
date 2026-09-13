@@ -6,7 +6,15 @@
     "useIgnoreFile": true
   },
   "files": {
-    "includes": ["**", "!**/generated", "!**/dist", "!**/routeTree.gen.ts", "!**/.superpowers", "!**/.next"]
+    "includes": [
+      "**",
+      "!**/generated",
+      "!**/dist",
+      "!**/routeTree.gen.ts",
+      "!**/.superpowers",
+      "!**/.next",
+      "!openapi.json"
+    ]
   },
   "formatter": {
     "enabled": true,

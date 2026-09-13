@@ -18,12 +18,15 @@
     "db:migrate": "prisma migrate dev",
     "db:seed": "prisma db seed",
     "db:import": "tsx scripts/import-jobs.ts",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "openapi": "tsx scripts/openapi.ts",
+    "openapi:check": "pnpm openapi && git diff --exit-code -- openapi.json",
+    "pretest": "pnpm openapi:check"
   },
   "dependencies": {
     "@hono/node-server": "^2.1.1",
+    "@hono/swagger-ui": "^0.6.1",
     "@hono/zod-openapi": "^1.6.3",
-    "@hono/zod-validator": "^0.9.1",
     "@prisma/adapter-pg": "^7.10.0",
     "@prisma/client": "^7.10.0",
     "dotenv": "^17.4.2",

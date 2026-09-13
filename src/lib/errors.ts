@@ -1,5 +1,6 @@
+import type { Hook } from "@hono/zod-openapi";
+import type { ErrorHandler } from "hono";
 import { HTTPException } from "hono/http-exception";
-import type { Context, ErrorHandler } from "hono";
 import type { Env } from "../env";
 
 export class NotFoundError extends Error {
@@ -9,13 +10,14 @@ export class NotFoundError extends Error {
   }
 }
 
-/** zValidator 第三参：校验失败统一 400 */
-export const validationHook = (
-  result: { success: boolean; error?: { issues: unknown[] } },
-  c: Pick<Context, "json">,
-) => {
+/** OpenAPIHono 的 defaultHook：校验失败统一 400 */
+// biome-ignore lint/suspicious/noExplicitAny: 对所有路由生效的通用 hook
+export const validationHook: Hook<any, Env, any, any> = (result, c) => {
   if (!result.success) {
-    return c.json({ error: { code: "VALIDATION", message: "参数校验失败", issues: result.error?.issues } }, 400);
+    return c.json(
+      { error: { code: "VALIDATION" as const, message: "参数校验失败", issues: result.error.issues } },
+      400,
+    );
   }
 };
 

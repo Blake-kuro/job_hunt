@@ -1,0 +1,1148 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "job_hunt_back",
+    "version": "0.1.0",
+    "description": "职寻 · 校园招聘岗位与刷题 API"
+  },
+  "components": {
+    "schemas": {
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "name"
+        ]
+      },
+      "JobListResult": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/JobListItem"
+            }
+          },
+          "total": {
+            "type": "integer"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "pageSize": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "page",
+          "pageSize"
+        ]
+      },
+      "JobListItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "company": {
+            "type": "string"
+          },
+          "category": {
+            "$ref": "#/components/schemas/CategoryId"
+          },
+          "categoryLabel": {
+            "type": "string"
+          },
+          "positions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "cities": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "degree": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "industry": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "batch": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "graduationYear": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "deadlineText": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "deadlineAt": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "daysLeft": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "postedAt": {
+            "type": "string"
+          },
+          "announcementLink": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "deliveryAddress": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "starred": {
+            "type": "boolean"
+          },
+          "applicationStatus": {
+            "$ref": "#/components/schemas/ApplicationStatus"
+          }
+        },
+        "required": [
+          "id",
+          "company",
+          "category",
+          "categoryLabel",
+          "positions",
+          "cities",
+          "degree",
+          "industry",
+          "batch",
+          "graduationYear",
+          "deadlineText",
+          "deadlineAt",
+          "daysLeft",
+          "postedAt",
+          "announcementLink",
+          "deliveryAddress",
+          "starred",
+          "applicationStatus"
+        ]
+      },
+      "CategoryId": {
+        "anyOf": [
+          {
+            "type": "number",
+            "enum": [
+              1
+            ]
+          },
+          {
+            "type": "number",
+            "enum": [
+              2
+            ]
+          },
+          {
+            "type": "number",
+            "enum": [
+              3
+            ]
+          }
+        ]
+      },
+      "ApplicationStatus": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "enum": [
+          "APPLIED",
+          "INTERVIEWING",
+          null
+        ]
+      },
+      "ApiError": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "$ref": "#/components/schemas/ApiErrorCode"
+              },
+              "message": {
+                "type": "string"
+              },
+              "issues": {
+                "type": "array",
+                "items": {}
+              }
+            },
+            "required": [
+              "code",
+              "message"
+            ]
+          }
+        },
+        "required": [
+          "error"
+        ]
+      },
+      "ApiErrorCode": {
+        "type": "string",
+        "enum": [
+          "VALIDATION",
+          "NOT_FOUND",
+          "INTERNAL"
+        ]
+      },
+      "JobProgress": {
+        "type": "object",
+        "properties": {
+          "starred": {
+            "type": "integer"
+          },
+          "applied": {
+            "type": "integer"
+          },
+          "interviewing": {
+            "type": "integer"
+          },
+          "newThisWeek": {
+            "type": "integer"
+          },
+          "newInternshipsThisWeek": {
+            "type": "integer"
+          },
+          "nextDeadline": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "jobId": {
+                "type": "integer"
+              },
+              "company": {
+                "type": "string"
+              },
+              "daysLeft": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "jobId",
+              "company",
+              "daysLeft"
+            ]
+          }
+        },
+        "required": [
+          "starred",
+          "applied",
+          "interviewing",
+          "newThisWeek",
+          "newInternshipsThisWeek",
+          "nextDeadline"
+        ]
+      },
+      "FavoriteResult": {
+        "type": "object",
+        "properties": {
+          "starred": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "starred"
+        ]
+      },
+      "ApplicationResult": {
+        "type": "object",
+        "properties": {
+          "applicationStatus": {
+            "$ref": "#/components/schemas/ApplicationStatus"
+          }
+        },
+        "required": [
+          "applicationStatus"
+        ]
+      },
+      "ApplicationBody": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/ApplicationStatus"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "QuizToday": {
+        "type": "object",
+        "properties": {
+          "question": {
+            "$ref": "#/components/schemas/QuizQuestionPublic"
+          },
+          "indexLabel": {
+            "type": "string"
+          },
+          "attemptedToday": {
+            "type": "integer"
+          },
+          "date": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "question",
+          "indexLabel",
+          "attemptedToday",
+          "date"
+        ]
+      },
+      "QuizQuestionPublic": {
+        "type": [
+          "object",
+          "null"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "prompt": {
+            "type": "string"
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QuizOption"
+            }
+          },
+          "category": {
+            "type": "string"
+          },
+          "difficulty": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "prompt",
+          "options",
+          "category",
+          "difficulty",
+          "source"
+        ]
+      },
+      "QuizOption": {
+        "type": "object",
+        "properties": {
+          "letter": {
+            "$ref": "#/components/schemas/QuizOptionLetter"
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "letter",
+          "text"
+        ]
+      },
+      "QuizOptionLetter": {
+        "type": "string",
+        "enum": [
+          "A",
+          "B",
+          "C",
+          "D"
+        ]
+      },
+      "QuizAnswerResult": {
+        "type": "object",
+        "properties": {
+          "correct": {
+            "type": "boolean"
+          },
+          "answer": {
+            "$ref": "#/components/schemas/QuizOptionLetter"
+          },
+          "explanation": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "accuracyRate": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "correct",
+          "answer",
+          "explanation",
+          "accuracyRate"
+        ]
+      },
+      "SubmitAttempt": {
+        "type": "object",
+        "properties": {
+          "questionId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "picked": {
+            "$ref": "#/components/schemas/QuizOptionLetter"
+          }
+        },
+        "required": [
+          "questionId",
+          "picked"
+        ]
+      },
+      "QuizDashboard": {
+        "type": "object",
+        "properties": {
+          "streakDays": {
+            "type": "integer"
+          },
+          "week": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "label": {
+                  "type": "string",
+                  "enum": [
+                    "一",
+                    "二",
+                    "三",
+                    "四",
+                    "五",
+                    "六",
+                    "日"
+                  ]
+                },
+                "done": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "label",
+                "done"
+              ]
+            }
+          },
+          "weekSolved": {
+            "type": "integer"
+          },
+          "weekTarget": {
+            "type": "integer"
+          },
+          "totalSolved": {
+            "type": "integer"
+          },
+          "categories": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "count": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "id",
+                "label",
+                "count"
+              ]
+            }
+          },
+          "wrongList": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WrongBookItem"
+            }
+          }
+        },
+        "required": [
+          "streakDays",
+          "week",
+          "weekSolved",
+          "weekTarget",
+          "totalSolved",
+          "categories",
+          "wrongList"
+        ]
+      },
+      "WrongBookItem": {
+        "type": "object",
+        "properties": {
+          "questionId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "due": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "questionId",
+          "title",
+          "due"
+        ]
+      },
+      "WrongBookList": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WrongBookItem"
+            }
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "SetMastered": {
+        "type": "object",
+        "properties": {
+          "mastered": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "mastered"
+        ]
+      },
+      "CompanySetList": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CompanySetItem"
+            }
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "CompanySetItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "company": {
+            "type": "string"
+          },
+          "track": {
+            "type": "string"
+          },
+          "focus": {
+            "type": "string"
+          },
+          "count": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "company",
+          "track",
+          "focus",
+          "count"
+        ]
+      }
+    },
+    "parameters": {}
+  },
+  "paths": {
+    "/api/me": {
+      "get": {
+        "tags": [
+          "me"
+        ],
+        "operationId": "getMe",
+        "responses": {
+          "200": {
+            "description": "当前用户",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/jobs": {
+      "get": {
+        "tags": [
+          "jobs"
+        ],
+        "operationId": "listJobs",
+        "parameters": [
+          {
+            "schema": {
+              "type": "number"
+            },
+            "required": false,
+            "name": "category",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required": false,
+            "name": "city",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required": false,
+            "name": "q",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "deadline",
+                "posted"
+              ],
+              "default": "deadline"
+            },
+            "required": false,
+            "name": "sort",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            },
+            "required": false,
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            },
+            "required": false,
+            "name": "pageSize",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "岗位列表",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobListResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/jobs/progress": {
+      "get": {
+        "tags": [
+          "jobs"
+        ],
+        "operationId": "getJobProgress",
+        "responses": {
+          "200": {
+            "description": "我的进度",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobProgress"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/jobs/{id}/favorite": {
+      "put": {
+        "tags": [
+          "jobs"
+        ],
+        "operationId": "addFavorite",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "example": 1
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "已收藏",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FavoriteResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "岗位不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "jobs"
+        ],
+        "operationId": "removeFavorite",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "example": 1
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "已取消收藏",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FavoriteResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "岗位不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/jobs/{id}/application": {
+      "put": {
+        "tags": [
+          "jobs"
+        ],
+        "operationId": "setApplication",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "example": 1
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApplicationBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "投递状态",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "岗位不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "jobs"
+        ],
+        "operationId": "clearApplication",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "example": 1
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "已清除投递状态",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "岗位不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/quiz/today": {
+      "get": {
+        "tags": [
+          "quiz"
+        ],
+        "operationId": "getTodayQuestion",
+        "responses": {
+          "200": {
+            "description": "今日一题",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuizToday"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/quiz/attempts": {
+      "post": {
+        "tags": [
+          "quiz"
+        ],
+        "operationId": "submitAttempt",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmitAttempt"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "判题结果",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuizAnswerResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/quiz/dashboard": {
+      "get": {
+        "tags": [
+          "quiz"
+        ],
+        "operationId": "getQuizDashboard",
+        "responses": {
+          "200": {
+            "description": "打卡仪表盘",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuizDashboard"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/quiz/wrong-book": {
+      "get": {
+        "tags": [
+          "quiz"
+        ],
+        "operationId": "listWrongBook",
+        "responses": {
+          "200": {
+            "description": "错题本",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WrongBookList"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/quiz/wrong-book/{questionId}": {
+      "put": {
+        "tags": [
+          "quiz"
+        ],
+        "operationId": "setWrongBookMastered",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "example": "q-001"
+            },
+            "required": true,
+            "name": "questionId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetMastered"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "已更新"
+          },
+          "400": {
+            "description": "参数校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/quiz/company-sets": {
+      "get": {
+        "tags": [
+          "quiz"
+        ],
+        "operationId": "listCompanySets",
+        "responses": {
+          "200": {
+            "description": "公司题集",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompanySetList"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "webhooks": {}
+}
