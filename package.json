@@ -1,25 +1,44 @@
 {
-  "name": "job-hunt",
-  "version": "0.2.0",
+  "name": "job-hunt-front",
+  "version": "0.3.0",
   "private": true,
+  "type": "module",
   "packageManager": "pnpm@12.4.1",
   "engines": {
     "node": ">=22"
   },
   "scripts": {
-    "dev": "pnpm -r --parallel --filter \"./apps/*\" dev",
-    "build": "pnpm -r build",
-    "test": "pnpm -r test",
-    "typecheck": "pnpm -r typecheck",
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
     "lint": "biome check .",
     "format": "biome format --write .",
-    "db:up": "docker compose up -d",
-    "db:migrate": "pnpm --filter @job-hunt/api exec prisma migrate dev",
-    "db:seed": "pnpm --filter @job-hunt/api exec prisma db seed",
-    "db:import": "pnpm --filter @job-hunt/api run import-jobs"
+    "test": "vitest run",
+    "gen:api": "pnpm dlx openapi-typescript@7 \"${OPENAPI_SOURCE:-http://localhost:3001/api/openapi.json}\" -o src/api/schema.d.ts"
+  },
+  "dependencies": {
+    "@tanstack/react-query": "^5.102.8",
+    "@tanstack/react-router": "^1.170.35",
+    "openapi-fetch": "^0.17.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "zod": "^4.5.4"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.13",
-    "typescript": "7.0.2"
+    "@tailwindcss/vite": "^4",
+    "@tanstack/react-query-devtools": "^5.102.8",
+    "@tanstack/react-router-devtools": "^1.167.1",
+    "@tanstack/router-plugin": "^1.168.37",
+    "@types/node": "^22",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^6.1.1",
+    "hono": "^4.13.0",
+    "tailwindcss": "^4",
+    "typescript": "7.0.2",
+    "vite": "^8.3.0",
+    "vitest": "^5.0.0"
   }
 }

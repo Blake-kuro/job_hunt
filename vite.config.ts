@@ -6,7 +6,7 @@ import { defineConfig, loadEnv } from "vite";
 
 const src = (p: string) => fileURLToPath(new URL(`./src/${p}`, import.meta.url));
 
-/** 后端地址：apps/web/.env.local 里的 VITE_API_PROXY（或环境变量），默认本机 3001 */
+/** 后端地址：.env.local 里的 VITE_API_PROXY（或环境变量），默认本机 3001 */
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "VITE_");
   const apiProxy = env.VITE_API_PROXY ?? process.env.VITE_API_PROXY ?? "http://localhost:3001";
