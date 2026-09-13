@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { quizOptionsSchema, submitAttemptSchema } from "./schema";
+import { quizOptionsSchema, submitAttemptSchema } from "./quiz";
 
 const four = ["A", "B", "C", "D"].map((letter) => ({ letter, text: `选项 ${letter}` }));
 

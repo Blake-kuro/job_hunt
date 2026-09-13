@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { jobListQuerySchema } from "./query";
+import { jobListQuerySchema } from "./job";
 
 describe("jobListQuerySchema", () => {
   it("空对象得到默认值", () => {
