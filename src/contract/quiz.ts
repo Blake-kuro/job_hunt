@@ -32,7 +32,7 @@ export type QuizQuestionPublic = z.infer<typeof QuizQuestionPublicSchema>;
 
 export const QuizTodaySchema = z
   .object({
-    question: QuizQuestionPublicSchema.nullable(),
+    question: z.union([QuizQuestionPublicSchema, z.null()]),
     indexLabel: z.string(),
     attemptedToday: z.number().int(),
     date: z.string(),

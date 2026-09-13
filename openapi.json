@@ -140,7 +140,14 @@
             "type": "boolean"
           },
           "applicationStatus": {
-            "$ref": "#/components/schemas/ApplicationStatus"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ApplicationStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -187,14 +194,10 @@
         ]
       },
       "ApplicationStatus": {
-        "type": [
-          "string",
-          "null"
-        ],
+        "type": "string",
         "enum": [
           "APPLIED",
-          "INTERVIEWING",
-          null
+          "INTERVIEWING"
         ]
       },
       "ApiError": {
@@ -297,7 +300,14 @@
         "type": "object",
         "properties": {
           "applicationStatus": {
-            "$ref": "#/components/schemas/ApplicationStatus"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ApplicationStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -319,7 +329,14 @@
         "type": "object",
         "properties": {
           "question": {
-            "$ref": "#/components/schemas/QuizQuestionPublic"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/QuizQuestionPublic"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "indexLabel": {
             "type": "string"
@@ -339,10 +356,7 @@
         ]
       },
       "QuizQuestionPublic": {
-        "type": [
-          "object",
-          "null"
-        ],
+        "type": "object",
         "properties": {
           "id": {
             "type": "string"

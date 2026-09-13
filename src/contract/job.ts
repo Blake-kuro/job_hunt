@@ -50,7 +50,7 @@ export const JobListItemSchema = z
     announcementLink: z.string().nullable(),
     deliveryAddress: z.string().nullable(),
     starred: z.boolean(),
-    applicationStatus: ApplicationStatusSchema.nullable(),
+    applicationStatus: z.union([ApplicationStatusSchema, z.null()]),
   })
   .openapi("JobListItem");
 export type JobListItem = z.infer<typeof JobListItemSchema>;
@@ -87,5 +87,5 @@ export const IdParamSchema = z.object({
 export const ApplicationBodySchema = z.object({ status: ApplicationStatusSchema }).openapi("ApplicationBody");
 export const FavoriteResultSchema = z.object({ starred: z.boolean() }).openapi("FavoriteResult");
 export const ApplicationResultSchema = z
-  .object({ applicationStatus: ApplicationStatusSchema.nullable() })
+  .object({ applicationStatus: z.union([ApplicationStatusSchema, z.null()]) })
   .openapi("ApplicationResult");
