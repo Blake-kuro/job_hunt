@@ -13,7 +13,7 @@ export class NotFoundError extends Error {
 
 export class AppError extends Error {
   constructor(
-    readonly status: 400 | 401 | 429,
+    readonly status: 400 | 401 | 403 | 429,
     readonly code: ApiErrorCode,
     message: string,
   ) {

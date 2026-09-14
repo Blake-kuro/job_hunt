@@ -113,6 +113,10 @@ export async function verifyLoginCode(phone: string, code: string, guestUserId: 
         : (await tx.user.create({ data: { name: `用户${phone.slice(-4)}` }, select: { id: true } })).id;
       identity = await tx.authIdentity.create({ data: { userId, provider: "PHONE", providerKey: phone } });
     }
+    const adminPhones = (process.env.ADMIN_PHONE_NUMBERS ?? "").split(",").map((value) => value.trim());
+    if (adminPhones.includes(phone)) {
+      await tx.user.update({ where: { id: identity.userId }, data: { role: "ADMIN", enabled: true } });
+    }
     const token = randomBytes(32).toString("base64url");
     await tx.session.create({
       data: {
@@ -191,6 +195,8 @@ async function createDeviceUser(c: Parameters<typeof setCookie>[0]): Promise<str
 /** 每个请求都有用户：会话 → 游客 → 新建游客；并注入档位 */
 export const requestUser = createMiddleware<Env>(async (c, next) => {
   const userId = (await sessionUserId(c)) ?? (await findDeviceUserId(c)) ?? (await createDeviceUser(c));
+  const user = await prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { enabled: true } });
+  if (!user.enabled) throw new AppError(403, "FORBIDDEN", "账号权限已停用，请联系管理员");
   c.set("userId", userId);
   c.set("access", await getAccess(userId));
   await next();

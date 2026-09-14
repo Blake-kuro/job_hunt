@@ -10,6 +10,8 @@ export const UserSchema = z
     tier: TierSchema,
     plan: PlanSchema,
     proExpiresAt: z.string().nullable(),
+    role: z.enum(["STUDENT", "ADMIN"]),
+    enabled: z.boolean(),
   })
   .openapi("User");
 export type User = z.infer<typeof UserSchema>;

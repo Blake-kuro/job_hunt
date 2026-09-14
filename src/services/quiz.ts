@@ -17,11 +17,23 @@ const DIFFICULTY_LABEL = { EASY: "难度 简单", MEDIUM: "难度 中等", HARD:
 const WEEK_LABELS: WeekLabel[] = ["一", "二", "三", "四", "五", "六", "日"];
 const WEEK_TARGET = 20;
 
+async function questionAccess(userId: string) {
+  const user = await prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { role: true, enabled: true } });
+  if (!user.enabled) return { id: { in: [] as string[] } };
+  if (user.role === "ADMIN") return { published: true };
+  const grants = await prisma.accessGrant.findMany({
+    where: { userId, contentType: "QUESTION", OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }] },
+    select: { contentId: true },
+  });
+  return { published: true, id: { in: grants.map((grant) => grant.contentId) } };
+}
+
 export async function getTodayQuestion(userId: string): Promise<QuizToday> {
   const today = dateKey();
+  const access = await questionAccess(userId);
   const [question, attemptedToday] = await Promise.all([
     prisma.question.findFirst({
-      where: { attempts: { none: { userId } } },
+      where: { ...access, attempts: { none: { userId } } },
       orderBy: { id: "asc" },
       include: { category: { select: { name: true } } },
     }),
@@ -52,8 +64,9 @@ export async function submitAnswer(
   questionId: string,
   picked: QuizOptionLetter,
 ): Promise<QuizAnswerResult> {
-  const q = await prisma.question.findUnique({
-    where: { id: questionId },
+  const access = await questionAccess(userId);
+  const q = await prisma.question.findFirst({
+    where: { ...access, id: questionId },
     select: { answer: true, explanation: true },
   });
   if (!q) throw new NotFoundError(`题目 ${questionId} 不存在`);
@@ -86,8 +99,9 @@ export async function submitAnswer(
 
 export async function listWrongBook(userId: string): Promise<WrongBookItem[]> {
   const today = dateKey();
+  const access = await questionAccess(userId);
   const rows = await prisma.wrongBookEntry.findMany({
-    where: { userId, mastered: false },
+    where: { userId, mastered: false, question: access },
     orderBy: { nextReviewAt: "asc" },
     select: { questionId: true, nextReviewAt: true, question: { select: { prompt: true } } },
   });

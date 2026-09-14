@@ -57,6 +57,7 @@
         "enum": [
           "VALIDATION",
           "UNAUTHORIZED",
+          "FORBIDDEN",
           "CODE_INVALID",
           "RATE_LIMITED",
           "NOT_FOUND",
@@ -119,6 +120,16 @@
               "string",
               "null"
             ]
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "STUDENT",
+              "ADMIN"
+            ]
+          },
+          "enabled": {
+            "type": "boolean"
           }
         },
         "required": [
@@ -128,7 +139,9 @@
           "name",
           "tier",
           "plan",
-          "proExpiresAt"
+          "proExpiresAt",
+          "role",
+          "enabled"
         ]
       },
       "Tier": {
@@ -162,6 +175,515 @@
         "required": [
           "phone",
           "code"
+        ]
+      },
+      "AdminDashboard": {
+        "type": "object",
+        "properties": {
+          "summary": {
+            "type": "object",
+            "properties": {
+              "students": {
+                "type": "number"
+              },
+              "enabledStudents": {
+                "type": "number"
+              },
+              "materials": {
+                "type": "number"
+              },
+              "courses": {
+                "type": "number"
+              },
+              "questions": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "students",
+              "enabledStudents",
+              "materials",
+              "courses",
+              "questions"
+            ]
+          },
+          "students": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "phone": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "enabled": {
+                  "type": "boolean"
+                },
+                "plan": {
+                  "type": "string",
+                  "enum": [
+                    "FREE",
+                    "PRO"
+                  ]
+                },
+                "proExpiresAt": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date-time"
+                },
+                "createdAt": {
+                  "type": "string"
+                },
+                "grants": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "contentType": {
+                        "$ref": "#/components/schemas/ContentType"
+                      },
+                      "contentId": {
+                        "type": "string"
+                      },
+                      "expiresAt": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "format": "date-time"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "contentType",
+                      "contentId",
+                      "expiresAt"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "phone",
+                "enabled",
+                "plan",
+                "proExpiresAt",
+                "createdAt",
+                "grants"
+              ]
+            }
+          },
+          "materials": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "category": {
+                  "type": "string"
+                },
+                "resourceUrl": {
+                  "type": "string"
+                },
+                "published": {
+                  "type": "boolean"
+                },
+                "updatedAt": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "title",
+                "description",
+                "category",
+                "resourceUrl",
+                "published",
+                "updatedAt"
+              ]
+            }
+          },
+          "courses": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "coverUrl": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "published": {
+                  "type": "boolean"
+                },
+                "updatedAt": {
+                  "type": "string"
+                },
+                "lessons": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "title": {
+                        "type": "string"
+                      },
+                      "videoUrl": {
+                        "type": "string"
+                      },
+                      "durationMinutes": {
+                        "type": [
+                          "number",
+                          "null"
+                        ]
+                      },
+                      "sortOrder": {
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "title",
+                      "videoUrl",
+                      "durationMinutes",
+                      "sortOrder"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "title",
+                "description",
+                "coverUrl",
+                "published",
+                "updatedAt",
+                "lessons"
+              ]
+            }
+          },
+          "questions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "prompt": {
+                  "type": "string"
+                },
+                "difficulty": {
+                  "type": "string"
+                },
+                "source": {
+                  "type": "string"
+                },
+                "published": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "id",
+                "prompt",
+                "difficulty",
+                "source",
+                "published"
+              ]
+            }
+          }
+        },
+        "required": [
+          "summary",
+          "students",
+          "materials",
+          "courses",
+          "questions"
+        ]
+      },
+      "ContentType": {
+        "type": "string",
+        "enum": [
+          "MATERIAL",
+          "QUESTION",
+          "COURSE"
+        ]
+      },
+      "AdminStudentPatch": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "plan": {
+            "type": "string",
+            "enum": [
+              "FREE",
+              "PRO"
+            ]
+          },
+          "proExpiresAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "AdminAccessBody": {
+        "type": "object",
+        "properties": {
+          "grants": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "contentType": {
+                  "$ref": "#/components/schemas/ContentType"
+                },
+                "contentId": {
+                  "type": "string"
+                },
+                "expiresAt": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date-time"
+                }
+              },
+              "required": [
+                "contentType",
+                "contentId"
+              ]
+            }
+          }
+        },
+        "required": [
+          "grants"
+        ]
+      },
+      "AdminContentBody": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "MATERIAL",
+              "COURSE"
+            ]
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "category": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "coverUrl": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri"
+          },
+          "published": {
+            "type": "boolean"
+          },
+          "lessons": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "title": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "videoUrl": {
+                  "type": "string",
+                  "format": "uri"
+                },
+                "durationMinutes": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "exclusiveMinimum": 0
+                }
+              },
+              "required": [
+                "title",
+                "videoUrl"
+              ]
+            }
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "published"
+        ]
+      },
+      "StudentContent": {
+        "type": "object",
+        "properties": {
+          "materials": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "category": {
+                  "type": "string"
+                },
+                "resourceUrl": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "title",
+                "description",
+                "category",
+                "resourceUrl"
+              ]
+            }
+          },
+          "courses": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "coverUrl": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "lessons": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "title": {
+                        "type": "string"
+                      },
+                      "videoUrl": {
+                        "type": "string"
+                      },
+                      "durationMinutes": {
+                        "type": [
+                          "number",
+                          "null"
+                        ]
+                      },
+                      "sortOrder": {
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "title",
+                      "videoUrl",
+                      "durationMinutes",
+                      "sortOrder"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "title",
+                "description",
+                "coverUrl",
+                "lessons"
+              ]
+            }
+          }
+        },
+        "required": [
+          "materials",
+          "courses"
         ]
       },
       "JobListResult": {
@@ -831,6 +1353,211 @@
         "responses": {
           "204": {
             "description": "已退出登录"
+          }
+        }
+      }
+    },
+    "/api/admin/dashboard": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "operationId": "getAdminDashboard",
+        "responses": {
+          "200": {
+            "description": "后台数据",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminDashboard"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/students/{id}": {
+      "patch": {
+        "tags": [
+          "admin"
+        ],
+        "operationId": "updateAdminStudent",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminStudentPatch"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "已更新"
+          }
+        }
+      }
+    },
+    "/api/admin/students/{id}/access": {
+      "put": {
+        "tags": [
+          "admin"
+        ],
+        "operationId": "replaceStudentAccess",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminAccessBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "已更新"
+          }
+        }
+      }
+    },
+    "/api/admin/content": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "operationId": "saveAdminContent",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminContentBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "已保存"
+          }
+        }
+      }
+    },
+    "/api/admin/content/{type}/{id}": {
+      "delete": {
+        "tags": [
+          "admin"
+        ],
+        "operationId": "deleteAdminContent",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "MATERIAL",
+                "COURSE"
+              ]
+            },
+            "required": true,
+            "name": "type",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "已删除"
+          }
+        }
+      }
+    },
+    "/api/admin/questions/{id}": {
+      "patch": {
+        "tags": [
+          "admin"
+        ],
+        "operationId": "updateAdminQuestion",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "published": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "published"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "已更新"
+          }
+        }
+      }
+    },
+    "/api/content": {
+      "get": {
+        "tags": [
+          "content"
+        ],
+        "operationId": "listStudentContent",
+        "responses": {
+          "200": {
+            "description": "已授权的资料和课程",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudentContent"
+                }
+              }
+            }
           }
         }
       }

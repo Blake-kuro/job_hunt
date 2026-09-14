@@ -15,6 +15,8 @@ model User {
   name         String
   plan         Plan      @default(FREE)
   proExpiresAt DateTime?
+  role         UserRole  @default(STUDENT)
+  enabled      Boolean   @default(true)
   createdAt    DateTime  @default(now())
 
   identities   AuthIdentity[]
@@ -23,6 +25,13 @@ model User {
   applications Application[]
   attempts     Attempt[]
   wrongBook    WrongBookEntry[]
+  accessGrants  AccessGrant[] @relation("StudentGrants")
+  grantedAccess AccessGrant[] @relation("GrantedBy")
+}
+
+enum UserRole {
+  STUDENT
+  ADMIN
 }
 
 enum AuthProvider {
@@ -71,6 +80,61 @@ model SmsVerification {
 
   @@index([phone, createdAt])
   @@index([expiresAt])
+}
+
+enum ContentType {
+  MATERIAL
+  QUESTION
+  COURSE
+}
+
+model AccessGrant {
+  id          String      @id @default(cuid())
+  userId      String
+  contentType ContentType
+  contentId   String
+  expiresAt   DateTime?
+  grantedById String
+  createdAt   DateTime    @default(now())
+  user        User        @relation("StudentGrants", fields: [userId], references: [id], onDelete: Cascade)
+  grantedBy   User        @relation("GrantedBy", fields: [grantedById], references: [id], onDelete: Cascade)
+
+  @@unique([userId, contentType, contentId])
+  @@index([userId, contentType, expiresAt])
+}
+
+model StudyMaterial {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  category    String
+  resourceUrl String
+  published   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Course {
+  id          String         @id @default(cuid())
+  title       String
+  description String?
+  coverUrl    String?
+  published   Boolean        @default(false)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  lessons     CourseLesson[]
+}
+
+model CourseLesson {
+  id              String @id @default(cuid())
+  courseId        String
+  title           String
+  videoUrl        String
+  durationMinutes Int?
+  sortOrder       Int    @default(0)
+  course          Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@index([courseId, sortOrder])
 }
 
 // ── 岗位（用户现有 Excel 结构）────────────────────────
@@ -158,6 +222,7 @@ model Question {
   explanation  String[]
   difficulty   Difficulty
   source       String
+  published    Boolean           @default(true)
   category     QuestionCategory  @relation(fields: [categoryId], references: [id])
   companySet   CompanySet?       @relation(fields: [companySetId], references: [id])
   attempts     Attempt[]

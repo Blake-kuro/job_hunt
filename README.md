@@ -26,6 +26,8 @@ pnpm dev                      # http://localhost:3001
 - 手机号验证码免密登录；验证成功后自动注册，使用 HttpOnly Cookie 保存 30 天会话。
 - 开发环境会在后端日志和发送接口的 `developmentCode` 字段显示验证码；生产环境接入短信服务商前会拒绝发送。
 - 登录身份独立保存，已预留 `WECHAT` / `QQ` 类型，后续可将扫码身份绑定到同一用户。
+- 管理后台通过 `ADMIN_PHONE_NUMBERS`（逗号分隔）指定管理员手机号；支持停用学生、FREE/PRO 调整，以及按资料、单题、网课授权。
+- 学习内容接口只返回已发布且仍在授权有效期内的资料和网课，刷题接口同样校验单题授权。
 - 错误统一 `{ error: { code, message, issues? } }`，包括参数、登录态、验证码及频控错误。
 - 跨域：`CORS_ORIGINS` 逗号分隔；前端走 Vite 代理时不需要。
 - 时区 Asia/Shanghai：日期边界只经 `src/lib/dates.ts`。

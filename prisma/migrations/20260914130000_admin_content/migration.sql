@@ -1,0 +1,14 @@
+CREATE TYPE "UserRole" AS ENUM ('STUDENT', 'ADMIN');
+CREATE TYPE "ContentType" AS ENUM ('MATERIAL', 'QUESTION', 'COURSE');
+ALTER TABLE "User" ADD COLUMN "role" "UserRole" NOT NULL DEFAULT 'STUDENT', ADD COLUMN "enabled" BOOLEAN NOT NULL DEFAULT true;
+ALTER TABLE "Question" ADD COLUMN "published" BOOLEAN NOT NULL DEFAULT true;
+CREATE TABLE "AccessGrant" ("id" TEXT NOT NULL, "userId" TEXT NOT NULL, "contentType" "ContentType" NOT NULL, "contentId" TEXT NOT NULL, "expiresAt" TIMESTAMP(3), "grantedById" TEXT NOT NULL, "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP, CONSTRAINT "AccessGrant_pkey" PRIMARY KEY ("id"));
+CREATE TABLE "StudyMaterial" ("id" TEXT NOT NULL, "title" TEXT NOT NULL, "description" TEXT, "category" TEXT NOT NULL, "resourceUrl" TEXT NOT NULL, "published" BOOLEAN NOT NULL DEFAULT false, "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP, "updatedAt" TIMESTAMP(3) NOT NULL, CONSTRAINT "StudyMaterial_pkey" PRIMARY KEY ("id"));
+CREATE TABLE "Course" ("id" TEXT NOT NULL, "title" TEXT NOT NULL, "description" TEXT, "coverUrl" TEXT, "published" BOOLEAN NOT NULL DEFAULT false, "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP, "updatedAt" TIMESTAMP(3) NOT NULL, CONSTRAINT "Course_pkey" PRIMARY KEY ("id"));
+CREATE TABLE "CourseLesson" ("id" TEXT NOT NULL, "courseId" TEXT NOT NULL, "title" TEXT NOT NULL, "videoUrl" TEXT NOT NULL, "durationMinutes" INTEGER, "sortOrder" INTEGER NOT NULL DEFAULT 0, CONSTRAINT "CourseLesson_pkey" PRIMARY KEY ("id"));
+CREATE UNIQUE INDEX "AccessGrant_userId_contentType_contentId_key" ON "AccessGrant"("userId", "contentType", "contentId");
+CREATE INDEX "AccessGrant_userId_contentType_expiresAt_idx" ON "AccessGrant"("userId", "contentType", "expiresAt");
+CREATE INDEX "CourseLesson_courseId_sortOrder_idx" ON "CourseLesson"("courseId", "sortOrder");
+ALTER TABLE "AccessGrant" ADD CONSTRAINT "AccessGrant_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "AccessGrant" ADD CONSTRAINT "AccessGrant_grantedById_fkey" FOREIGN KEY ("grantedById") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "CourseLesson" ADD CONSTRAINT "CourseLesson_courseId_fkey" FOREIGN KEY ("courseId") REFERENCES "Course"("id") ON DELETE CASCADE ON UPDATE CASCADE;

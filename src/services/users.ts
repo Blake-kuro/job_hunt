@@ -8,6 +8,8 @@ const userSelect = {
   name: true,
   plan: true,
   proExpiresAt: true,
+  role: true,
+  enabled: true,
   identities: { select: { provider: true, providerKey: true } },
 } as const;
 
@@ -17,6 +19,8 @@ type UserRow = {
   name: string;
   plan: "FREE" | "PRO";
   proExpiresAt: Date | null;
+  role: "STUDENT" | "ADMIN";
+  enabled: boolean;
   identities: { provider: string; providerKey: string }[];
 };
 
@@ -45,5 +49,7 @@ export async function getCurrentUser(userId: string): Promise<User> {
     tier: toAccess(row).tier,
     plan: row.plan,
     proExpiresAt: row.proExpiresAt ? row.proExpiresAt.toISOString() : null,
+    role: row.role,
+    enabled: row.enabled,
   };
 }

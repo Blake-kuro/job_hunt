@@ -9,6 +9,8 @@ import { jobRoutes } from "./routes/jobs";
 import { meRoutes } from "./routes/me";
 import { quizRoutes } from "./routes/quiz";
 import { authRoutes } from "./routes/auth";
+import { adminRoutes } from "./routes/admin";
+import { contentRoutes } from "./routes/content";
 
 export const OPENAPI_INFO = {
   openapi: "3.1.0",
@@ -29,6 +31,8 @@ function corsOrigins(): string[] {
 const api = new OpenAPIHono<Env>({ defaultHook: validationHook });
 api.route("/auth", authRoutes);
 api.use(requestUser);
+api.route("/admin", adminRoutes);
+api.route("/content", contentRoutes);
 api.route("/me", meRoutes);
 api.route("/jobs", jobRoutes);
 api.route("/quiz", quizRoutes);

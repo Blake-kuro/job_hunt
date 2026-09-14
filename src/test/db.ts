@@ -11,7 +11,7 @@ export async function resetDb() {
     throw new Error("拒绝清空非测试数据库");
   }
   await prisma.$executeRawUnsafe(
-    'TRUNCATE "SmsVerification","Session","AuthIdentity","Attempt","WrongBookEntry","Question","CompanySet","QuestionCategory","Application","Favorite","Job","User" RESTART IDENTITY CASCADE',
+    'TRUNCATE "CourseLesson","Course","StudyMaterial","AccessGrant","SmsVerification","Session","AuthIdentity","Attempt","WrongBookEntry","Question","CompanySet","QuestionCategory","Application","Favorite","Job","User" RESTART IDENTITY CASCADE',
   );
 }
 
@@ -20,6 +20,7 @@ export async function seedDevUser() {
     data: {
       email: DEV_USER_EMAIL,
       name: "开发账号",
+      role: "ADMIN",
       identities: { create: { provider: "PHONE", providerKey: "13800000000" } },
     },
   });
