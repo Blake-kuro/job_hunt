@@ -102,28 +102,33 @@ const OPTIONAL_TEXT_FIELDS = [
   "deadline",
 ] as const;
 
-/** POST：未提供的可选字段一律写 null */
-function toJobData(body: JobBody): Prisma.JobUncheckedCreateInput {
-  const data: Prisma.JobUncheckedCreateInput = {
-    categoryId: body.categoryId,
-    position: body.position,
-    enterpriseName: body.enterpriseName,
-    deadlineAt: body.deadlineAt ? keyToDate(body.deadlineAt) : null,
-  };
-  for (const key of OPTIONAL_TEXT_FIELDS) data[key] = body[key] ?? null;
-  return data;
+type JobFields = Pick<
+  Prisma.JobUncheckedCreateInput,
+  "categoryId" | "position" | "enterpriseName" | "deadlineAt" | (typeof OPTIONAL_TEXT_FIELDS)[number]
+>;
+
+/** 可选文本：trim 后空串视为 null（与 job-row.ts 的 opt() 一致）；undefined 原样透传 */
+function optText(v: string | null | undefined): string | null | undefined {
+  if (v === undefined || v === null) return v;
+  const s = v.trim();
+  return s ? s : null;
 }
 
-/** PATCH：只写提供的字段；`undefined` 跳过，`null` 写 null */
-function toJobPatch(body: JobPatch): Prisma.JobUncheckedUpdateInput {
-  const data: Prisma.JobUncheckedUpdateInput = {};
+/**
+ * body → Prisma 写入字段。`undefined` 一律跳过（PATCH 不改）；`null` 写 null；
+ * `fillNull` 为 true 时（POST）未提供的可选字段补成 null。
+ */
+function toJobData(body: JobPatch, fillNull = false): Partial<JobFields> {
+  const data: Partial<JobFields> = {};
   if (body.categoryId !== undefined) data.categoryId = body.categoryId;
   if (body.position !== undefined) data.position = body.position;
   if (body.enterpriseName !== undefined) data.enterpriseName = body.enterpriseName;
   if (body.deadlineAt !== undefined) data.deadlineAt = body.deadlineAt ? keyToDate(body.deadlineAt) : null;
+  else if (fillNull) data.deadlineAt = null;
   for (const key of OPTIONAL_TEXT_FIELDS) {
-    const value = body[key];
+    const value = optText(body[key]);
     if (value !== undefined) data[key] = value;
+    else if (fillNull) data[key] = null;
   }
   return data;
 }
@@ -177,15 +182,23 @@ export const jobRoutes = router
     return c.json({ items, total, page, pageSize }, 200);
   })
   .openapi(createJob, async (c) => {
-    const body = c.req.valid("json");
-    const created = await prisma.job.create({ data: toJobData(body), select: { id: true } });
+    const body: JobBody = c.req.valid("json");
+    const created = await prisma.job.create({
+      data: {
+        ...toJobData(body, true),
+        categoryId: body.categoryId,
+        position: body.position,
+        enterpriseName: body.enterpriseName,
+      },
+      select: { id: true },
+    });
     return c.json({ id: created.id }, 201);
   })
   .openapi(updateJob, async (c) => {
     const { id } = c.req.valid("param");
     const exists = await prisma.job.findUnique({ where: { id }, select: { id: true } });
     if (!exists) throw new NotFoundError(`岗位 ${id} 不存在`);
-    await prisma.job.update({ where: { id }, data: toJobPatch(c.req.valid("json")) });
+    await prisma.job.update({ where: { id }, data: toJobData(c.req.valid("json")) });
     return c.body(null, 204);
   })
   .openapi(deleteJob, async (c) => {

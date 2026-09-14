@@ -277,6 +277,11 @@ describe.skipIf(!hasDb)("/api/admin", () => {
   });
 
   it("岗位：上传 Excel 导入", async () => {
+    const upload = (buffer: Buffer) => {
+      const form = new FormData();
+      form.append("file", new File([buffer], "jobs.xlsx"));
+      return apiRequest("/api/admin/jobs/import", { method: "POST", body: form });
+    };
     const wb = new ExcelJS.Workbook();
     const ws = wb.addWorksheet("央国企");
     ws.addRow(["enterpriseName", "position", "workLocation", "deadline"]);
@@ -293,11 +298,44 @@ describe.skipIf(!hasDb)("/api/admin", () => {
     );
     const res = await apiRequest("/api/admin/jobs/import", { method: "POST", body: form });
     expect(res.status).toBe(200);
-    expect(await res.json()).toMatchObject({
+    const result = (await res.json()) as { sheets: { skipped: string[] }[] };
+    expect(result).toMatchObject({
       sheets: [{ name: "央国企", created: 2, updated: 0 }],
       usedIdKey: false,
     });
+    expect(result.sheets[0].skipped).toHaveLength(1);
+    expect(result.sheets[0].skipped[0]).toContain("缺少 enterpriseName");
     expect(await prisma.job.count({ where: { categoryId: 2 } })).toBe(2);
+
+    // 带 id / serialNumber 列：先按 id 新建，再按 serialNumber 更新；序列被同步到 MAX(id)
+    const withId = new ExcelJS.Workbook();
+    withId.addWorksheet("外企").addRows([
+      ["id", "serialNumber", "enterpriseName", "position"],
+      [100, "SN-100", "西门子", "研发工程师"],
+    ]);
+    const first = await upload(Buffer.from(await withId.xlsx.writeBuffer()));
+    expect(first.status).toBe(200);
+    expect(await first.json()).toMatchObject({ sheets: [{ created: 1, updated: 0 }], usedIdKey: true });
+    const bySerial = new ExcelJS.Workbook();
+    bySerial.addWorksheet("外企").addRows([
+      ["serialNumber", "enterpriseName", "position"],
+      ["SN-100", "西门子", "研发工程师（更新）"],
+    ]);
+    const second = await upload(Buffer.from(await bySerial.xlsx.writeBuffer()));
+    expect(second.status).toBe(200);
+    expect(await second.json()).toMatchObject({ sheets: [{ created: 0, updated: 1 }], usedIdKey: false });
+    expect(await prisma.job.findUniqueOrThrow({ where: { id: 100 } })).toMatchObject({
+      position: "研发工程师（更新）",
+    });
+    const again = await upload(Buffer.from(await withId.xlsx.writeBuffer()));
+    expect(await again.json()).toMatchObject({ sheets: [{ created: 0, updated: 1 }], usedIdKey: true });
+    const created = await apiRequest(
+      "/api/admin/jobs",
+      json("POST", { categoryId: 1, enterpriseName: "新企业", position: "新岗位", industry: "  " }),
+    );
+    expect(created.status).toBe(201);
+    expect(await created.json()).toEqual({ id: 101 });
+    expect(await prisma.job.findUniqueOrThrow({ where: { id: 101 } })).toMatchObject({ industry: null });
     const bad = new FormData();
     bad.append("file", new File(["not excel"], "x.xlsx"));
     expect((await apiRequest("/api/admin/jobs/import", { method: "POST", body: bad })).status).toBe(400);
