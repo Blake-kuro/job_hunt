@@ -20,6 +20,8 @@ pnpm dev                       # http://localhost:5173
 OPENAPI_SOURCE=http://localhost:3001/api/openapi.json pnpm gen:api    # 或 ../job_hunt_back/openapi.json
 ```
 
+游客无需登录即可浏览前 20 条岗位 / 20 道题；登录与 PRO 的权益见 /pro。
+
 ## 命令
 
 `pnpm typecheck` / `pnpm lint` / `pnpm test` / `pnpm build`

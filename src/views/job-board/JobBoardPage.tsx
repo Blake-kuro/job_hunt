@@ -8,6 +8,7 @@ import { Button } from "@shared/ui/Button";
 import { Input } from "@shared/ui/Input";
 import { Kicker } from "@shared/ui/Kicker";
 import { Tag } from "@shared/ui/Tag";
+import { AccessBanner } from "@widgets/access-banner/AccessBanner";
 import { JobTable } from "@widgets/job-table/JobTable";
 import { Navbar } from "@widgets/navbar/Navbar";
 import { ProgressCard } from "@widgets/progress-card/ProgressCard";
@@ -168,6 +169,8 @@ export function JobBoardPage() {
           </Button>
         </div>
       </div>
+
+      {result.page >= totalPages && <AccessBanner access={result.access} kind="jobs" className="mx-4 mb-10 sm:mx-8" />}
     </div>
   );
 }
