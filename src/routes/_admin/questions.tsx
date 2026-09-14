@@ -7,7 +7,7 @@ import { ErrorPanel } from "@shared/ui/ErrorPanel";
 const searchSchema = z.object({
   q: z.string().trim().min(1).optional(),
   categoryId: z.string().trim().min(1).optional(),
-  published: z.enum(["true", "false"]).optional(),
+  published: z.boolean().optional(),
   page: z.number().int().min(1).default(1),
 });
 

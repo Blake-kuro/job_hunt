@@ -8,7 +8,7 @@ import { StudentsPage } from "@views/students/StudentsPage";
 const searchSchema = z.object({
   q: z.string().trim().min(1).optional(),
   plan: z.enum(["FREE", "PRO"]).optional(),
-  enabled: z.enum(["true", "false"]).optional(),
+  enabled: z.boolean().optional(),
   page: z.number().int().min(1).default(1),
 });
 

@@ -77,9 +77,9 @@ export function StudentsPage() {
         <Select
           aria-label="状态"
           className="min-h-9 sm:w-[140px]"
-          value={search.enabled ?? ""}
+          value={search.enabled === undefined ? "" : String(search.enabled)}
           onChange={(e) => {
-            const enabled = (e.target.value || undefined) as "true" | "false" | undefined;
+            const enabled = e.target.value === "" ? undefined : e.target.value === "true";
             navigate({ search: (s) => ({ ...s, enabled, page: 1 }) });
           }}
         >
