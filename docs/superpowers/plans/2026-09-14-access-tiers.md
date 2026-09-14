@@ -496,6 +496,27 @@ git add -A && git commit -m "feat(auth): 游客匿名建档（device cookie）�
 
 ### Task 2（后端）: 岗位 / 题库配额、契约字段、403、测试
 
+> **接手说明（2026-09-14 追加）**：后端工作区里有另一会话（ChatGPT）未提交的"管理员 / 资料 / 课程 / 按内容授权"改动（`role/enabled`、`AccessGrant`、`StudyMaterial`、`Course`、`Question.published`、`routes/admin.ts`、`routes/content.ts`、`services/quiz.ts` 的 `questionAccess()`）。用户裁定：**三档配额为主，管理员授权是额外解锁**。本任务先把这批改动修到门禁全绿并单独提交，再实现配额。
+
+- [ ] **Step 0: 接手并提交 ChatGPT 的改动（不改其功能）**
+
+1. `pnpm typecheck` 当前报 `src/services/quiz.ts` 里 `findUnique({ where: { id: questionId, ...access } })` 类型错误 —— 改为 `findFirst`（本任务 Step 4 会重写该函数，这里只求过编译）。
+2. `pnpm exec prisma migrate dev`（开发库应用 `20260914130000_admin_content`）；`DATABASE_URL="$TEST_DATABASE_URL" pnpm exec prisma migrate deploy`（测试库已应用过也无妨）。
+3. `pnpm openapi`（新增 admin / content 路径与组件）；`pnpm exec biome format --write .`；`pnpm lint`（若 ChatGPT 的文件有 lint 错误，做最小机械修正并列出）。
+4. `pnpm test` 全绿（74）。
+5. 提交：`git commit -m "feat(admin): 管理员角色、资料 / 课程、按内容授权（接手另一会话的改动；修复 findUnique 类型错误，补 openapi.json）"`。**不推送**（本任务结束一起推）。
+
+**Step 3–5 的规则调整（覆盖下文同名步骤中与之冲突的部分）**：
+
+- 题库可见集合（`visibleQuestionIds(userId, access)`）= 满足 `published: true` 且（在档位窗口内 或 在该用户未过期的 `AccessGrant{ contentType: QUESTION }` 里）的题 id；`role === ADMIN` → 全部已发布题（返回 `null` 表示不限制）；`enabled === false` 的用户已被中间件 403，不用再管。档位窗口 = `published: true` 按 id 升序前 `access.questions` 道。实现为一次查询窗口 id + 一次查询 grants，合并去重。
+- ChatGPT 的 `questionAccess()` 删除，`getTodayQuestion / submitAnswer / listWrongBook / getDashboard` 统一用新的 `visibleQuestionIds`（`listWrongBook` 保留"只列可见题"的过滤：`question: { id: { in: ids } }`，`null` 时不过滤）。
+- `requestUser` 里 ChatGPT 加的 `enabled` 单独查询与 `getAccess` 重复：改为 `users.ts` 导出 `loadUserAccess(userId): Promise<{ access: Access; enabled: boolean; role: "STUDENT" | "ADMIN" }>`，一次查询；`requestUser` 用它，`Env.Variables` 增加 `role`。`getAccess` 保留（`loadUserAccess` 的薄包装）。
+- `exhausted` 判定里"全库还有未答题"改为"**已发布**的题里还有未答的"。
+- 测试：quiz 配额用例里的 "PRO 无限制" 要先把开发账号改成 `role: STUDENT`（`updateMany({ where: { email: DEV_USER_EMAIL }, data: { plan: "PRO", role: "STUDENT" } })`），否则走的是管理员分支；再加一个用例："FREE 学生被单独授权第 201 道后可以看到并作答它"（插入 202 道题太重 → 改为：`seedDevUser` 学生（把 role 改回 STUDENT）+ 插入 22 道题 + 把该学生 `plan` 保持 FREE 但通过 `LIMITS` 无法缩小……**简化**：对**游客**授权——游客 userId 可从 `/api/me` 拿到，插入 `AccessGrant{ userId: guestId, contentType: QUESTION, contentId: "qq-021", grantedById: 开发账号 id }`，然后游客 `/api/quiz/attempts` 提交 `qq-021` → 200，`dashboard.access.visible` 仍为 20（授权不改变档位数字）。
+- 预期测试数：74 + jobs 2 + quiz 3 = **79**。
+
+
+
 **Files:**
 - Modify: `src/contract/common.ts`、`src/contract/job.ts`、`src/contract/quiz.ts`、`src/lib/errors.ts`、`src/services/jobs.ts`、`src/services/quiz.ts`、`src/routes/jobs.ts`、`src/routes/quiz.ts`、`src/routes/jobs.test.ts`、`src/routes/quiz.test.ts`、`openapi.json`
 

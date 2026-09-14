@@ -52,6 +52,118 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/dashboard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getAdminDashboard"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/students/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["updateAdminStudent"];
+        trace?: never;
+    };
+    "/api/admin/students/{id}/access": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["replaceStudentAccess"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/content": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["saveAdminContent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/content/{type}/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["deleteAdminContent"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/questions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["updateAdminQuestion"];
+        trace?: never;
+    };
+    "/api/content": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listStudentContent"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/me": {
         parameters: {
             query?: never;
@@ -245,7 +357,7 @@ export interface components {
             };
         };
         /** @enum {string} */
-        ApiErrorCode: "VALIDATION" | "UNAUTHORIZED" | "CODE_INVALID" | "RATE_LIMITED" | "NOT_FOUND" | "INTERNAL";
+        ApiErrorCode: "VALIDATION" | "UNAUTHORIZED" | "FORBIDDEN" | "CODE_INVALID" | "RATE_LIMITED" | "NOT_FOUND" | "INTERNAL";
         SendSmsBody: {
             /** @example 13800138000 */
             phone: string;
@@ -258,11 +370,137 @@ export interface components {
             email: string | null;
             phone: string | null;
             name: string;
+            tier: components["schemas"]["Tier"];
+            plan: components["schemas"]["Plan"];
+            proExpiresAt: string | null;
+            /** @enum {string} */
+            role: "STUDENT" | "ADMIN";
+            enabled: boolean;
         };
+        /** @enum {string} */
+        Tier: "GUEST" | "FREE" | "PRO";
+        /** @enum {string} */
+        Plan: "FREE" | "PRO";
         VerifySmsBody: {
             /** @example 13800138000 */
             phone: string;
             code: string;
+        };
+        AdminDashboard: {
+            summary: {
+                students: number;
+                enabledStudents: number;
+                materials: number;
+                courses: number;
+                questions: number;
+            };
+            students: {
+                id: string;
+                name: string;
+                phone: string | null;
+                enabled: boolean;
+                /** @enum {string} */
+                plan: "FREE" | "PRO";
+                /** Format: date-time */
+                proExpiresAt: string | null;
+                createdAt: string;
+                grants: {
+                    id: string;
+                    contentType: components["schemas"]["ContentType"];
+                    contentId: string;
+                    /** Format: date-time */
+                    expiresAt: string | null;
+                }[];
+            }[];
+            materials: {
+                id: string;
+                title: string;
+                description: string | null;
+                category: string;
+                resourceUrl: string;
+                published: boolean;
+                updatedAt: string;
+            }[];
+            courses: {
+                id: string;
+                title: string;
+                description: string | null;
+                coverUrl: string | null;
+                published: boolean;
+                updatedAt: string;
+                lessons: {
+                    id: string;
+                    title: string;
+                    videoUrl: string;
+                    durationMinutes: number | null;
+                    sortOrder: number;
+                }[];
+            }[];
+            questions: {
+                id: string;
+                prompt: string;
+                difficulty: string;
+                source: string;
+                published: boolean;
+            }[];
+        };
+        /** @enum {string} */
+        ContentType: "MATERIAL" | "QUESTION" | "COURSE";
+        AdminStudentPatch: {
+            enabled?: boolean;
+            /** @enum {string} */
+            plan?: "FREE" | "PRO";
+            /** Format: date-time */
+            proExpiresAt?: string | null;
+        };
+        AdminAccessBody: {
+            grants: {
+                contentType: components["schemas"]["ContentType"];
+                contentId: string;
+                /** Format: date-time */
+                expiresAt?: string | null;
+            }[];
+        };
+        AdminContentBody: {
+            id?: string;
+            /** @enum {string} */
+            type: "MATERIAL" | "COURSE";
+            title: string;
+            description?: string | null;
+            category?: string;
+            /** Format: uri */
+            url?: string;
+            /** Format: uri */
+            coverUrl?: string | null;
+            published: boolean;
+            lessons?: {
+                title: string;
+                /** Format: uri */
+                videoUrl: string;
+                durationMinutes?: number | null;
+            }[];
+        };
+        StudentContent: {
+            materials: {
+                id: string;
+                title: string;
+                description: string | null;
+                category: string;
+                resourceUrl: string;
+            }[];
+            courses: {
+                id: string;
+                title: string;
+                description: string | null;
+                coverUrl: string | null;
+                lessons: {
+                    id: string;
+                    title: string;
+                    videoUrl: string;
+                    durationMinutes: number | null;
+                    sortOrder: number;
+                }[];
+            }[];
         };
         JobListResult: {
             items: components["schemas"]["JobListItem"][];
@@ -481,6 +719,163 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    getAdminDashboard: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 后台数据 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminDashboard"];
+                };
+            };
+        };
+    };
+    updateAdminStudent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminStudentPatch"];
+            };
+        };
+        responses: {
+            /** @description 已更新 */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    replaceStudentAccess: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminAccessBody"];
+            };
+        };
+        responses: {
+            /** @description 已更新 */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    saveAdminContent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminContentBody"];
+            };
+        };
+        responses: {
+            /** @description 已保存 */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    deleteAdminContent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                type: "MATERIAL" | "COURSE";
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 已删除 */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateAdminQuestion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    published: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description 已更新 */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    listStudentContent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 已授权的资料和课程 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentContent"];
+                };
             };
         };
     };
