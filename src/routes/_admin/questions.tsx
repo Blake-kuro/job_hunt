@@ -2,6 +2,7 @@ import { createFileRoute, stripSearchParams } from "@tanstack/react-router";
 import { z } from "zod";
 import { questionsQuery, quizMetaQuery } from "@api/queries";
 import { ErrorPanel } from "@shared/ui/ErrorPanel";
+import { QuestionsPage } from "@views/questions/QuestionsPage";
 
 /** 与后端 listAdminQuestions 的 query 同步；只用于 validateSearch */
 const searchSchema = z.object({
@@ -19,6 +20,6 @@ export const Route = createFileRoute("/_admin/questions")({
   loaderDeps: ({ search }) => search,
   loader: ({ context: { queryClient }, deps }) =>
     Promise.all([queryClient.ensureQueryData(questionsQuery(deps)), queryClient.ensureQueryData(quizMetaQuery())]),
-  component: () => <h1 className="text-3xl">题库</h1>,
+  component: QuestionsPage,
   errorComponent: ErrorPanel,
 });
