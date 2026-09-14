@@ -11,26 +11,38 @@ export const AdminStudentPatchSchema = z
   })
   .openapi("AdminStudentPatch");
 
-export const AdminContentBodySchema = z
+const AdminCourseLessonSchema = z.object({
+  title: z.string().min(1),
+  videoUrl: z.string().url(),
+  durationMinutes: z.number().int().positive().nullable().optional(),
+});
+
+const AdminMaterialBodySchema = z
   .object({
+    type: z.literal("MATERIAL"),
     id: z.string().optional(),
-    type: z.enum(["MATERIAL", "COURSE"]),
     title: z.string().min(1),
     description: z.string().nullable().optional(),
     category: z.string().optional(),
-    url: z.string().url().optional(),
+    url: z.string().url(),
+    published: z.boolean(),
+  })
+  .openapi("AdminMaterialBody");
+
+const AdminCourseBodySchema = z
+  .object({
+    type: z.literal("COURSE"),
+    id: z.string().optional(),
+    title: z.string().min(1),
+    description: z.string().nullable().optional(),
     coverUrl: z.string().url().nullable().optional(),
     published: z.boolean(),
-    lessons: z
-      .array(
-        z.object({
-          title: z.string().min(1),
-          videoUrl: z.string().url(),
-          durationMinutes: z.number().int().positive().nullable().optional(),
-        }),
-      )
-      .optional(),
+    lessons: z.array(AdminCourseLessonSchema),
   })
+  .openapi("AdminCourseBody");
+
+export const AdminContentBodySchema = z
+  .discriminatedUnion("type", [AdminMaterialBodySchema, AdminCourseBodySchema])
   .openapi("AdminContentBody");
 
 export const AdminAccessBodySchema = z

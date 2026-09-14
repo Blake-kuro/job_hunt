@@ -69,4 +69,49 @@ describe.skipIf(!hasDb)("/api/admin", () => {
     await prisma.user.update({ where: { id: student.id }, data: { enabled: false } });
     expect((await app.request("/api/content", { headers })).status).toBe(403);
   });
+
+  it("内容体按类型校验：MATERIAL 缺少 url → 400 VALIDATION", async () => {
+    const res = await apiRequest(
+      "/api/admin/content",
+      json("POST", { type: "MATERIAL", title: "无链接资料", published: true }),
+    );
+    expect(res.status).toBe(400);
+    expect(await res.json()).toMatchObject({ error: { code: "VALIDATION" } });
+  });
+
+  it("不能修改管理员账号", async () => {
+    const admin2 = await prisma.user.create({
+      data: {
+        name: "另一个管理员",
+        role: "ADMIN",
+        identities: { create: { provider: "PHONE", providerKey: "13911112222" } },
+      },
+    });
+    const res = await apiRequest(`/api/admin/students/${admin2.id}`, json("PATCH", { enabled: false }));
+    expect(res.status).toBe(403);
+    expect(await res.json()).toMatchObject({ error: { code: "FORBIDDEN" } });
+  });
+
+  it("创建题目时 categoryId 不存在 → 400 VALIDATION", async () => {
+    const res = await apiRequest(
+      "/api/admin/questions",
+      json("POST", {
+        prompt: "题干",
+        categoryId: "not-exist",
+        options: [
+          { letter: "A", text: "A" },
+          { letter: "B", text: "B" },
+          { letter: "C", text: "C" },
+          { letter: "D", text: "D" },
+        ],
+        answer: "A",
+        explanation: ["解析"],
+        difficulty: "EASY",
+        source: "测试",
+        published: true,
+      }),
+    );
+    expect(res.status).toBe(400);
+    expect(await res.json()).toMatchObject({ error: { code: "VALIDATION" } });
+  });
 });

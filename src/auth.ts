@@ -115,7 +115,7 @@ export async function verifyLoginCode(phone: string, code: string, guestUserId: 
     }
     const adminPhones = (process.env.ADMIN_PHONE_NUMBERS ?? "").split(",").map((value) => value.trim());
     if (adminPhones.includes(phone)) {
-      await tx.user.update({ where: { id: identity.userId }, data: { role: "ADMIN", enabled: true } });
+      await tx.user.update({ where: { id: identity.userId }, data: { role: "ADMIN" } });
     }
     const token = randomBytes(32).toString("base64url");
     await tx.session.create({

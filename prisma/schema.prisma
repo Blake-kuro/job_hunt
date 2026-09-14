@@ -94,10 +94,10 @@ model AccessGrant {
   contentType ContentType
   contentId   String
   expiresAt   DateTime?
-  grantedById String
+  grantedById String?
   createdAt   DateTime    @default(now())
   user        User        @relation("StudentGrants", fields: [userId], references: [id], onDelete: Cascade)
-  grantedBy   User        @relation("GrantedBy", fields: [grantedById], references: [id], onDelete: Cascade)
+  grantedBy   User?       @relation("GrantedBy", fields: [grantedById], references: [id], onDelete: SetNull)
 
   @@unique([userId, contentType, contentId])
   @@index([userId, contentType, expiresAt])

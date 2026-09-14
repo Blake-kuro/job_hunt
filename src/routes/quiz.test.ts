@@ -191,11 +191,18 @@ describe.skipIf(!hasDb)("/api/quiz 配额", () => {
 
   it("FREE 学生（游客）被单独授权第 21 道后可以看到并作答它；档位数字不变", async () => {
     const guest = guestClient();
+    for (let i = 1; i <= 20; i++) {
+      const today = (await (await guest("/api/quiz/today")).json()) as QuizToday;
+      await guest("/api/quiz/attempts", post({ questionId: today.question?.id, picked: "A" }));
+    }
     const me = (await (await guest("/api/me")).json()) as { id: string };
     const dev = await prisma.user.findFirstOrThrow({ where: { email: DEV_USER_EMAIL } });
     await prisma.accessGrant.create({
       data: { userId: me.id, contentType: "QUESTION", contentId: "qq-021", grantedById: dev.id },
     });
+    const today = (await (await guest("/api/quiz/today")).json()) as QuizToday;
+    expect(today.question?.id).toBe("qq-021");
+    expect(today.exhausted).toBeNull();
     const res = await guest("/api/quiz/attempts", post({ questionId: "qq-021", picked: "A" }));
     expect(res.status).toBe(200);
     const dash = (await (await guest("/api/quiz/dashboard")).json()) as QuizDashboard;

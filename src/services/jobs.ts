@@ -15,6 +15,7 @@ const userState = (userId: string) => ({
 const DEFAULT_ORDER: Prisma.JobOrderByWithRelationInput[] = [
   { deadlineAt: { sort: "asc", nulls: "last" } },
   { createTime: "desc" },
+  { id: "asc" },
 ];
 
 /** 当前档位可见的岗位 id（默认排序前 N 条）；null = 不限制 */
