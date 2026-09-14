@@ -29,6 +29,7 @@ pnpm dev                      # http://localhost:3001
 - 错误统一 `{ error: { code, message, issues? } }`，包括参数、登录态、验证码及频控错误。
 - 跨域：`CORS_ORIGINS` 逗号分隔；前端走 Vite 代理时不需要。
 - 时区 Asia/Shanghai：日期边界只经 `src/lib/dates.ts`。
+- 三档访问：游客（device Cookie 匿名建档）看岗位前 20 条 / 题库前 20 道；手机号登录后 100 条 / 200 道；PRO 无限制。手动开通：`pnpm set-plan <手机号> PRO [天数]`（不填天数为永久；`FREE` 取消）。
 
 ## 测试
 

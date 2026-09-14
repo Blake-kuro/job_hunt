@@ -1,5 +1,5 @@
 import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
-import { clearSession, sendLoginCode, setSessionCookie, verifyLoginCode } from "../auth";
+import { clearSession, findDeviceUserId, sendLoginCode, setSessionCookie, verifyLoginCode } from "../auth";
 import {
   ApiErrorSchema,
   AuthResultSchema,
@@ -50,7 +50,8 @@ export const authRoutes = new OpenAPIHono<Env>({ defaultHook: validationHook })
   .openapi(sendSms, async (c) => c.json(await sendLoginCode(c.req.valid("json").phone), 200))
   .openapi(verifySms, async (c) => {
     const { phone, code } = c.req.valid("json");
-    const { token, userId } = await verifyLoginCode(phone, code);
+    const guestId = await findDeviceUserId(c);
+    const { token, userId } = await verifyLoginCode(phone, code, guestId);
     setSessionCookie(c, token);
     return c.json({ user: await getCurrentUser(userId) }, 200);
   })

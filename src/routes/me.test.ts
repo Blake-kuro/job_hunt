@@ -10,7 +10,7 @@ describe.skipIf(!hasDb)("/api/me", () => {
   it("返回开发账号", async () => {
     const res = await apiRequest("/api/me");
     expect(res.status).toBe(200);
-    expect(await res.json()).toMatchObject({ email: "dev@local", name: "开发账号" });
+    expect(await res.json()).toMatchObject({ email: "dev@local", name: "开发账号", tier: "FREE" });
   });
 
   it("未知路径 → 404 JSON", async () => {

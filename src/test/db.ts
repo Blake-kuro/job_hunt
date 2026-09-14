@@ -16,7 +16,13 @@ export async function resetDb() {
 }
 
 export async function seedDevUser() {
-  const user = await prisma.user.create({ data: { email: DEV_USER_EMAIL, name: "开发账号" } });
+  const user = await prisma.user.create({
+    data: {
+      email: DEV_USER_EMAIL,
+      name: "开发账号",
+      identities: { create: { provider: "PHONE", providerKey: "13800000000" } },
+    },
+  });
   await prisma.session.create({
     data: {
       tokenHash: createHash("sha256").update(TEST_SESSION_TOKEN).digest("hex"),
@@ -33,6 +39,23 @@ export function apiRequest(path: string, init: RequestInit = {}) {
   const headers = new Headers(init.headers);
   headers.set("cookie", `job_hunt_session=${TEST_SESSION_TOKEN}`);
   return app.request(path, { ...init, headers });
+}
+
+/** 带 cookie 罐的匿名客户端：自动回传 Set-Cookie（device / session） */
+export function guestClient() {
+  const jar = new Map<string, string>();
+  return async (path: string, init: RequestInit = {}) => {
+    const headers = new Headers(init.headers);
+    if (jar.size) headers.set("cookie", [...jar].map(([k, v]) => `${k}=${v}`).join("; "));
+    const res = await app.request(path, { ...init, headers });
+    for (const line of res.headers.getSetCookie()) {
+      const [pair, ...attrs] = line.split(";");
+      const [k, v] = pair.split("=");
+      if (attrs.some((a) => /max-age=0/i.test(a))) jar.delete(k.trim());
+      else jar.set(k.trim(), v);
+    }
+    return res;
+  };
 }
 
 export async function insertJobs(rows: Prisma.JobCreateManyInput[]) {

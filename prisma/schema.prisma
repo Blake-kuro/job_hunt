@@ -10,10 +10,12 @@ datasource db {
 // ── 用户 ──────────────────────────────────────────────
 
 model User {
-  id        String   @id @default(cuid())
-  email     String?  @unique
-  name      String
-  createdAt DateTime @default(now())
+  id           String    @id @default(cuid())
+  email        String?   @unique
+  name         String
+  plan         Plan      @default(FREE)
+  proExpiresAt DateTime?
+  createdAt    DateTime  @default(now())
 
   identities   AuthIdentity[]
   sessions      Session[]
@@ -27,6 +29,12 @@ enum AuthProvider {
   PHONE
   WECHAT
   QQ
+  DEVICE
+}
+
+enum Plan {
+  FREE
+  PRO
 }
 
 model AuthIdentity {

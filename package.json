@@ -18,6 +18,7 @@
     "db:migrate": "prisma migrate dev",
     "db:seed": "prisma db seed",
     "db:import": "tsx scripts/import-jobs.ts",
+    "set-plan": "tsx scripts/set-plan.ts",
     "postinstall": "prisma generate",
     "openapi": "tsx scripts/openapi.ts",
     "openapi:check": "pnpm openapi && git diff --exit-code -- openapi.json",

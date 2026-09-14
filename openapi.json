@@ -107,13 +107,43 @@
           },
           "name": {
             "type": "string"
+          },
+          "tier": {
+            "$ref": "#/components/schemas/Tier"
+          },
+          "plan": {
+            "$ref": "#/components/schemas/Plan"
+          },
+          "proExpiresAt": {
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
           "id",
           "email",
           "phone",
-          "name"
+          "name",
+          "tier",
+          "plan",
+          "proExpiresAt"
+        ]
+      },
+      "Tier": {
+        "type": "string",
+        "enum": [
+          "GUEST",
+          "FREE",
+          "PRO"
+        ]
+      },
+      "Plan": {
+        "type": "string",
+        "enum": [
+          "FREE",
+          "PRO"
         ]
       },
       "VerifySmsBody": {

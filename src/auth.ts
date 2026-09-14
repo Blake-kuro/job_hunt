@@ -5,15 +5,23 @@ import { prisma } from "./db";
 import type { Env } from "./env";
 import { AppError } from "./lib/errors";
 import { smsSender } from "./services/sms";
-import { getCurrentUser } from "./services/users";
+import { getAccess } from "./services/users";
 
 export const DEV_USER_EMAIL = "dev@local";
 export const SESSION_COOKIE = "job_hunt_session";
+export const DEVICE_COOKIE = "job_hunt_device";
 const CODE_TTL_SECONDS = 5 * 60;
 const SEND_COOLDOWN_SECONDS = 60;
 const SEND_LIMIT_PER_HOUR = 5;
 const SESSION_TTL_SECONDS = 30 * 24 * 60 * 60;
+const DEVICE_TTL_SECONDS = 365 * 24 * 60 * 60;
 const MAX_CODE_ATTEMPTS = 5;
+const cookieOpts = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: "Lax" as const,
+  path: "/api",
+};
 
 const sha256 = (value: string) => createHash("sha256").update(value).digest("hex");
 const codeSecret = () => {
@@ -63,7 +71,7 @@ export async function sendLoginCode(phone: string) {
   };
 }
 
-export async function verifyLoginCode(phone: string, code: string) {
+export async function verifyLoginCode(phone: string, code: string, guestUserId: string | null) {
   const verification = await prisma.smsVerification.findFirst({
     where: { phone, consumedAt: null },
     orderBy: { createdAt: "desc" },
@@ -87,8 +95,23 @@ export async function verifyLoginCode(phone: string, code: string) {
       where: { provider_providerKey: { provider: "PHONE", providerKey: phone } },
     });
     if (!identity) {
-      const user = await tx.user.create({ data: { name: `用户${phone.slice(-4)}` } });
-      identity = await tx.authIdentity.create({ data: { userId: user.id, provider: "PHONE", providerKey: phone } });
+      // 手机号首次登录：优先挂到当前游客（其收藏/作答原地保留），否则新建用户
+      const guest = guestUserId
+        ? await tx.user.findFirst({
+            where: { id: guestUserId, identities: { none: { provider: "PHONE" } } },
+            select: { id: true },
+          })
+        : null;
+      const userId = guest
+        ? (
+            await tx.user.update({
+              where: { id: guest.id },
+              data: { name: `用户${phone.slice(-4)}` },
+              select: { id: true },
+            })
+          ).id
+        : (await tx.user.create({ data: { name: `用户${phone.slice(-4)}` }, select: { id: true } })).id;
+      identity = await tx.authIdentity.create({ data: { userId, provider: "PHONE", providerKey: phone } });
     }
     const token = randomBytes(32).toString("base64url");
     await tx.session.create({
@@ -103,34 +126,72 @@ export async function verifyLoginCode(phone: string, code: string) {
 }
 
 export function setSessionCookie(c: Parameters<typeof setCookie>[0], token: string) {
-  setCookie(c, SESSION_COOKIE, token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "Lax",
-    path: "/api",
-    maxAge: SESSION_TTL_SECONDS,
-  });
+  setCookie(c, SESSION_COOKIE, token, { ...cookieOpts, maxAge: SESSION_TTL_SECONDS });
 }
 
+/** 退出：删会话；同时销毁当前游客身份（否则已挂上手机号的那行会被按 device 找回、误判 FREE） */
 export async function clearSession(c: Parameters<typeof deleteCookie>[0]) {
   const token = getCookie(c, SESSION_COOKIE);
   if (token) await prisma.session.deleteMany({ where: { tokenHash: sha256(token) } });
-  deleteCookie(c, SESSION_COOKIE, { path: "/api", secure: process.env.NODE_ENV === "production", sameSite: "Lax" });
-}
+  deleteCookie(c, SESSION_COOKIE, cookieOpts);
 
-export async function authenticatedUser(c: Parameters<typeof getCookie>[0]) {
-  const token = getCookie(c, SESSION_COOKIE);
-  if (!token) throw new AppError(401, "UNAUTHORIZED", "请先登录");
-  const session = await prisma.session.findUnique({ where: { tokenHash: sha256(token) } });
-  if (!session || session.expiresAt <= new Date()) {
-    if (session) await prisma.session.delete({ where: { tokenHash: session.tokenHash } });
-    throw new AppError(401, "UNAUTHORIZED", "登录状态已过期，请重新登录");
+  const device = getCookie(c, DEVICE_COOKIE);
+  if (device) {
+    const key = sha256(device);
+    const identity = await prisma.authIdentity.findUnique({
+      where: { provider_providerKey: { provider: "DEVICE", providerKey: key } },
+      select: { id: true, userId: true },
+    });
+    if (identity) {
+      await prisma.authIdentity.delete({ where: { id: identity.id } });
+      // 纯游客（没有别的身份）连同数据一起删，避免孤儿行
+      await prisma.user.deleteMany({ where: { id: identity.userId, identities: { none: {} } } });
+    }
   }
-  return getCurrentUser(session.userId);
+  deleteCookie(c, DEVICE_COOKIE, cookieOpts);
 }
 
+type CookieContext = Parameters<typeof getCookie>[0];
+
+/** 有效会话对应的 userId；过期会话顺手删掉 */
+async function sessionUserId(c: CookieContext): Promise<string | null> {
+  const token = getCookie(c, SESSION_COOKIE);
+  if (!token) return null;
+  const session = await prisma.session.findUnique({ where: { tokenHash: sha256(token) } });
+  if (!session) return null;
+  if (session.expiresAt <= new Date()) {
+    await prisma.session.delete({ where: { tokenHash: session.tokenHash } });
+    return null;
+  }
+  return session.userId;
+}
+
+/** device cookie 对应的游客 userId；没有或找不到 → null（不创建） */
+export async function findDeviceUserId(c: CookieContext): Promise<string | null> {
+  const device = getCookie(c, DEVICE_COOKIE);
+  if (!device) return null;
+  const identity = await prisma.authIdentity.findUnique({
+    where: { provider_providerKey: { provider: "DEVICE", providerKey: sha256(device) } },
+    select: { userId: true },
+  });
+  return identity?.userId ?? null;
+}
+
+/** 新建游客 + DEVICE 身份，并写 cookie */
+async function createDeviceUser(c: Parameters<typeof setCookie>[0]): Promise<string> {
+  const device = randomBytes(32).toString("base64url");
+  const user = await prisma.user.create({
+    data: { name: "游客", identities: { create: { provider: "DEVICE", providerKey: sha256(device) } } },
+    select: { id: true },
+  });
+  setCookie(c, DEVICE_COOKIE, device, { ...cookieOpts, maxAge: DEVICE_TTL_SECONDS });
+  return user.id;
+}
+
+/** 每个请求都有用户：会话 → 游客 → 新建游客；并注入档位 */
 export const requestUser = createMiddleware<Env>(async (c, next) => {
-  const user = await authenticatedUser(c);
-  c.set("userId", user.id);
+  const userId = (await sessionUserId(c)) ?? (await findDeviceUserId(c)) ?? (await createDeviceUser(c));
+  c.set("userId", userId);
+  c.set("access", await getAccess(userId));
   await next();
 });
