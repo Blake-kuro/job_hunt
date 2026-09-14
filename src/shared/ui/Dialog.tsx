@@ -36,6 +36,10 @@ export function Dialog({ open, title, onClose, children, footer, wide = false }:
         event.preventDefault();
         onClose();
       }}
+      // 浏览器可能不经 cancel 直接关掉（无用户激活时的 Esc）：把关闭同步回父组件的 open
+      onClose={() => {
+        if (open) onClose();
+      }}
       onClick={(event) => {
         if (event.target === ref.current) onClose();
       }}

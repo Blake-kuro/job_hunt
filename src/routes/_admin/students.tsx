@@ -2,6 +2,7 @@ import { createFileRoute, stripSearchParams } from "@tanstack/react-router";
 import { z } from "zod";
 import { studentsQuery } from "@api/queries";
 import { ErrorPanel } from "@shared/ui/ErrorPanel";
+import { StudentsPage } from "@views/students/StudentsPage";
 
 /** 与后端 listAdminStudents 的 query 同步；只用于 validateSearch */
 const searchSchema = z.object({
@@ -19,6 +20,6 @@ export const Route = createFileRoute("/_admin/students")({
   search: { middlewares: [stripSearchParams(defaults)] },
   loaderDeps: ({ search }) => search,
   loader: ({ context: { queryClient }, deps }) => queryClient.ensureQueryData(studentsQuery(deps)),
-  component: () => <h1 className="text-3xl">学生</h1>,
+  component: StudentsPage,
   errorComponent: ErrorPanel,
 });
