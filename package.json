@@ -10,8 +10,12 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "lint": "biome check ."
+    "lint": "biome check .",
+    "format": "biome format --write .",
+    "test": "vitest run",
+    "gen:api": "pnpm dlx openapi-typescript@7 \"${OPENAPI_SOURCE:-http://localhost:3001/api/openapi.json}\" -o src/api/schema.d.ts"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.102.8",

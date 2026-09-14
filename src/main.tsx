@@ -1,12 +1,17 @@
+import { QueryClientProvider } from "@tanstack/react-query";
+import { RouterProvider } from "@tanstack/react-router";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { App } from "./App";
-import "./styles.css";
+import { queryClient, router } from "./router";
+import "./styles/globals.css";
 
-const root = document.getElementById("root");
-if (!root) throw new Error("#root 不存在");
-createRoot(root).render(
+const rootEl = document.getElementById("root");
+if (!rootEl) throw new Error("#root 不存在");
+
+createRoot(rootEl).render(
   <StrictMode>
-    <App />
+    <QueryClientProvider client={queryClient}>
+      <RouterProvider router={router} />
+    </QueryClientProvider>
   </StrictMode>,
 );
