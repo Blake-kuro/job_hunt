@@ -98,7 +98,7 @@ export interface Access { tier: Tier; jobs: number | null; questions: number | n
 ## 9. 测试
 
 - 后端：`lib/access.test.ts`（resolveTier 边界：过期 PRO → FREE，无手机 PRO → PRO）；`routes/jobs.test.ts` 新增用例：插入 25 条岗位，游客请求 `total=25, visible=20, items ≤ 20`，且筛选只在前 20 内；登录会话看到全部 25（< 100）。`routes/quiz.test.ts`：插入 22 道题，游客答完 20 道后 `exhausted: "QUOTA"`，对第 21 道 POST → 403；PRO 用户（测试直接改 plan）无限制。`routes/auth.test.ts`：游客先收藏一条岗位再登录，`/api/jobs` 里该岗位仍 `starred`；退出后 `/api/me` 为新的 GUEST。
-- 前端：`AccessBanner` 渲染分支的 3 个用例（vitest + @testing-library/react，本次引入）。
+- 前端：提示文案的纯函数 `accessMessage()` 3 个用例（vitest，不引入 DOM 测试库；`AccessBanner` 只是它的渲染壳）。
 
 ## 10. 验收
 
