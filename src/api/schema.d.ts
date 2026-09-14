@@ -132,6 +132,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/questions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["createAdminQuestion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/questions/{id}": {
         parameters: {
             query?: never;
@@ -436,9 +452,17 @@ export interface components {
                     sortOrder: number;
                 }[];
             }[];
+            categories: {
+                id: string;
+                name: string;
+            }[];
             questions: {
                 id: string;
                 prompt: string;
+                categoryId: string;
+                options?: unknown;
+                answer: string;
+                explanation: string[];
                 difficulty: string;
                 source: string;
                 published: boolean;
@@ -461,24 +485,56 @@ export interface components {
                 expiresAt?: string | null;
             }[];
         };
-        AdminContentBody: {
+        AdminContentBody: components["schemas"]["AdminMaterialBody"] | components["schemas"]["AdminCourseBody"];
+        AdminMaterialBody: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "MATERIAL";
             id?: string;
-            /** @enum {string} */
-            type: "MATERIAL" | "COURSE";
             title: string;
             description?: string | null;
             category?: string;
             /** Format: uri */
-            url?: string;
+            url: string;
+            published: boolean;
+        };
+        AdminCourseBody: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "COURSE";
+            id?: string;
+            title: string;
+            description?: string | null;
             /** Format: uri */
             coverUrl?: string | null;
             published: boolean;
-            lessons?: {
+            lessons: {
                 title: string;
                 /** Format: uri */
                 videoUrl: string;
                 durationMinutes?: number | null;
             }[];
+        };
+        AdminQuestionBody: {
+            prompt: string;
+            categoryId: string;
+            companySetId?: string | null;
+            options: {
+                /** @enum {string} */
+                letter: "A" | "B" | "C" | "D";
+                text: string;
+            }[];
+            /** @enum {string} */
+            answer: "A" | "B" | "C" | "D";
+            explanation: string[];
+            /** @enum {string} */
+            difficulty: "EASY" | "MEDIUM" | "HARD";
+            source: string;
+            published: boolean;
         };
         StudentContent: {
             materials: {
@@ -507,6 +563,7 @@ export interface components {
             total: number;
             page: number;
             pageSize: number;
+            access: components["schemas"]["Access"];
         };
         JobListItem: {
             id: number;
@@ -531,6 +588,11 @@ export interface components {
         CategoryId: 1 | 2 | 3;
         /** @enum {string} */
         ApplicationStatus: "APPLIED" | "INTERVIEWING";
+        Access: {
+            tier: components["schemas"]["Tier"];
+            visible: number | null;
+            total: number;
+        };
         JobProgress: {
             starred: number;
             applied: number;
@@ -557,6 +619,8 @@ export interface components {
             indexLabel: string;
             attemptedToday: number;
             date: string;
+            /** @enum {string|null} */
+            exhausted: "QUOTA" | "ALL" | null;
         };
         QuizQuestionPublic: {
             id: string;
@@ -598,6 +662,7 @@ export interface components {
                 count: number;
             }[];
             wrongList: components["schemas"]["WrongBookItem"][];
+            access: components["schemas"]["Access"];
         };
         WrongBookItem: {
             questionId: string;
@@ -833,6 +898,28 @@ export interface operations {
             };
         };
     };
+    createAdminQuestion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminQuestionBody"];
+            };
+        };
+        responses: {
+            /** @description 已创建 */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     updateAdminQuestion: {
         parameters: {
             query?: never;
@@ -845,7 +932,21 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
-                    published: boolean;
+                    prompt?: string;
+                    categoryId?: string;
+                    companySetId?: string | null;
+                    options?: {
+                        /** @enum {string} */
+                        letter: "A" | "B" | "C" | "D";
+                        text: string;
+                    }[];
+                    /** @enum {string} */
+                    answer?: "A" | "B" | "C" | "D";
+                    explanation?: string[];
+                    /** @enum {string} */
+                    difficulty?: "EASY" | "MEDIUM" | "HARD";
+                    source?: string;
+                    published?: boolean;
                 };
             };
         };
@@ -1163,6 +1264,15 @@ export interface operations {
             };
             /** @description 参数校验失败 */
             400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description 当前档位不可作答 */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };

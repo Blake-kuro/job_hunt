@@ -24,7 +24,7 @@ export function Navbar({ active, trailing }: NavbarProps) {
 
   async function handleLogout() {
     await logout.mutateAsync();
-    navigate({ to: "/login", replace: true });
+    navigate({ to: "/", replace: true });
   }
 
   return (
@@ -53,29 +53,46 @@ export function Navbar({ active, trailing }: NavbarProps) {
 
       <div className="flex-1" />
       {trailing && <span className="hidden text-xs tabular-nums text-neutral-700 md:block">{trailing}</span>}
-      <details className="group relative">
-        <summary className="flex cursor-pointer list-none items-center gap-2 text-xs text-neutral-700 marker:hidden">
-          <span className="flex size-7 items-center justify-center bg-accent-200 font-heading font-semibold text-accent-900">
-            {user.name.slice(0, 1)}
-          </span>
-          <span className="hidden sm:inline">{accountLabel}</span>
-          <span className="text-[9px] transition-transform group-open:rotate-180">▼</span>
-        </summary>
-        <div className="absolute right-0 top-[calc(100%+10px)] z-30 min-w-44 border border-divider bg-bg p-2 shadow-lg">
-          <div className="border-b border-hairline px-2 pb-2">
-            <p className="text-sm font-medium">{user.name}</p>
-            <p className="mt-0.5 text-xs text-neutral-600">{accountLabel}</p>
+      {user.tier === "GUEST" ? (
+        <Link to="/login" className="text-sm text-accent-700 hover:text-accent-900">
+          登录
+        </Link>
+      ) : (
+        <details className="group relative">
+          <summary className="flex cursor-pointer list-none items-center gap-2 text-xs text-neutral-700 marker:hidden">
+            <span className="flex size-7 items-center justify-center bg-accent-200 font-heading font-semibold text-accent-900">
+              {user.name.slice(0, 1)}
+            </span>
+            <span className="hidden sm:inline">{accountLabel}</span>
+            <span className="text-[9px] transition-transform group-open:rotate-180">▼</span>
+          </summary>
+          <div className="absolute right-0 top-[calc(100%+10px)] z-30 min-w-44 border border-divider bg-bg p-2 shadow-lg">
+            <div className="border-b border-hairline px-2 pb-2">
+              <p className="text-sm font-medium">{user.name}</p>
+              <p className="mt-0.5 text-xs text-neutral-600">{accountLabel}</p>
+              <p className="mt-1 text-[11px] text-accent-700">
+                {user.tier === "PRO"
+                  ? `PRO${user.proExpiresAt ? ` · 至 ${user.proExpiresAt.slice(0, 10)}` : ""}`
+                  : "免费账号"}
+              </p>
+            </div>
+            <Link
+              to="/pro"
+              className="mt-1 block w-full cursor-pointer px-2 py-2 text-left text-xs text-neutral-700 hover:bg-surface"
+            >
+              {user.tier === "PRO" ? "我的 PRO" : "升级 PRO"}
+            </Link>
+            <button
+              type="button"
+              disabled={logout.isPending}
+              onClick={handleLogout}
+              className="w-full cursor-pointer px-2 py-2 text-left text-xs text-neutral-700 hover:bg-surface disabled:opacity-50"
+            >
+              {logout.isPending ? "正在退出…" : "退出登录"}
+            </button>
           </div>
-          <button
-            type="button"
-            disabled={logout.isPending}
-            onClick={handleLogout}
-            className="mt-1 w-full cursor-pointer px-2 py-2 text-left text-xs text-neutral-700 hover:bg-surface disabled:opacity-50"
-          >
-            {logout.isPending ? "正在退出…" : "退出登录"}
-          </button>
-        </div>
-      </details>
+        </details>
+      )}
     </header>
   );
 }
