@@ -8,6 +8,7 @@ import { errorHandler, validationHook } from "./lib/errors";
 import { jobRoutes } from "./routes/jobs";
 import { meRoutes } from "./routes/me";
 import { quizRoutes } from "./routes/quiz";
+import { authRoutes } from "./routes/auth";
 
 export const OPENAPI_INFO = {
   openapi: "3.1.0",
@@ -26,13 +27,14 @@ function corsOrigins(): string[] {
 // 之后再调用的 `.route()/.doc31()` 就会解析成基类签名，`doc31`/`getOpenAPI31Document`
 // 在类型层面“消失”。分成独立语句、不重新赋值给 `api`/`app`，保持它们的静态类型为 OpenAPIHono。
 const api = new OpenAPIHono<Env>({ defaultHook: validationHook });
+api.route("/auth", authRoutes);
 api.use(requestUser);
 api.route("/me", meRoutes);
 api.route("/jobs", jobRoutes);
 api.route("/quiz", quizRoutes);
 
 const app = new OpenAPIHono<Env>({ defaultHook: validationHook });
-app.use(cors({ origin: corsOrigins() }));
+app.use(cors({ origin: corsOrigins(), credentials: true }));
 app.use(process.env.NODE_ENV === "test" ? async (_c, next) => next() : logger());
 // doc31/docs 必须在 `app.route("/api", api)` 之前注册：Hono 按注册顺序匹配路由，
 // 更早注册且直接返回响应（不调用 next()）的 handler 会短路，

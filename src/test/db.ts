@@ -1,4 +1,6 @@
 import { DEV_USER_EMAIL } from "../auth";
+import { createHash } from "node:crypto";
+import app from "../app";
 import { prisma } from "../db";
 import type { Prisma } from "../generated/prisma/client";
 
@@ -9,12 +11,28 @@ export async function resetDb() {
     throw new Error("拒绝清空非测试数据库");
   }
   await prisma.$executeRawUnsafe(
-    'TRUNCATE "Attempt","WrongBookEntry","Question","CompanySet","QuestionCategory","Application","Favorite","Job","User" RESTART IDENTITY CASCADE',
+    'TRUNCATE "SmsVerification","Session","AuthIdentity","Attempt","WrongBookEntry","Question","CompanySet","QuestionCategory","Application","Favorite","Job","User" RESTART IDENTITY CASCADE',
   );
 }
 
 export async function seedDevUser() {
-  return prisma.user.create({ data: { email: DEV_USER_EMAIL, name: "开发账号" } });
+  const user = await prisma.user.create({ data: { email: DEV_USER_EMAIL, name: "开发账号" } });
+  await prisma.session.create({
+    data: {
+      tokenHash: createHash("sha256").update(TEST_SESSION_TOKEN).digest("hex"),
+      userId: user.id,
+      expiresAt: new Date(Date.now() + 60_000),
+    },
+  });
+  return user;
+}
+
+const TEST_SESSION_TOKEN = "integration-test-session";
+
+export function apiRequest(path: string, init: RequestInit = {}) {
+  const headers = new Headers(init.headers);
+  headers.set("cookie", `job_hunt_session=${TEST_SESSION_TOKEN}`);
+  return app.request(path, { ...init, headers });
 }
 
 export async function insertJobs(rows: Prisma.JobCreateManyInput[]) {

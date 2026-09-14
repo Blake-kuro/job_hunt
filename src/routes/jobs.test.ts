@@ -1,8 +1,7 @@
 import type { JobListResult } from "../contract";
 import { beforeEach, describe, expect, it } from "vitest";
-import app from "../app";
 import { addDays, dateKey } from "../lib/dates";
-import { hasDb, insertJobs, jobFixture, resetDb, seedDevUser } from "../test/db";
+import { apiRequest, hasDb, insertJobs, jobFixture, resetDb, seedDevUser } from "../test/db";
 
 const json = (body: unknown) => ({
   method: "PUT",
@@ -20,7 +19,7 @@ describe.skipIf(!hasDb)("/api/jobs", () => {
   });
 
   it("GET 默认按截止日升序、null 在最后", async () => {
-    const res = await app.request("/api/jobs");
+    const res = await apiRequest("/api/jobs");
     expect(res.status).toBe(200);
     const body = await jobList(res);
     expect(body.total).toBe(3);
@@ -35,52 +34,52 @@ describe.skipIf(!hasDb)("/api/jobs", () => {
   });
 
   it("GET category / city / q 筛选", async () => {
-    expect((await jobList(await app.request("/api/jobs?category=2"))).total).toBe(1);
-    expect((await jobList(await app.request(`/api/jobs?city=${encodeURIComponent("深圳")}`))).total).toBe(1);
-    expect((await jobList(await app.request(`/api/jobs?q=${encodeURIComponent("算法")}`))).items[0].id).toBe(3);
+    expect((await jobList(await apiRequest("/api/jobs?category=2"))).total).toBe(1);
+    expect((await jobList(await apiRequest(`/api/jobs?city=${encodeURIComponent("深圳")}`))).total).toBe(1);
+    expect((await jobList(await apiRequest(`/api/jobs?q=${encodeURIComponent("算法")}`))).items[0].id).toBe(3);
   });
 
   it("GET sort=posted 按发布时间倒序", async () => {
-    const body = await jobList(await app.request("/api/jobs?sort=posted"));
+    const body = await jobList(await apiRequest("/api/jobs?sort=posted"));
     expect(body.items.map((j: { id: number }) => j.id)).toEqual([1, 3, 2]);
   });
 
   it("GET 分页", async () => {
-    const body = await jobList(await app.request("/api/jobs?page=2&pageSize=2"));
+    const body = await jobList(await apiRequest("/api/jobs?page=2&pageSize=2"));
     expect(body).toMatchObject({ page: 2, pageSize: 2, total: 3 });
     expect(body.items).toHaveLength(1);
   });
 
   it("GET 非法 category → 400 VALIDATION", async () => {
-    const res = await app.request("/api/jobs?category=abc");
+    const res = await apiRequest("/api/jobs?category=abc");
     expect(res.status).toBe(400);
     expect(await res.json()).toMatchObject({ error: { code: "VALIDATION" } });
   });
 
   it("PUT/DELETE favorite 往返", async () => {
-    expect(await (await app.request("/api/jobs/1/favorite", { method: "PUT" })).json()).toEqual({ starred: true });
-    expect((await jobList(await app.request("/api/jobs"))).items[0].starred).toBe(true);
-    expect(await (await app.request("/api/jobs/1/favorite", { method: "DELETE" })).json()).toEqual({ starred: false });
+    expect(await (await apiRequest("/api/jobs/1/favorite", { method: "PUT" })).json()).toEqual({ starred: true });
+    expect((await jobList(await apiRequest("/api/jobs"))).items[0].starred).toBe(true);
+    expect(await (await apiRequest("/api/jobs/1/favorite", { method: "DELETE" })).json()).toEqual({ starred: false });
   });
 
   it("PUT application 写状态，DELETE 清除", async () => {
-    const put = await app.request("/api/jobs/2/application", json({ status: "APPLIED" }));
+    const put = await apiRequest("/api/jobs/2/application", json({ status: "APPLIED" }));
     expect(await put.json()).toEqual({ applicationStatus: "APPLIED" });
-    const del = await app.request("/api/jobs/2/application", { method: "DELETE" });
+    const del = await apiRequest("/api/jobs/2/application", { method: "DELETE" });
     expect(await del.json()).toEqual({ applicationStatus: null });
   });
 
   it("PUT application 非法 status → 400；不存在的 id → 404", async () => {
-    expect((await app.request("/api/jobs/2/application", json({ status: "NOPE" }))).status).toBe(400);
-    const res = await app.request("/api/jobs/999/favorite", { method: "PUT" });
+    expect((await apiRequest("/api/jobs/2/application", json({ status: "NOPE" }))).status).toBe(400);
+    const res = await apiRequest("/api/jobs/999/favorite", { method: "PUT" });
     expect(res.status).toBe(404);
     expect(await res.json()).toMatchObject({ error: { code: "NOT_FOUND" } });
   });
 
   it("GET progress 反映收藏与投递", async () => {
-    await app.request("/api/jobs/1/favorite", { method: "PUT" });
-    await app.request("/api/jobs/2/application", json({ status: "APPLIED" }));
-    const body = await (await app.request("/api/jobs/progress")).json();
+    await apiRequest("/api/jobs/1/favorite", { method: "PUT" });
+    await apiRequest("/api/jobs/2/application", json({ status: "APPLIED" }));
+    const body = await (await apiRequest("/api/jobs/progress")).json();
     expect(body).toMatchObject({
       starred: 1,
       applied: 1,

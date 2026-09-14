@@ -11,14 +11,58 @@ datasource db {
 
 model User {
   id        String   @id @default(cuid())
-  email     String   @unique
+  email     String?  @unique
   name      String
   createdAt DateTime @default(now())
 
+  identities   AuthIdentity[]
+  sessions      Session[]
   favorites    Favorite[]
   applications Application[]
   attempts     Attempt[]
   wrongBook    WrongBookEntry[]
+}
+
+enum AuthProvider {
+  PHONE
+  WECHAT
+  QQ
+}
+
+model AuthIdentity {
+  id          String       @id @default(cuid())
+  userId      String
+  provider    AuthProvider
+  providerKey String
+  createdAt   DateTime     @default(now())
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerKey])
+  @@index([userId])
+}
+
+model Session {
+  tokenHash String   @id
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model SmsVerification {
+  id         String    @id @default(cuid())
+  phone      String
+  codeHash   String
+  attempts   Int       @default(0)
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([phone, createdAt])
+  @@index([expiresAt])
 }
 
 // ── 岗位（用户现有 Excel 结构）────────────────────────

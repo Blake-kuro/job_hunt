@@ -2,11 +2,23 @@ import type { Hook } from "@hono/zod-openapi";
 import type { ErrorHandler } from "hono";
 import { HTTPException } from "hono/http-exception";
 import type { Env } from "../env";
+import type { ApiErrorCode } from "../contract";
 
 export class NotFoundError extends Error {
   constructor(message = "not found") {
     super(message);
     this.name = "NotFoundError";
+  }
+}
+
+export class AppError extends Error {
+  constructor(
+    readonly status: 400 | 401 | 429,
+    readonly code: ApiErrorCode,
+    message: string,
+  ) {
+    super(message);
+    this.name = "AppError";
   }
 }
 
@@ -22,6 +34,9 @@ export const validationHook: Hook<any, Env, any, any> = (result, c) => {
 };
 
 export const errorHandler: ErrorHandler<Env> = (err, c) => {
+  if (err instanceof AppError) {
+    return c.json({ error: { code: err.code, message: err.message } }, err.status);
+  }
   if (err instanceof HTTPException && err.status === 415) {
     return c.json({ error: { code: "VALIDATION", message: "Content-Type 必须是 application/json" } }, 400);
   }

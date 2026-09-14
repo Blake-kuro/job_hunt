@@ -23,8 +23,10 @@ pnpm dev                      # http://localhost:3001
 
 ## 约定
 
-- 错误统一 `{ error: { code: VALIDATION | NOT_FOUND | INTERNAL, message, issues? } }`；200 / 204 / 400 / 404 / 500。
-- 当前无登录：所有请求以种子账号 `dev@local` 身份执行（`src/auth.ts` 的 `requestUser`）。
+- 手机号验证码免密登录；验证成功后自动注册，使用 HttpOnly Cookie 保存 30 天会话。
+- 开发环境会在后端日志和发送接口的 `developmentCode` 字段显示验证码；生产环境接入短信服务商前会拒绝发送。
+- 登录身份独立保存，已预留 `WECHAT` / `QQ` 类型，后续可将扫码身份绑定到同一用户。
+- 错误统一 `{ error: { code, message, issues? } }`，包括参数、登录态、验证码及频控错误。
 - 跨域：`CORS_ORIGINS` 逗号分隔；前端走 Vite 代理时不需要。
 - 时区 Asia/Shanghai：日期边界只经 `src/lib/dates.ts`。
 
