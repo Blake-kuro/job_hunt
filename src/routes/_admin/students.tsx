@@ -6,7 +6,7 @@ import { StudentsPage } from "@views/students/StudentsPage";
 
 /** 与后端 listAdminStudents 的 query 同步；只用于 validateSearch */
 const searchSchema = z.object({
-  q: z.string().trim().min(1).optional(),
+  q: z.coerce.string().trim().min(1).optional(),
   plan: z.enum(["FREE", "PRO"]).optional(),
   enabled: z.boolean().optional(),
   page: z.number().int().min(1).default(1),

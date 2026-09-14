@@ -6,7 +6,7 @@ import { JobsPage } from "@views/jobs/JobsPage";
 
 /** 与后端 listAdminJobs 的 query 同步；只用于 validateSearch */
 const searchSchema = z.object({
-  q: z.string().trim().min(1).optional(),
+  q: z.coerce.string().trim().min(1).optional(),
   category: z.union([z.literal(1), z.literal(2), z.literal(3)]).optional(),
   page: z.number().int().min(1).default(1),
 });
