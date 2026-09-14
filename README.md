@@ -27,6 +27,6 @@ OPENAPI_SOURCE=/path/to/job_hunt_back/openapi.json pnpm gen:api
 
 - 调用后端只经 `src/api/client.ts` 的 `client` + `unwrap`；DTO 类型从 `@api/types` 取；查询用 `@api/queries`，写操作用 `@api/mutations`。
 - 所有页面在 `routes/_admin.tsx` 布局下，`beforeLoad` 会把非管理员踢回 `/login`。
-- 提交前：`pnpm typecheck && pnpm lint && pnpm test`。
+- 提交前：`pnpm typecheck && pnpm lint && pnpm test && pnpm build`。
 
 更多见 `AGENTS.md`。

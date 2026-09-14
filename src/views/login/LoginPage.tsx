@@ -10,7 +10,6 @@ const route = getRouteApi("/login");
 const phonePattern = /^1[3-9]\d{9}$/;
 
 export function LoginPage() {
-  const { reason } = route.useSearch();
   const { me } = route.useRouteContext();
   const router = useRouter();
   const navigate = useNavigate();
@@ -25,7 +24,8 @@ export function LoginPage() {
   const [localError, setLocalError] = useState("");
 
   // 已登录但不是管理员：提示并提供退出
-  const forbidden = reason === "forbidden" || me.tier !== "GUEST";
+  // reason=forbidden 只是 _admin 守卫带来的提示；退出后 me 变成游客，提示随之消失
+  const forbidden = me.tier !== "GUEST";
 
   useEffect(() => {
     if (countdown <= 0) return;

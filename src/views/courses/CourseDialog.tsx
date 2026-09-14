@@ -178,7 +178,7 @@ function CourseForm({ course, serverError, onSubmit }: CourseFormProps) {
             <Input
               aria-label={`第 ${i + 1} 课时时长`}
               type="number"
-              min={0}
+              min={1}
               step={1}
               value={row.durationMinutes}
               onChange={(e) => updateRow(i, { durationMinutes: e.target.value })}

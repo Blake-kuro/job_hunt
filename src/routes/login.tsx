@@ -1,6 +1,7 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { z } from "zod";
 import { meQuery } from "@api/queries";
+import { LoginErrorPanel } from "@shared/ui/AuthErrorPanel";
 import { LoginPage } from "@views/login/LoginPage";
 
 const searchSchema = z.object({ reason: z.enum(["forbidden"]).optional() });
@@ -13,4 +14,5 @@ export const Route = createFileRoute("/login")({
     return { me };
   },
   component: LoginPage,
+  errorComponent: LoginErrorPanel,
 });

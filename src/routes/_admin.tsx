@@ -1,5 +1,6 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { meQuery } from "@api/queries";
+import { AdminErrorPanel } from "@shared/ui/AuthErrorPanel";
 import { Sidebar } from "@widgets/sidebar/Sidebar";
 
 export const Route = createFileRoute("/_admin")({
@@ -11,6 +12,7 @@ export const Route = createFileRoute("/_admin")({
     return { me };
   },
   component: AdminLayout,
+  errorComponent: AdminErrorPanel,
 });
 
 function AdminLayout() {
