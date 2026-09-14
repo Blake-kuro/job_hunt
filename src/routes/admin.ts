@@ -27,7 +27,17 @@ async function dashboard() {
     prisma.course.findMany({ orderBy: { updatedAt: "desc" }, include: { lessons: { orderBy: { sortOrder: "asc" } } } }),
     prisma.question.findMany({
       orderBy: { id: "asc" },
-      select: { id: true, prompt: true, categoryId: true, options: true, answer: true, explanation: true, difficulty: true, source: true, published: true },
+      select: {
+        id: true,
+        prompt: true,
+        categoryId: true,
+        options: true,
+        answer: true,
+        explanation: true,
+        difficulty: true,
+        source: true,
+        published: true,
+      },
     }),
     prisma.questionCategory.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
   ]);

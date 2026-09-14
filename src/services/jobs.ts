@@ -2,6 +2,7 @@ import type { JobListQuery, JobListResult, JobProgress } from "../contract";
 import { prisma } from "../db";
 import type { Prisma } from "../generated/prisma/client";
 import type { AppStatus } from "../generated/prisma/enums";
+import type { Access } from "../lib/access";
 import { dateKey, daysBetween, dbDateToKey, keyToDate, keyToInstant, weekStartKey } from "../lib/dates";
 import { NotFoundError } from "../lib/errors";
 import { toJobListItem } from "../lib/job-dto";
@@ -11,8 +12,22 @@ const userState = (userId: string) => ({
   applications: { where: { userId }, select: { status: true } },
 });
 
-export async function listJobs(query: JobListQuery, userId: string): Promise<JobListResult> {
+const DEFAULT_ORDER: Prisma.JobOrderByWithRelationInput[] = [
+  { deadlineAt: { sort: "asc", nulls: "last" } },
+  { createTime: "desc" },
+];
+
+/** 当前档位可见的岗位 id（默认排序前 N 条）；null = 不限制 */
+async function visibleJobIds(access: Access): Promise<number[] | null> {
+  if (access.jobs === null) return null;
+  const rows = await prisma.job.findMany({ select: { id: true }, orderBy: DEFAULT_ORDER, take: access.jobs });
+  return rows.map((r) => r.id);
+}
+
+export async function listJobs(query: JobListQuery, userId: string, access: Access): Promise<JobListResult> {
+  const visible = await visibleJobIds(access);
   const where: Prisma.JobWhereInput = {
+    ...(visible && { id: { in: visible } }),
     ...(query.category && { categoryId: query.category }),
     ...(query.city && { workLocation: { contains: query.city } }),
     ...(query.q && {
@@ -25,11 +40,9 @@ export async function listJobs(query: JobListQuery, userId: string): Promise<Job
   };
 
   const orderBy: Prisma.JobOrderByWithRelationInput[] =
-    query.sort === "posted"
-      ? [{ createTime: "desc" }]
-      : [{ deadlineAt: { sort: "asc", nulls: "last" } }, { createTime: "desc" }];
+    query.sort === "posted" ? [{ createTime: "desc" }] : DEFAULT_ORDER;
 
-  const [rows, total] = await Promise.all([
+  const [rows, total, grandTotal] = await Promise.all([
     prisma.job.findMany({
       where,
       orderBy,
@@ -38,6 +51,7 @@ export async function listJobs(query: JobListQuery, userId: string): Promise<Job
       include: userState(userId),
     }),
     prisma.job.count({ where }),
+    prisma.job.count(),
   ]);
 
   const today = dateKey();
@@ -46,6 +60,7 @@ export async function listJobs(query: JobListQuery, userId: string): Promise<Job
     total,
     page: query.page,
     pageSize: query.pageSize,
+    access: { tier: access.tier, visible: access.jobs, total: grandTotal },
   };
 }
 

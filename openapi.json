@@ -402,6 +402,24 @@
               ]
             }
           },
+          "categories": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "name"
+              ]
+            }
+          },
           "questions": {
             "type": "array",
             "items": {
@@ -412,6 +430,19 @@
                 },
                 "prompt": {
                   "type": "string"
+                },
+                "categoryId": {
+                  "type": "string"
+                },
+                "options": {},
+                "answer": {
+                  "type": "string"
+                },
+                "explanation": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
                 },
                 "difficulty": {
                   "type": "string"
@@ -426,6 +457,9 @@
               "required": [
                 "id",
                 "prompt",
+                "categoryId",
+                "answer",
+                "explanation",
                 "difficulty",
                 "source",
                 "published"
@@ -438,6 +472,7 @@
           "students",
           "materials",
           "courses",
+          "categories",
           "questions"
         ]
       },
@@ -578,6 +613,87 @@
           "published"
         ]
       },
+      "AdminQuestionBody": {
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "type": "string",
+            "minLength": 1
+          },
+          "categoryId": {
+            "type": "string"
+          },
+          "companySetId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "letter": {
+                  "type": "string",
+                  "enum": [
+                    "A",
+                    "B",
+                    "C",
+                    "D"
+                  ]
+                },
+                "text": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "letter",
+                "text"
+              ]
+            }
+          },
+          "answer": {
+            "type": "string",
+            "enum": [
+              "A",
+              "B",
+              "C",
+              "D"
+            ]
+          },
+          "explanation": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "difficulty": {
+            "type": "string",
+            "enum": [
+              "EASY",
+              "MEDIUM",
+              "HARD"
+            ]
+          },
+          "source": {
+            "type": "string"
+          },
+          "published": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "prompt",
+          "categoryId",
+          "options",
+          "answer",
+          "explanation",
+          "difficulty",
+          "source",
+          "published"
+        ]
+      },
       "StudentContent": {
         "type": "object",
         "properties": {
@@ -703,13 +819,17 @@
           },
           "pageSize": {
             "type": "integer"
+          },
+          "access": {
+            "$ref": "#/components/schemas/Access"
           }
         },
         "required": [
           "items",
           "total",
           "page",
-          "pageSize"
+          "pageSize",
+          "access"
         ]
       },
       "JobListItem": {
@@ -860,6 +980,28 @@
           "INTERVIEWING"
         ]
       },
+      "Access": {
+        "type": "object",
+        "properties": {
+          "tier": {
+            "$ref": "#/components/schemas/Tier"
+          },
+          "visible": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "total": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "tier",
+          "visible",
+          "total"
+        ]
+      },
       "JobProgress": {
         "type": "object",
         "properties": {
@@ -971,13 +1113,25 @@
           },
           "date": {
             "type": "string"
+          },
+          "exhausted": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "QUOTA",
+              "ALL",
+              null
+            ]
           }
         },
         "required": [
           "question",
           "indexLabel",
           "attemptedToday",
-          "date"
+          "date",
+          "exhausted"
         ]
       },
       "QuizQuestionPublic": {
@@ -1153,6 +1307,9 @@
             "items": {
               "$ref": "#/components/schemas/WrongBookItem"
             }
+          },
+          "access": {
+            "$ref": "#/components/schemas/Access"
           }
         },
         "required": [
@@ -1162,7 +1319,8 @@
           "weekTarget",
           "totalSolved",
           "categories",
-          "wrongList"
+          "wrongList",
+          "access"
         ]
       },
       "WrongBookItem": {
@@ -1501,6 +1659,29 @@
         }
       }
     },
+    "/api/admin/questions": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "operationId": "createAdminQuestion",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminQuestionBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "已创建"
+          }
+        }
+      }
+    },
     "/api/admin/questions/{id}": {
       "patch": {
         "tags": [
@@ -1524,13 +1705,73 @@
               "schema": {
                 "type": "object",
                 "properties": {
+                  "prompt": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "categoryId": {
+                    "type": "string"
+                  },
+                  "companySetId": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "options": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "letter": {
+                          "type": "string",
+                          "enum": [
+                            "A",
+                            "B",
+                            "C",
+                            "D"
+                          ]
+                        },
+                        "text": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "letter",
+                        "text"
+                      ]
+                    }
+                  },
+                  "answer": {
+                    "type": "string",
+                    "enum": [
+                      "A",
+                      "B",
+                      "C",
+                      "D"
+                    ]
+                  },
+                  "explanation": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "difficulty": {
+                    "type": "string",
+                    "enum": [
+                      "EASY",
+                      "MEDIUM",
+                      "HARD"
+                    ]
+                  },
+                  "source": {
+                    "type": "string"
+                  },
                   "published": {
                     "type": "boolean"
                   }
-                },
-                "required": [
-                  "published"
-                ]
+                }
               }
             }
           }
@@ -1962,6 +2203,16 @@
           },
           "400": {
             "description": "参数校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "当前档位不可作答",
             "content": {
               "application/json": {
                 "schema": {

@@ -1,4 +1,5 @@
 import { z } from "@hono/zod-openapi";
+import { AccessSchema } from "./access";
 
 export const CategoryIdSchema = z.union([z.literal(1), z.literal(2), z.literal(3)]).openapi("CategoryId");
 export type CategoryId = z.infer<typeof CategoryIdSchema>;
@@ -63,6 +64,7 @@ export const JobListResultSchema = z
     total: z.number().int(),
     page: z.number().int(),
     pageSize: z.number().int(),
+    access: AccessSchema,
   })
   .openapi("JobListResult");
 export type JobListResult = z.infer<typeof JobListResultSchema>;

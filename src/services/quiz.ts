@@ -10,30 +10,45 @@ import {
   quizOptionLetterSchema,
 } from "../contract";
 import { prisma } from "../db";
+import type { Access } from "../lib/access";
 import { addDays, computeStreak, dateKey, dueLabel, keyToInstant, weekStartKey } from "../lib/dates";
-import { NotFoundError } from "../lib/errors";
+import { AppError, NotFoundError } from "../lib/errors";
 
 const DIFFICULTY_LABEL = { EASY: "难度 简单", MEDIUM: "难度 中等", HARD: "难度 困难" } as const;
 const WEEK_LABELS: WeekLabel[] = ["一", "二", "三", "四", "五", "六", "日"];
 const WEEK_TARGET = 20;
+type Role = "STUDENT" | "ADMIN";
 
-async function questionAccess(userId: string) {
-  const user = await prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { role: true, enabled: true } });
-  if (!user.enabled) return { id: { in: [] as string[] } };
-  if (user.role === "ADMIN") return { published: true };
-  const grants = await prisma.accessGrant.findMany({
-    where: { userId, contentType: "QUESTION", OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }] },
-    select: { contentId: true },
-  });
-  return { published: true, id: { in: grants.map((grant) => grant.contentId) } };
+/**
+ * 当前用户可见的题目 id：档位窗口（已发布题按 id 升序前 access.questions 道）
+ * 与该用户未过期的按题授权（AccessGrant{ contentType: QUESTION }）取并集去重。
+ * null = 不限制（管理员，或 PRO 档位）。
+ */
+async function visibleQuestionIds(userId: string, access: Access, role: Role): Promise<string[] | null> {
+  if (role === "ADMIN") return null;
+  if (access.questions === null) return null;
+  const [window, grants] = await Promise.all([
+    prisma.question.findMany({
+      where: { published: true },
+      orderBy: { id: "asc" },
+      take: access.questions,
+      select: { id: true },
+    }),
+    prisma.accessGrant.findMany({
+      where: { userId, contentType: "QUESTION", OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }] },
+      select: { contentId: true },
+    }),
+  ]);
+  return [...new Set([...window.map((w) => w.id), ...grants.map((g) => g.contentId)])];
 }
 
-export async function getTodayQuestion(userId: string): Promise<QuizToday> {
+export async function getTodayQuestion(userId: string, access: Access, role: Role): Promise<QuizToday> {
   const today = dateKey();
-  const access = await questionAccess(userId);
+  const visible = await visibleQuestionIds(userId, access, role);
+  const unattempted = { attempts: { none: { userId } } } as const;
   const [question, attemptedToday] = await Promise.all([
     prisma.question.findFirst({
-      where: { ...access, attempts: { none: { userId } } },
+      where: { published: true, ...unattempted, ...(visible && { id: { in: visible } }) },
       orderBy: { id: "asc" },
       include: { category: { select: { name: true } } },
     }),
@@ -41,6 +56,12 @@ export async function getTodayQuestion(userId: string): Promise<QuizToday> {
       where: { userId, answeredAt: { gte: keyToInstant(today), lt: keyToInstant(addDays(today, 1)) } },
     }),
   ]);
+
+  let exhausted: QuizToday["exhausted"] = null;
+  if (!question) {
+    const anyLeft = await prisma.question.count({ where: { published: true, ...unattempted } });
+    exhausted = anyLeft > 0 ? "QUOTA" : "ALL";
+  }
 
   return {
     question: question
@@ -56,6 +77,7 @@ export async function getTodayQuestion(userId: string): Promise<QuizToday> {
     indexLabel: `试题 ${attemptedToday + 1} / ${WEEK_TARGET}`,
     attemptedToday,
     date: today,
+    exhausted,
   };
 }
 
@@ -63,10 +85,15 @@ export async function submitAnswer(
   userId: string,
   questionId: string,
   picked: QuizOptionLetter,
+  access: Access,
+  role: Role,
 ): Promise<QuizAnswerResult> {
-  const access = await questionAccess(userId);
+  const visible = await visibleQuestionIds(userId, access, role);
+  if (visible && !visible.includes(questionId)) {
+    throw new AppError(403, "FORBIDDEN", "当前档位不可作答此题，登录或升级后继续");
+  }
   const q = await prisma.question.findFirst({
-    where: { ...access, id: questionId },
+    where: { published: true, id: questionId },
     select: { answer: true, explanation: true },
   });
   if (!q) throw new NotFoundError(`题目 ${questionId} 不存在`);
@@ -97,11 +124,11 @@ export async function submitAnswer(
   };
 }
 
-export async function listWrongBook(userId: string): Promise<WrongBookItem[]> {
+export async function listWrongBook(userId: string, access: Access, role: Role): Promise<WrongBookItem[]> {
   const today = dateKey();
-  const access = await questionAccess(userId);
+  const visible = await visibleQuestionIds(userId, access, role);
   const rows = await prisma.wrongBookEntry.findMany({
-    where: { userId, mastered: false, question: access },
+    where: { userId, mastered: false, question: { published: true, ...(visible && { id: { in: visible } }) } },
     orderBy: { nextReviewAt: "asc" },
     select: { questionId: true, nextReviewAt: true, question: { select: { prompt: true } } },
   });
@@ -112,11 +139,11 @@ export async function listWrongBook(userId: string): Promise<WrongBookItem[]> {
   }));
 }
 
-export async function getDashboard(userId: string): Promise<QuizDashboard> {
+export async function getDashboard(userId: string, access: Access, role: Role): Promise<QuizDashboard> {
   const today = dateKey();
   const weekStart = weekStartKey(today);
 
-  const [attempts, weekAttempts, allSolved, categories, wrongList] = await Promise.all([
+  const [attempts, weekAttempts, allSolved, categories, wrongList, questionTotal] = await Promise.all([
     prisma.attempt.findMany({ where: { userId }, select: { answeredAt: true } }),
     prisma.attempt.findMany({
       where: { userId, answeredAt: { gte: keyToInstant(weekStart), lt: keyToInstant(addDays(weekStart, 7)) } },
@@ -128,7 +155,8 @@ export async function getDashboard(userId: string): Promise<QuizDashboard> {
       select: { id: true, name: true, _count: { select: { questions: true } } },
       orderBy: { id: "asc" },
     }),
-    listWrongBook(userId),
+    listWrongBook(userId, access, role),
+    prisma.question.count({ where: { published: true } }),
   ]);
 
   const days = new Set(attempts.map((a) => dateKey(a.answeredAt)));
@@ -140,6 +168,7 @@ export async function getDashboard(userId: string): Promise<QuizDashboard> {
     totalSolved: allSolved.length,
     categories: categories.map((c) => ({ id: c.id, label: c.name, count: c._count.questions })),
     wrongList,
+    access: { tier: access.tier, visible: access.questions, total: questionTotal },
   };
 }
 

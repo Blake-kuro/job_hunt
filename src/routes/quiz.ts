@@ -24,6 +24,7 @@ import {
 const json = <S>(schema: S, description: string) => ({ description, content: { "application/json": { schema } } });
 const badRequest = json(ApiErrorSchema, "参数校验失败");
 const notFound = json(ApiErrorSchema, "不存在");
+const forbidden = json(ApiErrorSchema, "当前档位不可作答");
 
 const todayRoute = createRoute({
   method: "get",
@@ -39,7 +40,7 @@ const attemptsRoute = createRoute({
   tags: ["quiz"],
   operationId: "submitAttempt",
   request: { body: { required: true, content: { "application/json": { schema: SubmitAttemptSchema } } } },
-  responses: { 200: json(QuizAnswerResultSchema, "判题结果"), 400: badRequest, 404: notFound },
+  responses: { 200: json(QuizAnswerResultSchema, "判题结果"), 400: badRequest, 403: forbidden, 404: notFound },
 });
 
 const dashboardRoute = createRoute({
@@ -79,13 +80,15 @@ const companySetsRoute = createRoute({
 });
 
 export const quizRoutes = new OpenAPIHono<Env>({ defaultHook: validationHook })
-  .openapi(todayRoute, async (c) => c.json(await getTodayQuestion(c.var.userId), 200))
+  .openapi(todayRoute, async (c) => c.json(await getTodayQuestion(c.var.userId, c.var.access, c.var.role), 200))
   .openapi(attemptsRoute, async (c) => {
     const { questionId, picked } = c.req.valid("json");
-    return c.json(await submitAnswer(c.var.userId, questionId, picked), 200);
+    return c.json(await submitAnswer(c.var.userId, questionId, picked, c.var.access, c.var.role), 200);
   })
-  .openapi(dashboardRoute, async (c) => c.json(await getDashboard(c.var.userId), 200))
-  .openapi(wrongBookRoute, async (c) => c.json({ items: await listWrongBook(c.var.userId) }, 200))
+  .openapi(dashboardRoute, async (c) => c.json(await getDashboard(c.var.userId, c.var.access, c.var.role), 200))
+  .openapi(wrongBookRoute, async (c) =>
+    c.json({ items: await listWrongBook(c.var.userId, c.var.access, c.var.role) }, 200),
+  )
   .openapi(setMasteredRoute, async (c) => {
     await setMastered(c.var.userId, c.req.valid("param").questionId, c.req.valid("json").mastered);
     return c.body(null, 204);

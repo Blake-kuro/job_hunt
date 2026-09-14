@@ -74,7 +74,7 @@ const clearApplicationRoute = createRoute({
 });
 
 export const jobRoutes = new OpenAPIHono<Env>({ defaultHook: validationHook })
-  .openapi(listJobsRoute, async (c) => c.json(await listJobs(c.req.valid("query"), c.var.userId), 200))
+  .openapi(listJobsRoute, async (c) => c.json(await listJobs(c.req.valid("query"), c.var.userId, c.var.access), 200))
   .openapi(progressRoute, async (c) => c.json(await getProgress(c.var.userId), 200))
   .openapi(addFavoriteRoute, async (c) => c.json(await setFavorite(c.req.valid("param").id, c.var.userId, true), 200))
   .openapi(removeFavoriteRoute, async (c) =>

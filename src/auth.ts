@@ -5,7 +5,7 @@ import { prisma } from "./db";
 import type { Env } from "./env";
 import { AppError } from "./lib/errors";
 import { smsSender } from "./services/sms";
-import { getAccess } from "./services/users";
+import { loadUserAccess } from "./services/users";
 
 export const DEV_USER_EMAIL = "dev@local";
 export const SESSION_COOKIE = "job_hunt_session";
@@ -195,9 +195,10 @@ async function createDeviceUser(c: Parameters<typeof setCookie>[0]): Promise<str
 /** 每个请求都有用户：会话 → 游客 → 新建游客；并注入档位 */
 export const requestUser = createMiddleware<Env>(async (c, next) => {
   const userId = (await sessionUserId(c)) ?? (await findDeviceUserId(c)) ?? (await createDeviceUser(c));
-  const user = await prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { enabled: true } });
-  if (!user.enabled) throw new AppError(403, "FORBIDDEN", "账号权限已停用，请联系管理员");
+  const { access, enabled, role } = await loadUserAccess(userId);
+  if (!enabled) throw new AppError(403, "FORBIDDEN", "账号权限已停用，请联系管理员");
   c.set("userId", userId);
-  c.set("access", await getAccess(userId));
+  c.set("access", access);
+  c.set("role", role);
   await next();
 });

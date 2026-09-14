@@ -1,4 +1,5 @@
 import { z } from "@hono/zod-openapi";
+import { AccessSchema } from "./access";
 
 export const QuizOptionLetterSchema = z.enum(["A", "B", "C", "D"]).openapi("QuizOptionLetter");
 export type QuizOptionLetter = z.infer<typeof QuizOptionLetterSchema>;
@@ -36,6 +37,7 @@ export const QuizTodaySchema = z
     indexLabel: z.string(),
     attemptedToday: z.number().int(),
     date: z.string(),
+    exhausted: z.enum(["QUOTA", "ALL"]).nullable(),
   })
   .openapi("QuizToday");
 export type QuizToday = z.infer<typeof QuizTodaySchema>;
@@ -67,6 +69,7 @@ export const QuizDashboardSchema = z
     totalSolved: z.number().int(),
     categories: z.array(z.object({ id: z.string(), label: z.string(), count: z.number().int() })),
     wrongList: z.array(WrongBookItemSchema),
+    access: AccessSchema,
   })
   .openapi("QuizDashboard");
 export type QuizDashboard = z.infer<typeof QuizDashboardSchema>;

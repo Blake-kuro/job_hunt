@@ -35,8 +35,15 @@ function toAccess(row: UserRow): Access {
 }
 
 export async function getAccess(userId: string): Promise<Access> {
+  return (await loadUserAccess(userId)).access;
+}
+
+/** 一次查询拿到档位、是否被停用、角色（避免 requestUser 里重复查库） */
+export async function loadUserAccess(
+  userId: string,
+): Promise<{ access: Access; enabled: boolean; role: "STUDENT" | "ADMIN" }> {
   const row = await prisma.user.findUniqueOrThrow({ where: { id: userId }, select: userSelect });
-  return toAccess(row);
+  return { access: toAccess(row), enabled: row.enabled, role: row.role };
 }
 
 export async function getCurrentUser(userId: string): Promise<User> {

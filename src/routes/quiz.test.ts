@@ -1,7 +1,8 @@
 import type { QuizToday, QuizDashboard, CompanySetItem, WrongBookItem } from "../contract";
 import { beforeEach, describe, expect, it } from "vitest";
+import { DEV_USER_EMAIL } from "../auth";
 import { prisma } from "../db";
-import { apiRequest, hasDb, resetDb, seedDevUser } from "../test/db";
+import { apiRequest, guestClient, hasDb, resetDb, seedDevUser } from "../test/db";
 
 const LETTERS = ["A", "B", "C", "D"] as const;
 const post = (body: unknown) => ({
@@ -132,5 +133,72 @@ describe.skipIf(!hasDb)("/api/quiz", () => {
     expect(dashboard.wrongList).toHaveLength(1);
     expect(dashboard.totalSolved).toBe(1);
     expect(dashboard.weekSolved).toBe(1);
+  });
+});
+
+async function insertManyQuestions(n: number) {
+  await prisma.questionCategory.create({ data: { id: "cat-x", name: "配额测试" } });
+  await prisma.question.createMany({
+    data: Array.from({ length: n }, (_, i) => ({
+      id: `qq-${String(i + 1).padStart(3, "0")}`,
+      categoryId: "cat-x",
+      prompt: `第 ${i + 1} 题`,
+      options: LETTERS.map((letter) => ({ letter, text: `选项 ${letter}` })),
+      answer: "A",
+      explanation: ["解析"],
+      difficulty: "EASY",
+      source: "测试",
+    })),
+  });
+}
+
+describe.skipIf(!hasDb)("/api/quiz 配额", () => {
+  beforeEach(async () => {
+    await resetDb();
+    await seedDevUser();
+    await insertManyQuestions(22);
+  });
+
+  it("游客答完 20 道后 exhausted=QUOTA，第 21 道 403", async () => {
+    const guest = guestClient();
+    for (let i = 1; i <= 20; i++) {
+      const today = (await (await guest("/api/quiz/today")).json()) as QuizToday;
+      expect(today.question?.id).toBe(`qq-${String(i).padStart(3, "0")}`);
+      expect(today.exhausted).toBeNull();
+      expect((await guest("/api/quiz/attempts", post({ questionId: today.question?.id, picked: "A" }))).status).toBe(
+        200,
+      );
+    }
+    const done = (await (await guest("/api/quiz/today")).json()) as QuizToday;
+    expect(done).toMatchObject({ question: null, exhausted: "QUOTA" });
+    const forbidden = await guest("/api/quiz/attempts", post({ questionId: "qq-021", picked: "A" }));
+    expect(forbidden.status).toBe(403);
+    expect(await forbidden.json()).toMatchObject({ error: { code: "FORBIDDEN" } });
+    const dash = (await (await guest("/api/quiz/dashboard")).json()) as QuizDashboard;
+    expect(dash.access).toEqual({ tier: "GUEST", visible: 20, total: 22 });
+  });
+
+  it("PRO 无限制；全部答完 exhausted=ALL", async () => {
+    await prisma.user.updateMany({ where: { email: DEV_USER_EMAIL }, data: { plan: "PRO", role: "STUDENT" } });
+    for (let i = 1; i <= 22; i++) {
+      await apiRequest("/api/quiz/attempts", post({ questionId: `qq-${String(i).padStart(3, "0")}`, picked: "A" }));
+    }
+    const done = (await (await apiRequest("/api/quiz/today")).json()) as QuizToday;
+    expect(done).toMatchObject({ question: null, exhausted: "ALL" });
+    const dash = (await (await apiRequest("/api/quiz/dashboard")).json()) as QuizDashboard;
+    expect(dash.access).toEqual({ tier: "PRO", visible: null, total: 22 });
+  });
+
+  it("FREE 学生（游客）被单独授权第 21 道后可以看到并作答它；档位数字不变", async () => {
+    const guest = guestClient();
+    const me = (await (await guest("/api/me")).json()) as { id: string };
+    const dev = await prisma.user.findFirstOrThrow({ where: { email: DEV_USER_EMAIL } });
+    await prisma.accessGrant.create({
+      data: { userId: me.id, contentType: "QUESTION", contentId: "qq-021", grantedById: dev.id },
+    });
+    const res = await guest("/api/quiz/attempts", post({ questionId: "qq-021", picked: "A" }));
+    expect(res.status).toBe(200);
+    const dash = (await (await guest("/api/quiz/dashboard")).json()) as QuizDashboard;
+    expect(dash.access).toEqual({ tier: "GUEST", visible: 20, total: 22 });
   });
 });
