@@ -675,6 +675,308 @@
           "lessons"
         ]
       },
+      "AdminQuizMeta": {
+        "type": "object",
+        "properties": {
+          "categories": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "questionCount": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "questionCount"
+              ]
+            }
+          },
+          "companySets": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "company": {
+                  "type": "string"
+                },
+                "track": {
+                  "type": "string"
+                },
+                "focus": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "company",
+                "track",
+                "focus"
+              ]
+            }
+          }
+        },
+        "required": [
+          "categories",
+          "companySets"
+        ]
+      },
+      "AdminQuestionList": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminQuestion"
+            }
+          },
+          "total": {
+            "type": "integer"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "pageSize": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "page",
+          "pageSize"
+        ]
+      },
+      "AdminQuestion": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "prompt": {
+            "type": "string"
+          },
+          "categoryId": {
+            "type": "string"
+          },
+          "categoryName": {
+            "type": "string"
+          },
+          "companySetId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QuizOption"
+            }
+          },
+          "answer": {
+            "$ref": "#/components/schemas/QuizOptionLetter"
+          },
+          "explanation": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "difficulty": {
+            "$ref": "#/components/schemas/Difficulty"
+          },
+          "source": {
+            "type": "string"
+          },
+          "published": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "prompt",
+          "categoryId",
+          "categoryName",
+          "companySetId",
+          "options",
+          "answer",
+          "explanation",
+          "difficulty",
+          "source",
+          "published"
+        ]
+      },
+      "QuizOption": {
+        "type": "object",
+        "properties": {
+          "letter": {
+            "$ref": "#/components/schemas/QuizOptionLetter"
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "letter",
+          "text"
+        ]
+      },
+      "QuizOptionLetter": {
+        "type": "string",
+        "enum": [
+          "A",
+          "B",
+          "C",
+          "D"
+        ]
+      },
+      "Difficulty": {
+        "type": "string",
+        "enum": [
+          "EASY",
+          "MEDIUM",
+          "HARD"
+        ]
+      },
+      "AdminQuestionBody": {
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "type": "string",
+            "minLength": 1
+          },
+          "categoryId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "companySetId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QuizOption"
+            }
+          },
+          "answer": {
+            "$ref": "#/components/schemas/QuizOptionLetter"
+          },
+          "explanation": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "difficulty": {
+            "$ref": "#/components/schemas/Difficulty"
+          },
+          "source": {
+            "type": "string",
+            "minLength": 1
+          },
+          "published": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "prompt",
+          "categoryId",
+          "options",
+          "answer",
+          "explanation",
+          "difficulty",
+          "source",
+          "published"
+        ]
+      },
+      "AdminQuestionPatch": {
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "type": "string",
+            "minLength": 1
+          },
+          "categoryId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "companySetId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QuizOption"
+            }
+          },
+          "answer": {
+            "$ref": "#/components/schemas/QuizOptionLetter"
+          },
+          "explanation": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "difficulty": {
+            "$ref": "#/components/schemas/Difficulty"
+          },
+          "source": {
+            "type": "string",
+            "minLength": 1
+          },
+          "published": {
+            "type": "boolean"
+          }
+        }
+      },
+      "AdminCategory": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ]
+      },
+      "AdminCategoryBody": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 30
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
       "StudentContent": {
         "type": "object",
         "properties": {
@@ -1147,31 +1449,6 @@
           "category",
           "difficulty",
           "source"
-        ]
-      },
-      "QuizOption": {
-        "type": "object",
-        "properties": {
-          "letter": {
-            "$ref": "#/components/schemas/QuizOptionLetter"
-          },
-          "text": {
-            "type": "string",
-            "minLength": 1
-          }
-        },
-        "required": [
-          "letter",
-          "text"
-        ]
-      },
-      "QuizOptionLetter": {
-        "type": "string",
-        "enum": [
-          "A",
-          "B",
-          "C",
-          "D"
         ]
       },
       "QuizAnswerResult": {
@@ -1814,6 +2091,261 @@
           },
           "404": {
             "description": "不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/quiz-meta": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "operationId": "getAdminQuizMeta",
+        "responses": {
+          "200": {
+            "description": "题库分类与企业专项",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminQuizMeta"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/questions": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "operationId": "listAdminQuestions",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required": false,
+            "name": "q",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required": false,
+            "name": "categoryId",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            },
+            "required": false,
+            "name": "published",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            },
+            "required": false,
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            },
+            "required": false,
+            "name": "pageSize",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "题目分页列表",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminQuestionList"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "operationId": "createAdminQuestion",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminQuestionBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "已创建",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IdResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "分类 / 企业专项不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/questions/{id}": {
+      "patch": {
+        "tags": [
+          "admin"
+        ],
+        "operationId": "updateAdminQuestion",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminQuestionPatch"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "已更新"
+          },
+          "400": {
+            "description": "分类 / 企业专项不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "admin"
+        ],
+        "operationId": "deleteAdminQuestion",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "已删除"
+          },
+          "404": {
+            "description": "不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/question-categories": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "operationId": "createAdminQuestionCategory",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminCategoryBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "已创建",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminCategory"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "分类已存在",
             "content": {
               "application/json": {
                 "schema": {

@@ -45,6 +45,12 @@ pnpm dev                      # http://localhost:3001
 - `GET /api/admin/courses` 全部课程（含课时）
 - `POST /api/admin/content` 创建 / 更新资料或课程（带 `id` 为更新），返回 `201 { id }`
 - `DELETE /api/admin/content/{type}/{id}` 删除资料或课程，并清理对应授权
+- `GET /api/admin/quiz-meta` 题库分类（含题量）与企业专项列表
+- `GET /api/admin/questions?q&categoryId&published&page&pageSize` 题目分页列表，含分类名 / 选项 / 答案
+- `POST /api/admin/questions` 创建题目，返回 `201 { id }`（分类 / 企业专项不存在 400）
+- `PATCH /api/admin/questions/{id}` 修改题目（分类 / 企业专项不存在 400，题目不存在 404）
+- `DELETE /api/admin/questions/{id}` 删除题目并清理对应授权
+- `POST /api/admin/question-categories` 创建题目分类（同名已存在 400）
 
 ## 测试
 

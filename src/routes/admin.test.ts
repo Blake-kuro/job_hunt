@@ -186,4 +186,45 @@ describe.skipIf(!hasDb)("/api/admin", () => {
     expect(res.status).toBe(400);
     expect(await res.json()).toMatchObject({ error: { code: "VALIDATION" } });
   });
+
+  it("题库：分类、分页列表、创建 / 修改 / 删除", async () => {
+    const cat = await apiRequest("/api/admin/question-categories", json("POST", { name: "算法" }));
+    expect(cat.status).toBe(201);
+    const { id: categoryId } = (await cat.json()) as { id: string };
+    expect((await apiRequest("/api/admin/question-categories", json("POST", { name: "算法" }))).status).toBe(400);
+    const body = {
+      prompt: "1+1=?",
+      categoryId,
+      options: [
+        { letter: "A", text: "1" },
+        { letter: "B", text: "2" },
+        { letter: "C", text: "3" },
+        { letter: "D", text: "4" },
+      ],
+      answer: "B",
+      explanation: ["加法"],
+      difficulty: "EASY",
+      source: "自编",
+      published: false,
+    };
+    const created = await apiRequest("/api/admin/questions", json("POST", body));
+    expect(created.status).toBe(201);
+    const { id } = (await created.json()) as { id: string };
+    expect((await apiRequest("/api/admin/questions", json("POST", { ...body, categoryId: "nope" }))).status).toBe(400);
+    const meta = (await (await apiRequest("/api/admin/quiz-meta")).json()) as {
+      categories: { name: string; questionCount: number }[];
+    };
+    expect(meta.categories).toMatchObject([{ name: "算法", questionCount: 1 }]);
+    expect((await apiRequest(`/api/admin/questions/${id}`, json("PATCH", { published: true }))).status).toBe(204);
+    const list = (await (await apiRequest("/api/admin/questions?published=true&q=1%2B1")).json()) as {
+      total: number;
+      items: { categoryName: string; options: unknown[] }[];
+    };
+    expect(list.total).toBe(1);
+    expect(list.items[0]).toMatchObject({ categoryName: "算法", answer: "B", published: true });
+    expect(list.items[0].options).toHaveLength(4);
+    expect((await apiRequest(`/api/admin/questions/${id}`, { method: "DELETE" })).status).toBe(204);
+    expect((await apiRequest(`/api/admin/questions/${id}`, { method: "DELETE" })).status).toBe(404);
+    expect(await prisma.question.count()).toBe(0);
+  });
 });
