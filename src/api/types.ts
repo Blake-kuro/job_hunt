@@ -4,6 +4,8 @@ type S = components["schemas"];
 
 export type ApiErrorBody = S["ApiError"];
 export type ApiErrorCode = S["ApiErrorCode"];
+export type User = S["User"];
+export type SendSmsResult = S["SendSmsResult"];
 export type CategoryId = S["CategoryId"];
 export type ApplicationStatus = S["ApplicationStatus"];
 /**

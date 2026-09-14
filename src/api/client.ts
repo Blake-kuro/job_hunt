@@ -14,7 +14,7 @@ export class ApiError extends Error {
   }
 }
 
-const CODES = ["VALIDATION", "NOT_FOUND", "INTERNAL"];
+const CODES = ["VALIDATION", "UNAUTHORIZED", "CODE_INVALID", "RATE_LIMITED", "NOT_FOUND", "INTERNAL"];
 
 function toErrorBody(value: unknown, status: number): ApiErrorBody {
   if (

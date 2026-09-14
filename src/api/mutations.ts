@@ -3,6 +3,27 @@ import { client, unwrap } from "./client";
 import { jobsQuery, quizDashboardQuery } from "./queries";
 import type { ApplicationStatus, JobListQuery, JobListResult, QuizDashboard, QuizOptionLetter } from "./types";
 
+export function useSendLoginSms() {
+  return useMutation({ mutationFn: (phone: string) => unwrap(client.POST("/api/auth/sms/send", { body: { phone } })) });
+}
+
+export function useVerifyLoginSms() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ phone, code }: { phone: string; code: string }) =>
+      unwrap(client.POST("/api/auth/sms/verify", { body: { phone, code } })),
+    onSuccess: ({ user }) => qc.setQueryData(["auth", "me"], user),
+  });
+}
+
+export function useLogout() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => unwrap(client.POST("/api/auth/logout")),
+    onSuccess: () => qc.clear(),
+  });
+}
+
 function patchItem(result: JobListResult | undefined, id: number, patch: Partial<JobListResult["items"][number]>) {
   if (!result) return result;
   return { ...result, items: result.items.map((j) => (j.id === id ? { ...j, ...patch } : j)) };

@@ -1,5 +1,8 @@
 import type { ReactNode } from "react";
-import { Link } from "@tanstack/react-router";
+import { useSuspenseQuery } from "@tanstack/react-query";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { useLogout } from "@api/mutations";
+import { meQuery } from "@api/queries";
 import { cn } from "@shared/lib/cn";
 
 interface NavbarProps {
@@ -14,6 +17,16 @@ const links = [
 ] as const;
 
 export function Navbar({ active, trailing }: NavbarProps) {
+  const { data: user } = useSuspenseQuery(meQuery());
+  const logout = useLogout();
+  const navigate = useNavigate();
+  const accountLabel = user.phone ? `${user.phone.slice(0, 3)}****${user.phone.slice(-4)}` : user.name;
+
+  async function handleLogout() {
+    await logout.mutateAsync();
+    navigate({ to: "/login", replace: true });
+  }
+
   return (
     <header className="flex items-center gap-4 border-b border-divider px-4 py-3.5 sm:gap-8 sm:px-8">
       <div className="flex items-center gap-2.5 font-heading text-lg font-semibold">
@@ -40,7 +53,29 @@ export function Navbar({ active, trailing }: NavbarProps) {
 
       <div className="flex-1" />
       {trailing && <span className="hidden text-xs tabular-nums text-neutral-700 md:block">{trailing}</span>}
-      <span className="text-xs text-neutral-700">开发账号</span>
+      <details className="group relative">
+        <summary className="flex cursor-pointer list-none items-center gap-2 text-xs text-neutral-700 marker:hidden">
+          <span className="flex size-7 items-center justify-center bg-accent-200 font-heading font-semibold text-accent-900">
+            {user.name.slice(0, 1)}
+          </span>
+          <span className="hidden sm:inline">{accountLabel}</span>
+          <span className="text-[9px] transition-transform group-open:rotate-180">▼</span>
+        </summary>
+        <div className="absolute right-0 top-[calc(100%+10px)] z-30 min-w-44 border border-divider bg-bg p-2 shadow-lg">
+          <div className="border-b border-hairline px-2 pb-2">
+            <p className="text-sm font-medium">{user.name}</p>
+            <p className="mt-0.5 text-xs text-neutral-600">{accountLabel}</p>
+          </div>
+          <button
+            type="button"
+            disabled={logout.isPending}
+            onClick={handleLogout}
+            className="mt-1 w-full cursor-pointer px-2 py-2 text-left text-xs text-neutral-700 hover:bg-surface disabled:opacity-50"
+          >
+            {logout.isPending ? "正在退出…" : "退出登录"}
+          </button>
+        </div>
+      </details>
     </header>
   );
 }

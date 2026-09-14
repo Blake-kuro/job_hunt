@@ -2,6 +2,14 @@ import { queryOptions } from "@tanstack/react-query";
 import { client, unwrap } from "./client";
 import type { JobListQuery } from "./types";
 
+export const meQuery = () =>
+  queryOptions({
+    queryKey: ["auth", "me"] as const,
+    queryFn: () => unwrap(client.GET("/api/me")),
+    retry: false,
+    staleTime: 5 * 60 * 1000,
+  });
+
 export const jobsQuery = (q: JobListQuery) =>
   queryOptions({
     queryKey: ["jobs", "list", q] as const,
