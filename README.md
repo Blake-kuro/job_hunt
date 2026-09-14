@@ -26,12 +26,25 @@ pnpm dev                      # http://localhost:3001
 - 手机号验证码免密登录；验证成功后自动注册，使用 HttpOnly Cookie 保存 30 天会话。
 - 开发环境会在后端日志和发送接口的 `developmentCode` 字段显示验证码；生产环境接入短信服务商前会拒绝发送。
 - 登录身份独立保存，已预留 `WECHAT` / `QQ` 类型，后续可将扫码身份绑定到同一用户。
-- 管理后台通过 `ADMIN_PHONE_NUMBERS`（逗号分隔）指定管理员手机号；支持停用学生、FREE/PRO 调整，以及按资料、单题、网课授权。
+- 管理后台见下文「后台管理」一节。
 - 学习内容接口只返回已发布且仍在授权有效期内的资料和网课，刷题按档位窗口可见（游客 20 / 登录 200 / PRO 全部），管理员授权可在窗口之外额外解锁单题。
 - 错误统一 `{ error: { code, message, issues? } }`，包括参数、登录态、验证码及频控错误。
 - 跨域：`CORS_ORIGINS` 逗号分隔；前端走 Vite 代理时不需要。
 - 时区 Asia/Shanghai：日期边界只经 `src/lib/dates.ts`。
 - 三档访问：游客（device Cookie 匿名建档）看岗位前 20 条 / 题库前 20 道；手机号登录后 100 条 / 200 道；PRO 无限制。手动开通：`pnpm set-plan <手机号> PRO [天数]`（不填天数为永久；`FREE` 取消）。
+
+## 后台管理
+
+管理员由 `ADMIN_PHONE_NUMBERS`（逗号分隔手机号）在登录时提升为 `ADMIN`（只升不降）；`/api/admin/*` 要求 `ADMIN` 角色，其余用户 403。管理端仓库：`Blake-kuro/job_hunt_admin`。
+
+- `GET /api/admin/summary` 概览计数（学生 / 启用 / PRO / 游客 / 岗位 / 题目 / 已发布题目 / 资料 / 课程）
+- `GET /api/admin/students?q&plan&enabled&page&pageSize` 学生分页列表（有手机号的用户），含档位、统计与授权内容标题
+- `PATCH /api/admin/students/{id}` 修改姓名 / 启用 / 套餐 / PRO 到期（管理员账号 403）
+- `PUT /api/admin/students/{id}/access` 整体替换授权（内容不存在 400）
+- `GET /api/admin/materials` 全部资料
+- `GET /api/admin/courses` 全部课程（含课时）
+- `POST /api/admin/content` 创建 / 更新资料或课程（带 `id` 为更新），返回 `201 { id }`
+- `DELETE /api/admin/content/{type}/{id}` 删除资料或课程，并清理对应授权
 
 ## 测试
 

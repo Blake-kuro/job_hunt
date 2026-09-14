@@ -177,303 +177,189 @@
           "code"
         ]
       },
-      "AdminDashboard": {
+      "AdminSummary": {
         "type": "object",
         "properties": {
-          "summary": {
+          "students": {
+            "type": "integer"
+          },
+          "enabledStudents": {
+            "type": "integer"
+          },
+          "proStudents": {
+            "type": "integer"
+          },
+          "guests": {
+            "type": "integer"
+          },
+          "jobs": {
+            "type": "integer"
+          },
+          "questions": {
+            "type": "integer"
+          },
+          "publishedQuestions": {
+            "type": "integer"
+          },
+          "materials": {
+            "type": "integer"
+          },
+          "courses": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "students",
+          "enabledStudents",
+          "proStudents",
+          "guests",
+          "jobs",
+          "questions",
+          "publishedQuestions",
+          "materials",
+          "courses"
+        ]
+      },
+      "AdminStudentList": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminStudent"
+            }
+          },
+          "total": {
+            "type": "integer"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "pageSize": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "page",
+          "pageSize"
+        ]
+      },
+      "AdminStudent": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "phone": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "STUDENT",
+              "ADMIN"
+            ]
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "plan": {
+            "$ref": "#/components/schemas/Plan"
+          },
+          "proExpiresAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "tier": {
+            "$ref": "#/components/schemas/Tier"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "stats": {
             "type": "object",
             "properties": {
-              "students": {
-                "type": "number"
+              "favorites": {
+                "type": "integer"
               },
-              "enabledStudents": {
-                "type": "number"
+              "applications": {
+                "type": "integer"
               },
-              "materials": {
-                "type": "number"
-              },
-              "courses": {
-                "type": "number"
-              },
-              "questions": {
-                "type": "number"
+              "attempts": {
+                "type": "integer"
               }
             },
             "required": [
-              "students",
-              "enabledStudents",
-              "materials",
-              "courses",
-              "questions"
+              "favorites",
+              "applications",
+              "attempts"
             ]
           },
-          "students": {
+          "grants": {
             "type": "array",
             "items": {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "type": "string"
-                },
-                "name": {
-                  "type": "string"
-                },
-                "phone": {
-                  "type": [
-                    "string",
-                    "null"
-                  ]
-                },
-                "enabled": {
-                  "type": "boolean"
-                },
-                "plan": {
-                  "type": "string",
-                  "enum": [
-                    "FREE",
-                    "PRO"
-                  ]
-                },
-                "proExpiresAt": {
-                  "type": [
-                    "string",
-                    "null"
-                  ],
-                  "format": "date-time"
-                },
-                "createdAt": {
-                  "type": "string"
-                },
-                "grants": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "id": {
-                        "type": "string"
-                      },
-                      "contentType": {
-                        "$ref": "#/components/schemas/ContentType"
-                      },
-                      "contentId": {
-                        "type": "string"
-                      },
-                      "expiresAt": {
-                        "type": [
-                          "string",
-                          "null"
-                        ],
-                        "format": "date-time"
-                      }
-                    },
-                    "required": [
-                      "id",
-                      "contentType",
-                      "contentId",
-                      "expiresAt"
-                    ]
-                  }
-                }
-              },
-              "required": [
-                "id",
-                "name",
-                "phone",
-                "enabled",
-                "plan",
-                "proExpiresAt",
-                "createdAt",
-                "grants"
-              ]
-            }
-          },
-          "materials": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "type": "string"
-                },
-                "title": {
-                  "type": "string"
-                },
-                "description": {
-                  "type": [
-                    "string",
-                    "null"
-                  ]
-                },
-                "category": {
-                  "type": "string"
-                },
-                "resourceUrl": {
-                  "type": "string"
-                },
-                "published": {
-                  "type": "boolean"
-                },
-                "updatedAt": {
-                  "type": "string"
-                }
-              },
-              "required": [
-                "id",
-                "title",
-                "description",
-                "category",
-                "resourceUrl",
-                "published",
-                "updatedAt"
-              ]
-            }
-          },
-          "courses": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "type": "string"
-                },
-                "title": {
-                  "type": "string"
-                },
-                "description": {
-                  "type": [
-                    "string",
-                    "null"
-                  ]
-                },
-                "coverUrl": {
-                  "type": [
-                    "string",
-                    "null"
-                  ]
-                },
-                "published": {
-                  "type": "boolean"
-                },
-                "updatedAt": {
-                  "type": "string"
-                },
-                "lessons": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "id": {
-                        "type": "string"
-                      },
-                      "title": {
-                        "type": "string"
-                      },
-                      "videoUrl": {
-                        "type": "string"
-                      },
-                      "durationMinutes": {
-                        "type": [
-                          "number",
-                          "null"
-                        ]
-                      },
-                      "sortOrder": {
-                        "type": "number"
-                      }
-                    },
-                    "required": [
-                      "id",
-                      "title",
-                      "videoUrl",
-                      "durationMinutes",
-                      "sortOrder"
-                    ]
-                  }
-                }
-              },
-              "required": [
-                "id",
-                "title",
-                "description",
-                "coverUrl",
-                "published",
-                "updatedAt",
-                "lessons"
-              ]
-            }
-          },
-          "categories": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "type": "string"
-                },
-                "name": {
-                  "type": "string"
-                }
-              },
-              "required": [
-                "id",
-                "name"
-              ]
-            }
-          },
-          "questions": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "type": "string"
-                },
-                "prompt": {
-                  "type": "string"
-                },
-                "categoryId": {
-                  "type": "string"
-                },
-                "options": {},
-                "answer": {
-                  "type": "string"
-                },
-                "explanation": {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                },
-                "difficulty": {
-                  "type": "string"
-                },
-                "source": {
-                  "type": "string"
-                },
-                "published": {
-                  "type": "boolean"
-                }
-              },
-              "required": [
-                "id",
-                "prompt",
-                "categoryId",
-                "answer",
-                "explanation",
-                "difficulty",
-                "source",
-                "published"
-              ]
+              "$ref": "#/components/schemas/AdminGrant"
             }
           }
         },
         "required": [
-          "summary",
-          "students",
-          "materials",
-          "courses",
-          "categories",
-          "questions"
+          "id",
+          "name",
+          "phone",
+          "role",
+          "enabled",
+          "plan",
+          "proExpiresAt",
+          "tier",
+          "createdAt",
+          "stats",
+          "grants"
+        ]
+      },
+      "AdminGrant": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "contentType": {
+            "$ref": "#/components/schemas/ContentType"
+          },
+          "contentId": {
+            "type": "string"
+          },
+          "contentTitle": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "expiresAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "contentType",
+          "contentId",
+          "contentTitle",
+          "expiresAt"
         ]
       },
       "ContentType": {
@@ -487,15 +373,15 @@
       "AdminStudentPatch": {
         "type": "object",
         "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
           "enabled": {
             "type": "boolean"
           },
           "plan": {
-            "type": "string",
-            "enum": [
-              "FREE",
-              "PRO"
-            ]
+            "$ref": "#/components/schemas/Plan"
           },
           "proExpiresAt": {
             "type": [
@@ -518,7 +404,8 @@
                   "$ref": "#/components/schemas/ContentType"
                 },
                 "contentId": {
-                  "type": "string"
+                  "type": "string",
+                  "minLength": 1
                 },
                 "expiresAt": {
                   "type": [
@@ -537,6 +424,131 @@
         },
         "required": [
           "grants"
+        ]
+      },
+      "AdminMaterial": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "category": {
+            "type": "string"
+          },
+          "resourceUrl": {
+            "type": "string"
+          },
+          "published": {
+            "type": "boolean"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "description",
+          "category",
+          "resourceUrl",
+          "published",
+          "updatedAt"
+        ]
+      },
+      "AdminCourse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "coverUrl": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "published": {
+            "type": "boolean"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lessons": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminCourseLesson"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "description",
+          "coverUrl",
+          "published",
+          "updatedAt",
+          "lessons"
+        ]
+      },
+      "AdminCourseLesson": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "videoUrl": {
+            "type": "string"
+          },
+          "durationMinutes": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "sortOrder": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "videoUrl",
+          "durationMinutes",
+          "sortOrder"
+        ]
+      },
+      "IdResult": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
         ]
       },
       "AdminContentBody": {
@@ -661,87 +673,6 @@
           "title",
           "published",
           "lessons"
-        ]
-      },
-      "AdminQuestionBody": {
-        "type": "object",
-        "properties": {
-          "prompt": {
-            "type": "string",
-            "minLength": 1
-          },
-          "categoryId": {
-            "type": "string"
-          },
-          "companySetId": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "options": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "letter": {
-                  "type": "string",
-                  "enum": [
-                    "A",
-                    "B",
-                    "C",
-                    "D"
-                  ]
-                },
-                "text": {
-                  "type": "string"
-                }
-              },
-              "required": [
-                "letter",
-                "text"
-              ]
-            }
-          },
-          "answer": {
-            "type": "string",
-            "enum": [
-              "A",
-              "B",
-              "C",
-              "D"
-            ]
-          },
-          "explanation": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "difficulty": {
-            "type": "string",
-            "enum": [
-              "EASY",
-              "MEDIUM",
-              "HARD"
-            ]
-          },
-          "source": {
-            "type": "string"
-          },
-          "published": {
-            "type": "boolean"
-          }
-        },
-        "required": [
-          "prompt",
-          "categoryId",
-          "options",
-          "answer",
-          "explanation",
-          "difficulty",
-          "source",
-          "published"
         ]
       },
       "StudentContent": {
@@ -1565,19 +1496,91 @@
         }
       }
     },
-    "/api/admin/dashboard": {
+    "/api/admin/summary": {
       "get": {
         "tags": [
           "admin"
         ],
-        "operationId": "getAdminDashboard",
+        "operationId": "getAdminSummary",
         "responses": {
           "200": {
-            "description": "后台数据",
+            "description": "后台概览计数",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminDashboard"
+                  "$ref": "#/components/schemas/AdminSummary"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/students": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "operationId": "listAdminStudents",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required": false,
+            "name": "q",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "$ref": "#/components/schemas/Plan"
+            },
+            "required": false,
+            "name": "plan",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            },
+            "required": false,
+            "name": "enabled",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            },
+            "required": false,
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            },
+            "required": false,
+            "name": "pageSize",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "学生列表（有手机号的用户）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminStudentList"
                 }
               }
             }
@@ -1614,6 +1617,26 @@
         "responses": {
           "204": {
             "description": "已更新"
+          },
+          "403": {
+            "description": "不能修改管理员",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           }
         }
       }
@@ -1647,6 +1670,72 @@
         "responses": {
           "204": {
             "description": "已更新"
+          },
+          "400": {
+            "description": "内容不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/materials": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "operationId": "listAdminMaterials",
+        "responses": {
+          "200": {
+            "description": "全部资料",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AdminMaterial"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/courses": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "operationId": "listAdminCourses",
+        "responses": {
+          "200": {
+            "description": "全部课程",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AdminCourse"
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -1668,8 +1757,25 @@
           }
         },
         "responses": {
-          "204": {
-            "description": "已保存"
+          "201": {
+            "description": "已保存",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IdResult"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           }
         }
       }
@@ -1705,130 +1811,16 @@
         "responses": {
           "204": {
             "description": "已删除"
-          }
-        }
-      }
-    },
-    "/api/admin/questions": {
-      "post": {
-        "tags": [
-          "admin"
-        ],
-        "operationId": "createAdminQuestion",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AdminQuestionBody"
-              }
-            }
-          }
-        },
-        "responses": {
-          "204": {
-            "description": "已创建"
-          }
-        }
-      }
-    },
-    "/api/admin/questions/{id}": {
-      "patch": {
-        "tags": [
-          "admin"
-        ],
-        "operationId": "updateAdminQuestion",
-        "parameters": [
-          {
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "name": "id",
-            "in": "path"
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "prompt": {
-                    "type": "string",
-                    "minLength": 1
-                  },
-                  "categoryId": {
-                    "type": "string"
-                  },
-                  "companySetId": {
-                    "type": [
-                      "string",
-                      "null"
-                    ]
-                  },
-                  "options": {
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "properties": {
-                        "letter": {
-                          "type": "string",
-                          "enum": [
-                            "A",
-                            "B",
-                            "C",
-                            "D"
-                          ]
-                        },
-                        "text": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "letter",
-                        "text"
-                      ]
-                    }
-                  },
-                  "answer": {
-                    "type": "string",
-                    "enum": [
-                      "A",
-                      "B",
-                      "C",
-                      "D"
-                    ]
-                  },
-                  "explanation": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "difficulty": {
-                    "type": "string",
-                    "enum": [
-                      "EASY",
-                      "MEDIUM",
-                      "HARD"
-                    ]
-                  },
-                  "source": {
-                    "type": "string"
-                  },
-                  "published": {
-                    "type": "boolean"
-                  }
+          },
+          "404": {
+            "description": "不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
                 }
               }
             }
-          }
-        },
-        "responses": {
-          "204": {
-            "description": "已更新"
           }
         }
       }
