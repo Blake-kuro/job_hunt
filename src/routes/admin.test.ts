@@ -211,6 +211,7 @@ describe.skipIf(!hasDb)("/api/admin", () => {
     expect(created.status).toBe(201);
     const { id } = (await created.json()) as { id: string };
     expect((await apiRequest("/api/admin/questions", json("POST", { ...body, categoryId: "nope" }))).status).toBe(400);
+    expect((await apiRequest("/api/admin/questions", json("POST", { ...body, companySetId: "" }))).status).toBe(400);
     const meta = (await (await apiRequest("/api/admin/quiz-meta")).json()) as {
       categories: { name: string; questionCount: number }[];
     };
@@ -223,8 +224,21 @@ describe.skipIf(!hasDb)("/api/admin", () => {
     expect(list.total).toBe(1);
     expect(list.items[0]).toMatchObject({ categoryName: "算法", answer: "B", published: true });
     expect(list.items[0].options).toHaveLength(4);
+    const student = await prisma.user.create({
+      data: { name: "学生", identities: { create: { provider: "PHONE", providerKey: "13900000099" } } },
+    });
+    expect(
+      (
+        await apiRequest(
+          `/api/admin/students/${student.id}/access`,
+          json("PUT", { grants: [{ contentType: "QUESTION", contentId: id }] }),
+        )
+      ).status,
+    ).toBe(204);
+    expect(await prisma.accessGrant.count()).toBe(1);
     expect((await apiRequest(`/api/admin/questions/${id}`, { method: "DELETE" })).status).toBe(204);
     expect((await apiRequest(`/api/admin/questions/${id}`, { method: "DELETE" })).status).toBe(404);
     expect(await prisma.question.count()).toBe(0);
+    expect(await prisma.accessGrant.count()).toBe(0);
   });
 });

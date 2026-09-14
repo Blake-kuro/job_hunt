@@ -88,7 +88,7 @@ async function assertQuestionRefs(body: { categoryId?: string; companySetId?: st
     const exists = await prisma.questionCategory.findUnique({ where: { id: body.categoryId }, select: { id: true } });
     if (!exists) throw new AppError(400, "VALIDATION", `分类 ${body.categoryId} 不存在`);
   }
-  if (body.companySetId) {
+  if (body.companySetId !== undefined && body.companySetId !== null) {
     const exists = await prisma.companySet.findUnique({ where: { id: body.companySetId }, select: { id: true } });
     if (!exists) throw new AppError(400, "VALIDATION", `企业专项 ${body.companySetId} 不存在`);
   }
