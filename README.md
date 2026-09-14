@@ -51,6 +51,11 @@ pnpm dev                      # http://localhost:3001
 - `PATCH /api/admin/questions/{id}` 修改题目（分类 / 企业专项不存在 400，题目不存在 404）
 - `DELETE /api/admin/questions/{id}` 删除题目并清理对应授权
 - `POST /api/admin/question-categories` 创建题目分类（同名已存在 400）
+- `GET /api/admin/jobs?q&category&page&pageSize` 岗位分页列表（按创建时间倒序，含收藏 / 投递计数）
+- `POST /api/admin/jobs` 创建岗位，返回 `201 { id }`
+- `PATCH /api/admin/jobs/{id}` 修改岗位（只写提供的字段，`null` 清空；不存在 404）
+- `DELETE /api/admin/jobs/{id}` 删除岗位（收藏 / 投递级联删除；不存在 404）
+- `POST /api/admin/jobs/import` 上传 xlsx（`multipart/form-data` 的 `file` 字段，≤ 20 MB）导入岗位，返回各工作表新增 / 更新 / 跳过明细（无法解析或超限 400）
 
 ## 测试
 
@@ -64,4 +69,9 @@ pnpm test
 
 ## Excel 导入
 
-多工作表；表名含"秋招/实习"→分类 1，"央国企/国企"→2，"外企"→3。有 `id` 列按 id upsert（之后按提示执行 `setval`），否则按 `serialNumber`，再否则插入。
+多工作表；表名含"秋招/实习"→分类 1，"央国企/国企"→2，"外企"→3。有 `id` 列按 id upsert，否则按 `serialNumber`，再否则插入。按 id 写入过时会自动同步 `Job.id` 的自增序列，不再需要手动执行 `setval`。
+
+导入逻辑在 `src/lib/import-jobs.ts`（`importWorkbook`），两种入口：
+
+- 命令行：`pnpm db:import -- <文件.xlsx>`
+- 后台：`POST /api/admin/jobs/import` 上传文件，管理端可直接操作

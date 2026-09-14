@@ -40,6 +40,9 @@ export const errorHandler: ErrorHandler<Env> = (err, c) => {
   if (err instanceof HTTPException && err.status === 415) {
     return c.json({ error: { code: "VALIDATION", message: "Content-Type 必须是 application/json" } }, 400);
   }
+  if (err instanceof HTTPException && err.status === 413) {
+    return c.json({ error: { code: "VALIDATION", message: "文件超过 20 MB" } }, 400);
+  }
   if (err instanceof HTTPException && err.status === 400) {
     return c.json({ error: { code: "VALIDATION", message: "请求 JSON 格式无效" } }, 400);
   }

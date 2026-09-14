@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import ExcelJS from "exceljs";
 import { beforeEach, describe, expect, it } from "vitest";
 import app from "../app";
 import { prisma } from "../db";
@@ -240,5 +241,65 @@ describe.skipIf(!hasDb)("/api/admin", () => {
     expect((await apiRequest(`/api/admin/questions/${id}`, { method: "DELETE" })).status).toBe(404);
     expect(await prisma.question.count()).toBe(0);
     expect(await prisma.accessGrant.count()).toBe(0);
+  });
+
+  it("岗位：创建 / 列表 / 修改 / 删除", async () => {
+    const created = await apiRequest(
+      "/api/admin/jobs",
+      json("POST", {
+        categoryId: 2,
+        enterpriseName: "国家电网",
+        position: "电气工程师",
+        workLocation: "杭州",
+        deadlineAt: "2027-01-31",
+      }),
+    );
+    expect(created.status).toBe(201);
+    const { id } = (await created.json()) as { id: number };
+    const list = (await (await apiRequest("/api/admin/jobs?q=电网&category=2")).json()) as {
+      total: number;
+      items: { deadlineAt: string | null; stats: { favorites: number } }[];
+    };
+    expect(list.total).toBe(1);
+    expect(list.items[0]).toMatchObject({
+      id,
+      deadlineAt: "2027-01-31",
+      industry: null,
+      stats: { favorites: 0, applications: 0 },
+    });
+    expect(
+      (await apiRequest(`/api/admin/jobs/${id}`, json("PATCH", { deadlineAt: null, industry: "能源" }))).status,
+    ).toBe(204);
+    const row = await prisma.job.findUniqueOrThrow({ where: { id } });
+    expect(row).toMatchObject({ deadlineAt: null, industry: "能源" });
+    expect((await apiRequest(`/api/admin/jobs/${id}`, { method: "DELETE" })).status).toBe(204);
+    expect((await apiRequest(`/api/admin/jobs/${id}`, { method: "DELETE" })).status).toBe(404);
+  });
+
+  it("岗位：上传 Excel 导入", async () => {
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet("央国企");
+    ws.addRow(["enterpriseName", "position", "workLocation", "deadline"]);
+    ws.addRow(["中国移动", "网络工程师", "北京", "2027-03-01"]);
+    ws.addRow(["中国电信", "产品经理", "上海", ""]);
+    ws.addRow(["", "缺企业名", "", ""]);
+    const buffer = Buffer.from(await wb.xlsx.writeBuffer());
+    const form = new FormData();
+    form.append(
+      "file",
+      new File([buffer], "jobs.xlsx", {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      }),
+    );
+    const res = await apiRequest("/api/admin/jobs/import", { method: "POST", body: form });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({
+      sheets: [{ name: "央国企", created: 2, updated: 0 }],
+      usedIdKey: false,
+    });
+    expect(await prisma.job.count({ where: { categoryId: 2 } })).toBe(2);
+    const bad = new FormData();
+    bad.append("file", new File(["not excel"], "x.xlsx"));
+    expect((await apiRequest("/api/admin/jobs/import", { method: "POST", body: bad })).status).toBe(400);
   });
 });

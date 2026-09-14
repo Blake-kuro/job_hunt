@@ -977,6 +977,404 @@
           "name"
         ]
       },
+      "AdminJobList": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminJob"
+            }
+          },
+          "total": {
+            "type": "integer"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "pageSize": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "page",
+          "pageSize"
+        ]
+      },
+      "AdminJob": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "serialNumber": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "categoryId": {
+            "$ref": "#/components/schemas/CategoryId"
+          },
+          "recruitmentBatch": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "enterpriseNature": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "industry": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "workLocation": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "position": {
+            "type": "string"
+          },
+          "enterpriseName": {
+            "type": "string"
+          },
+          "graduationYear": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "degree": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "announcementLink": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "deliveryAddress": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "deadline": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "deadlineAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "createTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updateTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "stats": {
+            "type": "object",
+            "properties": {
+              "favorites": {
+                "type": "integer"
+              },
+              "applications": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "favorites",
+              "applications"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "serialNumber",
+          "categoryId",
+          "recruitmentBatch",
+          "enterpriseNature",
+          "industry",
+          "workLocation",
+          "position",
+          "enterpriseName",
+          "graduationYear",
+          "degree",
+          "announcementLink",
+          "deliveryAddress",
+          "deadline",
+          "deadlineAt",
+          "createTime",
+          "updateTime",
+          "stats"
+        ]
+      },
+      "CategoryId": {
+        "anyOf": [
+          {
+            "type": "number",
+            "enum": [
+              1
+            ]
+          },
+          {
+            "type": "number",
+            "enum": [
+              2
+            ]
+          },
+          {
+            "type": "number",
+            "enum": [
+              3
+            ]
+          }
+        ]
+      },
+      "IntIdResult": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "AdminJobBody": {
+        "type": "object",
+        "properties": {
+          "categoryId": {
+            "$ref": "#/components/schemas/CategoryId"
+          },
+          "position": {
+            "type": "string",
+            "minLength": 1
+          },
+          "enterpriseName": {
+            "type": "string",
+            "minLength": 1
+          },
+          "serialNumber": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "recruitmentBatch": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "enterpriseNature": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "industry": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "workLocation": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "graduationYear": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "degree": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "announcementLink": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "deliveryAddress": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "deadline": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "deadlineAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          }
+        },
+        "required": [
+          "categoryId",
+          "position",
+          "enterpriseName"
+        ]
+      },
+      "AdminJobPatch": {
+        "type": "object",
+        "properties": {
+          "categoryId": {
+            "$ref": "#/components/schemas/CategoryId"
+          },
+          "position": {
+            "type": "string",
+            "minLength": 1
+          },
+          "enterpriseName": {
+            "type": "string",
+            "minLength": 1
+          },
+          "serialNumber": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "recruitmentBatch": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "enterpriseNature": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "industry": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "workLocation": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "graduationYear": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "degree": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "announcementLink": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "deliveryAddress": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "deadline": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "deadlineAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          }
+        }
+      },
+      "AdminImportResult": {
+        "type": "object",
+        "properties": {
+          "sheets": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "created": {
+                  "type": "integer"
+                },
+                "updated": {
+                  "type": "integer"
+                },
+                "skipped": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [
+                "name",
+                "created",
+                "updated",
+                "skipped"
+              ]
+            }
+          },
+          "usedIdKey": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "sheets",
+          "usedIdKey"
+        ]
+      },
       "StudentContent": {
         "type": "object",
         "properties": {
@@ -1232,28 +1630,6 @@
           "deliveryAddress",
           "starred",
           "applicationStatus"
-        ]
-      },
-      "CategoryId": {
-        "anyOf": [
-          {
-            "type": "number",
-            "enum": [
-              1
-            ]
-          },
-          {
-            "type": "number",
-            "enum": [
-              2
-            ]
-          },
-          {
-            "type": "number",
-            "enum": [
-              3
-            ]
-          }
         ]
       },
       "ApplicationStatus": {
@@ -2346,6 +2722,226 @@
           },
           "400": {
             "description": "分类已存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/jobs": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "operationId": "listAdminJobs",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required": false,
+            "name": "q",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "enum": [
+                1,
+                2,
+                3
+              ]
+            },
+            "required": false,
+            "name": "category",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            },
+            "required": false,
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            },
+            "required": false,
+            "name": "pageSize",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "岗位分页列表",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminJobList"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "operationId": "createAdminJob",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminJobBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "已创建",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntIdResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/jobs/{id}": {
+      "patch": {
+        "tags": [
+          "admin"
+        ],
+        "operationId": "updateAdminJob",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "example": 1
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminJobPatch"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "已更新"
+          },
+          "404": {
+            "description": "不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "admin"
+        ],
+        "operationId": "deleteAdminJob",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "example": 1
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "已删除"
+          },
+          "404": {
+            "description": "不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/jobs/import": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "operationId": "importAdminJobs",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                },
+                "required": [
+                  "file"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "导入结果",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminImportResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "文件无法解析或超过 20 MB",
             "content": {
               "application/json": {
                 "schema": {
