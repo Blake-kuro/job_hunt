@@ -4,6 +4,7 @@ import { useSetMastered, useSubmitAttempt } from "@api/mutations";
 import { companySetsQuery, quizDashboardQuery, quizTodayQuery } from "@api/queries";
 import { QuizQuestion } from "@features/quiz-question/QuizQuestion";
 import { Kicker } from "@shared/ui/Kicker";
+import { AccessBanner } from "@widgets/access-banner/AccessBanner";
 import { CompanySets } from "@widgets/company-sets/CompanySets";
 import { Navbar } from "@widgets/navbar/Navbar";
 import { PracticeSidebar } from "@widgets/practice-sidebar/PracticeSidebar";
@@ -55,6 +56,11 @@ export function PracticePage() {
             onSubmit={(picked) => submit.mutate({ questionId: question.id, picked })}
             onNext={nextQuestion}
           />
+        ) : today.exhausted === "QUOTA" ? (
+          <div className="px-4 py-8 sm:px-8 sm:py-9">
+            <Kicker className="text-accent-700">今日一题</Kicker>
+            <AccessBanner access={dashboard.access} kind="questions" className="mt-4 max-w-[720px]" />
+          </div>
         ) : (
           <div className="px-4 py-8 sm:px-8 sm:py-9">
             <Kicker className="text-accent-700">今日一题</Kicker>
