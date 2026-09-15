@@ -1,3 +1,4 @@
+import { companyRoutes } from "./companies";
 import { contentRoutes } from "./content";
 import { adminGuard, newAdminRouter } from "./guard";
 import { jobRoutes } from "./jobs";
@@ -10,5 +11,6 @@ adminRoutes.use(adminGuard);
 adminRoutes.route("/", summaryRoutes);
 adminRoutes.route("/", studentRoutes);
 adminRoutes.route("/", contentRoutes);
+adminRoutes.route("/", companyRoutes);
 adminRoutes.route("/", questionRoutes);
 adminRoutes.route("/", jobRoutes);

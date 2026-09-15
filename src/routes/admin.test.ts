@@ -55,6 +55,7 @@ describe.skipIf(!hasDb)("/api/admin", () => {
       proStudents: 1,
       guests: 1,
       jobs: 0,
+      companies: 0,
       questions: 0,
       materials: 0,
       courses: 0,
@@ -271,6 +272,108 @@ describe.skipIf(!hasDb)("/api/admin", () => {
     expect((await apiRequest(`/api/admin/questions/${id}`, { method: "DELETE" })).status).toBe(404);
     expect(await prisma.question.count()).toBe(0);
     expect(await prisma.accessGrant.count()).toBe(0);
+  });
+
+  it("公司 / 分类：创建、重名、改名、导入 Excel、删除公司级联", async () => {
+    const created = await apiRequest("/api/admin/companies", json("POST", { name: " 中国华电 " }));
+    expect(created.status).toBe(201);
+    const company = (await created.json()) as { id: string; name: string; sortOrder: number };
+    expect(company).toMatchObject({ name: "中国华电", sortOrder: 0 });
+    const dup = await apiRequest("/api/admin/companies", json("POST", { name: "中国华电" }));
+    expect(dup.status).toBe(400);
+    expect(await dup.json()).toMatchObject({ error: { code: "VALIDATION", message: "公司已存在" } });
+
+    expect(
+      (await apiRequest(`/api/admin/companies/${company.id}`, json("PATCH", { name: "华电", sortOrder: 2 }))).status,
+    ).toBe(204);
+    expect((await apiRequest("/api/admin/companies/nope", json("PATCH", { name: "x" }))).status).toBe(404);
+    const other = (await (await apiRequest("/api/admin/companies", json("POST", { name: "国家电网" }))).json()) as {
+      id: string;
+    };
+    expect((await apiRequest(`/api/admin/companies/${other.id}`, json("PATCH", { name: "华电" }))).status).toBe(400);
+    expect((await apiRequest(`/api/admin/companies/${other.id}`, json("PATCH", { sortOrder: 1 }))).status).toBe(204);
+
+    const cat = await apiRequest(
+      "/api/admin/question-categories",
+      json("POST", { companyId: company.id, name: "公共与行业知识" }),
+    );
+    expect(cat.status).toBe(201);
+    const category = (await cat.json()) as { id: string };
+    const dupCat = await apiRequest(
+      "/api/admin/question-categories",
+      json("POST", { companyId: company.id, name: "公共与行业知识" }),
+    );
+    expect(dupCat.status).toBe(400);
+    expect(await dupCat.json()).toMatchObject({ error: { message: "分类已存在" } });
+    expect(
+      (await apiRequest(`/api/admin/question-categories/${category.id}`, json("PATCH", { name: "行业知识" }))).status,
+    ).toBe(204);
+    expect((await apiRequest("/api/admin/question-categories/nope", json("PATCH", { name: "x" }))).status).toBe(404);
+
+    const wb = new ExcelJS.Workbook();
+    wb.addWorksheet("题库").addRows([
+      ["题号", "题型", "所属部分", "题干", "A", "B", "C", "D", "答案"],
+      [1, "单选题", "第一部分", "1+1=?", "1", "2", "3", "4", "B"],
+      [2, "多选题", "第一部分", "哪些是偶数？", "2", "3", "4", "5", "AC"],
+      [3, "判断题", "", "地球是圆的", "", "", "", "", "A"],
+    ]);
+    const form = new FormData();
+    form.append("file", new File([Buffer.from(await wb.xlsx.writeBuffer())], "questions.xlsx"));
+    const imported = await apiRequest(`/api/admin/question-categories/${category.id}/import`, {
+      method: "POST",
+      body: form,
+    });
+    expect(imported.status).toBe(200);
+    expect(await imported.json()).toEqual({ created: 3, skipped: [] });
+
+    const meta = (await (await apiRequest("/api/admin/quiz-meta")).json()) as {
+      companies: { name: string; categories: { name: string; questionCount: number; publishedCount: number }[] }[];
+    };
+    expect(meta.companies).toMatchObject([
+      { name: "国家电网", categories: [] },
+      { name: "华电", categories: [{ name: "行业知识", questionCount: 3, publishedCount: 3 }] },
+    ]);
+    expect(await (await apiRequest("/api/admin/summary")).json()).toMatchObject({ companies: 2, questions: 3 });
+
+    const bad = new FormData();
+    bad.append("file", new File(["not excel"], "x.xlsx"));
+    const badRes = await apiRequest(`/api/admin/question-categories/${category.id}/import`, {
+      method: "POST",
+      body: bad,
+    });
+    expect(badRes.status).toBe(400);
+    expect(await badRes.json()).toMatchObject({ error: { message: "无法解析 Excel 文件" } });
+    const missing = new FormData();
+    missing.append("file", new File([Buffer.from(await wb.xlsx.writeBuffer())], "questions.xlsx"));
+    expect(
+      (await apiRequest("/api/admin/question-categories/nope/import", { method: "POST", body: missing })).status,
+    ).toBe(404);
+
+    expect((await apiRequest(`/api/admin/companies/${company.id}`, { method: "DELETE" })).status).toBe(204);
+    expect((await apiRequest(`/api/admin/companies/${company.id}`, { method: "DELETE" })).status).toBe(404);
+    expect(await prisma.question.count()).toBe(0);
+    expect(await prisma.questionCategory.count()).toBe(0);
+    expect((await apiRequest("/api/admin/question-categories/nope", { method: "DELETE" })).status).toBe(404);
+  });
+
+  it("删除分类级联题目", async () => {
+    const company = await prisma.company.create({ data: { name: "测试公司" } });
+    const category = await prisma.questionCategory.create({ data: { companyId: company.id, name: "基础" } });
+    await prisma.question.create({
+      data: {
+        categoryId: category.id,
+        prompt: "q",
+        options: [
+          { letter: "A", text: "1" },
+          { letter: "B", text: "2" },
+        ],
+        answer: "A",
+        source: "s",
+      },
+    });
+    expect((await apiRequest(`/api/admin/question-categories/${category.id}`, { method: "DELETE" })).status).toBe(204);
+    expect(await prisma.question.count()).toBe(0);
+    expect(await prisma.company.count()).toBe(1);
   });
 
   it("岗位：创建 / 列表 / 修改 / 删除", async () => {

@@ -49,7 +49,7 @@ pnpm dev                      # http://localhost:3001
 
 管理员由 `ADMIN_PHONE_NUMBERS`（逗号分隔手机号）在登录时提升为 `ADMIN`（只升不降）；`/api/admin/*` 要求 `ADMIN` 角色，其余用户 403。管理端仓库：`Blake-kuro/job_hunt_admin`。
 
-- `GET /api/admin/summary` 概览计数（学生 / 启用 / PRO / 游客 / 岗位 / 题目 / 已发布题目 / 资料 / 课程）
+- `GET /api/admin/summary` 概览计数（学生 / 启用 / PRO / 游客 / 岗位 / 公司 / 题目 / 已发布题目 / 资料 / 课程）
 - `GET /api/admin/students?q&plan&enabled&page&pageSize` 学生分页列表（有手机号的用户），含档位、统计与授权内容标题
 - `PATCH /api/admin/students/{id}` 修改姓名 / 启用 / 套餐 / PRO 到期（管理员账号 403）
 - `PUT /api/admin/students/{id}/access` 整体替换授权（内容不存在 400）
@@ -62,7 +62,13 @@ pnpm dev                      # http://localhost:3001
 - `POST /api/admin/questions` 创建题目，返回 `201 { id }`（分类不存在或题型 / 选项 / 答案形状不合法 400）
 - `PATCH /api/admin/questions/{id}` 修改题目（校验合并后的题型 / 选项 / 答案；题目不存在 404）
 - `DELETE /api/admin/questions/{id}` 删除题目并清理对应授权
-- `POST /api/admin/question-categories` body `{ companyId, name }` 创建分类（公司不存在 / 同公司下同名 400）
+- `POST /api/admin/companies` body `{ name }` 创建公司，返回 `201 { id, name, sortOrder }`（重名 400）
+- `PATCH /api/admin/companies/{id}` 修改公司名 / 排序（重名 400；不存在 404）
+- `DELETE /api/admin/companies/{id}` 删除公司，级联分类、题目及其作答 / 错题（不存在 404）
+- `POST /api/admin/question-categories` body `{ companyId, name }` 创建分类，返回 `201 { id, companyId, name, sortOrder }`（公司不存在 / 同公司下同名 400）
+- `PATCH /api/admin/question-categories/{id}` 修改分类名 / 排序（同公司下重名 400；不存在 404）
+- `DELETE /api/admin/question-categories/{id}` 删除分类，级联题目（不存在 404）
+- `POST /api/admin/question-categories/{id}/import` 上传 xlsx（`multipart/form-data` 的 `file` 字段，≤ 20 MB）导入题目到该分类，返回 `{ created, skipped: string[] }`（无法解析或超限 400；分类不存在 404），列说明见下文「题库导入」
 - `GET /api/admin/jobs?q&category&page&pageSize` 岗位分页列表（按创建时间倒序，含收藏 / 投递计数）
 - `POST /api/admin/jobs` 创建岗位，返回 `201 { id }`
 - `PATCH /api/admin/jobs/{id}` 修改岗位（只写提供的字段，`null` 清空；不存在 404）
@@ -97,3 +103,23 @@ pnpm test
 
 - 命令行：`pnpm db:import -- <文件.xlsx>`
 - 后台：`POST /api/admin/jobs/import` 上传文件，管理端可直接操作
+
+## 题库导入
+
+一个 xlsx 导入到一个分类（公司 → 分类 → 题目）。取第一张表头同时含 `题干` 与 `答案` 的工作表，第一行为表头，列按名称取（顺序无关）：
+
+| 列 | 说明 |
+|---|---|
+| `题号` | 可选；正整数时作为分类内顺序 `sortOrder`，否则用行号 − 1 |
+| `题型` | 可选；`单选题` / `多选题` / `判断题`（也接受 `单选` / `多选` / `判断`）。缺省推断：两个选项且文案为 正确 / 错误 → 判断题，答案 ≥ 2 个字母 → 多选题，否则单选题 |
+| `所属部分` | 可选；题目标签，可在后台按此筛选 |
+| `题干` | 必填；空则跳过该行（整行空白不计入跳过明细） |
+| `A` … `F` | 选项内容；取非空列按顺序重新赋字母 A、B、…。判断题忽略这些列，固定为 A 正确 / B 错误 |
+| `答案` | 必填；只保留 A–F 字母（不区分大小写、分隔符随意），如 `A、C` → `AC` |
+
+每行经 `validateQuestionShape` 校验（选项 2–6、单选 / 判断一个答案、多选至少 3 个选项 2 个答案等），不通过的记入 `skipped`（"第 n 行：原因"）；同分类内题干完全相同的行跳过（"第 n 行：题干已存在"），所以同一文件可以反复导入。写入的题目 `source = 公司名 · 分类名`、`difficulty = MEDIUM`、`explanation = []`、`published = true`，整个导入在一个事务里。
+
+导入逻辑在 `src/lib/import-questions.ts`（`importQuestionWorkbook(categoryId, buffer)`），两种入口：
+
+- 命令行：`pnpm db:import-questions <公司名> <分类名> <文件.xlsx>`（公司 / 分类不存在则创建）
+- 后台：`POST /api/admin/question-categories/{id}/import` 上传文件，管理端可直接操作

@@ -195,6 +195,9 @@
           "jobs": {
             "type": "integer"
           },
+          "companies": {
+            "type": "integer"
+          },
           "questions": {
             "type": "integer"
           },
@@ -214,6 +217,7 @@
           "proStudents",
           "guests",
           "jobs",
+          "companies",
           "questions",
           "publishedQuestions",
           "materials",
@@ -736,6 +740,123 @@
           "companies"
         ]
       },
+      "AdminCompany": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "sortOrder": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "sortOrder"
+        ]
+      },
+      "AdminCompanyBody": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 50
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "AdminCompanyPatch": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 50
+          },
+          "sortOrder": {
+            "type": "integer"
+          }
+        }
+      },
+      "AdminCategory": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "companyId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "sortOrder": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "companyId",
+          "name",
+          "sortOrder"
+        ]
+      },
+      "AdminCategoryBody": {
+        "type": "object",
+        "properties": {
+          "companyId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 50
+          }
+        },
+        "required": [
+          "companyId",
+          "name"
+        ]
+      },
+      "AdminCategoryPatch": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 50
+          },
+          "sortOrder": {
+            "type": "integer"
+          }
+        }
+      },
+      "AdminQuestionImportResult": {
+        "type": "object",
+        "properties": {
+          "created": {
+            "type": "integer"
+          },
+          "skipped": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "created",
+          "skipped"
+        ]
+      },
       "AdminQuestionList": {
         "type": "object",
         "properties": {
@@ -998,47 +1119,6 @@
             "type": "boolean"
           }
         }
-      },
-      "AdminCategory": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "companyId": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "sortOrder": {
-            "type": "integer"
-          }
-        },
-        "required": [
-          "id",
-          "companyId",
-          "name",
-          "sortOrder"
-        ]
-      },
-      "AdminCategoryBody": {
-        "type": "object",
-        "properties": {
-          "companyId": {
-            "type": "string",
-            "minLength": 1
-          },
-          "name": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 30
-          }
-        },
-        "required": [
-          "companyId",
-          "name"
-        ]
       },
       "AdminJobList": {
         "type": "object",
@@ -2623,6 +2703,323 @@
         }
       }
     },
+    "/api/admin/companies": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "operationId": "createAdminCompany",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminCompanyBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "已创建",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminCompany"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "公司已存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/companies/{id}": {
+      "patch": {
+        "tags": [
+          "admin"
+        ],
+        "operationId": "updateAdminCompany",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminCompanyPatch"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "已更新"
+          },
+          "400": {
+            "description": "公司已存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "admin"
+        ],
+        "operationId": "deleteAdminCompany",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "已删除（级联分类与题目）"
+          },
+          "404": {
+            "description": "不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/question-categories": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "operationId": "createAdminQuestionCategory",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminCategoryBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "已创建",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminCategory"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "公司不存在或同公司下分类已存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/question-categories/{id}": {
+      "patch": {
+        "tags": [
+          "admin"
+        ],
+        "operationId": "updateAdminQuestionCategory",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminCategoryPatch"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "已更新"
+          },
+          "400": {
+            "description": "同公司下分类已存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "admin"
+        ],
+        "operationId": "deleteAdminQuestionCategory",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "已删除（级联题目）"
+          },
+          "404": {
+            "description": "不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/question-categories/{id}/import": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "operationId": "importAdminQuestions",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                },
+                "required": [
+                  "file"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "导入结果（新增数与跳过明细）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminQuestionImportResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "文件无法解析或超过 20 MB",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "分类不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/questions": {
       "get": {
         "tags": [
@@ -2833,46 +3230,6 @@
           },
           "404": {
             "description": "不存在",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/admin/question-categories": {
-      "post": {
-        "tags": [
-          "admin"
-        ],
-        "operationId": "createAdminQuestionCategory",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AdminCategoryBody"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "已创建",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AdminCategory"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "公司不存在或同公司下分类已存在",
             "content": {
               "application/json": {
                 "schema": {

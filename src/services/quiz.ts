@@ -33,13 +33,13 @@ export async function listBanks(userId: string, access: Access, role: Role): Pro
       },
     }),
     prisma.attempt.findMany({
-      where: { userId },
+      where: { userId, question: { published: true } },
       select: { questionId: true, correct: true, question: { select: { categoryId: true } } },
     }),
     usedQuestionQuota(userId),
   ]);
 
-  // 每分类：作答过的不同题、其中有过正确作答的不同题
+  // 每分类：作答过的不同题（只算已发布题，保证 answered ≤ total）、其中有过正确作答的不同题
   const answered = new Map<string, Set<string>>();
   const correct = new Map<string, Set<string>>();
   for (const a of attempts) {
@@ -66,7 +66,7 @@ export async function listBanks(userId: string, access: Access, role: Role): Pro
 
 async function answeredInCategory(userId: string, categoryId: string): Promise<number> {
   const rows = await prisma.attempt.findMany({
-    where: { userId, question: { categoryId } },
+    where: { userId, question: { categoryId, published: true } },
     select: { questionId: true },
     distinct: ["questionId"],
   });

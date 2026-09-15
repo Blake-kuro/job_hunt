@@ -31,6 +31,7 @@ export const AdminSummarySchema = z
     proStudents: z.number().int(),
     guests: z.number().int(),
     jobs: z.number().int(),
+    companies: z.number().int(),
     questions: z.number().int(),
     publishedQuestions: z.number().int(),
     materials: z.number().int(),
@@ -220,12 +221,27 @@ export const AdminQuestionBodySchema = z
   })
   .openapi("AdminQuestionBody");
 export const AdminQuestionPatchSchema = AdminQuestionBodySchema.partial().openapi("AdminQuestionPatch");
-export const AdminCategoryBodySchema = z
-  .object({ companyId: z.string().min(1), name: z.string().trim().min(1).max(30) })
-  .openapi("AdminCategoryBody");
+const BankName = z.string().trim().min(1).max(50);
+export const AdminCompanySchema = z
+  .object({ id: z.string(), name: z.string(), sortOrder: z.number().int() })
+  .openapi("AdminCompany");
+export const AdminCompanyBodySchema = z.object({ name: BankName }).openapi("AdminCompanyBody");
+export const AdminCompanyPatchSchema = z
+  .object({ name: BankName.optional(), sortOrder: z.number().int().optional() })
+  .openapi("AdminCompanyPatch");
 export const AdminCategorySchema = z
   .object({ id: z.string(), companyId: z.string(), name: z.string(), sortOrder: z.number().int() })
   .openapi("AdminCategory");
+export const AdminCategoryBodySchema = z
+  .object({ companyId: z.string().min(1), name: BankName })
+  .openapi("AdminCategoryBody");
+export const AdminCategoryPatchSchema = z
+  .object({ name: BankName.optional(), sortOrder: z.number().int().optional() })
+  .openapi("AdminCategoryPatch");
+export const AdminQuestionImportResultSchema = z
+  .object({ created: z.number().int(), skipped: z.array(z.string()) })
+  .openapi("AdminQuestionImportResult");
+export type AdminQuestionImportResult = z.infer<typeof AdminQuestionImportResultSchema>;
 
 // ── 岗位 ──
 export const adminJobQuerySchema = z.object({

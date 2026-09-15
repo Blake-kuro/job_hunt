@@ -1,11 +1,8 @@
 import { createRoute, z } from "@hono/zod-openapi";
 import {
-  AdminCategoryBodySchema,
-  AdminCategorySchema,
   AdminQuestionBodySchema,
   AdminQuestionListSchema,
   AdminQuestionPatchSchema,
-  AdminQuizMetaSchema,
   adminQuestionQuerySchema,
   ApiErrorSchema,
   IdResultSchema,
@@ -17,17 +14,7 @@ import { validateQuestionShape } from "../../lib/grade";
 import { newAdminRouter } from "./guard";
 
 const err = { "application/json": { schema: ApiErrorSchema } };
-const ORDER = [{ sortOrder: "asc" }, { name: "asc" }] as const;
 
-const getQuizMeta = createRoute({
-  method: "get",
-  path: "/quiz-meta",
-  tags: ["admin"],
-  operationId: "getAdminQuizMeta",
-  responses: {
-    200: { description: "公司 → 分类树（含题量）", content: { "application/json": { schema: AdminQuizMetaSchema } } },
-  },
-});
 const listQuestions = createRoute({
   method: "get",
   path: "/questions",
@@ -72,17 +59,6 @@ const deleteQuestion = createRoute({
   request: { params: z.object({ id: z.string() }) },
   responses: { 204: { description: "已删除" }, 404: { description: "不存在", content: err } },
 });
-const createCategory = createRoute({
-  method: "post",
-  path: "/question-categories",
-  tags: ["admin"],
-  operationId: "createAdminQuestionCategory",
-  request: { body: { required: true, content: { "application/json": { schema: AdminCategoryBodySchema } } } },
-  responses: {
-    201: { description: "已创建", content: { "application/json": { schema: AdminCategorySchema } } },
-    400: { description: "公司不存在或同公司下分类已存在", content: err },
-  },
-});
 
 /** POST / PATCH 共用：校验引用的分类存在 */
 async function assertCategoryExists(categoryId: string | undefined) {
@@ -98,37 +74,6 @@ function assertShape(shape: { type: "SINGLE" | "MULTI" | "JUDGE"; options: unkno
 }
 
 export const questionRoutes = newAdminRouter()
-  .openapi(getQuizMeta, async (c) => {
-    const companies = await prisma.company.findMany({
-      orderBy: [...ORDER],
-      include: {
-        categories: {
-          orderBy: [...ORDER],
-          include: {
-            _count: { select: { questions: true } },
-            questions: { where: { published: true }, select: { id: true } },
-          },
-        },
-      },
-    });
-    return c.json(
-      {
-        companies: companies.map((co) => ({
-          id: co.id,
-          name: co.name,
-          sortOrder: co.sortOrder,
-          categories: co.categories.map((cat) => ({
-            id: cat.id,
-            name: cat.name,
-            sortOrder: cat.sortOrder,
-            questionCount: cat._count.questions,
-            publishedCount: cat.questions.length,
-          })),
-        })),
-      },
-      200,
-    );
-  })
   .openapi(listQuestions, async (c) => {
     const { q, companyId, categoryId, type, section, published, page, pageSize } = c.req.valid("query");
     const where = {
@@ -217,16 +162,4 @@ export const questionRoutes = newAdminRouter()
       await tx.accessGrant.deleteMany({ where: { contentType: "QUESTION", contentId: id } });
     });
     return c.body(null, 204);
-  })
-  .openapi(createCategory, async (c) => {
-    const { companyId, name } = c.req.valid("json");
-    const company = await prisma.company.findUnique({ where: { id: companyId }, select: { id: true } });
-    if (!company) throw new AppError(400, "VALIDATION", `公司 ${companyId} 不存在`);
-    const exists = await prisma.questionCategory.findUnique({ where: { companyId_name: { companyId, name } } });
-    if (exists) throw new AppError(400, "VALIDATION", "该公司下分类已存在");
-    const created = await prisma.questionCategory.create({ data: { companyId, name } });
-    return c.json(
-      { id: created.id, companyId: created.companyId, name: created.name, sortOrder: created.sortOrder },
-      201,
-    );
   });

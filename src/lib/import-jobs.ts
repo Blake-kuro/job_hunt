@@ -1,26 +1,13 @@
-import ExcelJS from "exceljs";
+import type ExcelJS from "exceljs";
 import type { AdminImportResult } from "../contract";
 import { prisma } from "../db";
 import { dateKey } from "./dates";
+import { cellText, loadWorkbook, WorkbookParseError } from "./excel";
 import { mapJobRow, type RawRow } from "./job-row";
 
-/** Excel 文件无法解析（损坏 / 非 xlsx / 无工作表） */
-export class WorkbookParseError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "WorkbookParseError";
-  }
-}
+export { WorkbookParseError };
 
 type SheetResult = AdminImportResult["sheets"][number];
-
-function cellText(cell: ExcelJS.Cell): string {
-  const v = cell.value;
-  if (v === null || v === undefined) return "";
-  if (v instanceof Date) return dateKey(v);
-  if (typeof v === "object" && "hyperlink" in v && typeof v.hyperlink === "string") return v.hyperlink;
-  return cell.text ?? String(v);
-}
 
 async function importSheet(ws: ExcelJS.Worksheet, today: string): Promise<{ sheet: SheetResult; usedIdKey: boolean }> {
   const headerRow = ws.getRow(1);
@@ -82,15 +69,7 @@ async function importSheet(ws: ExcelJS.Worksheet, today: string): Promise<{ shee
  * 若有按 id 列 upsert 过，会自动把 Job.id 的自增序列同步到当前最大值。
  */
 export async function importWorkbook(buffer: ArrayBuffer | Buffer, todayKey = dateKey()): Promise<AdminImportResult> {
-  const wb = new ExcelJS.Workbook();
-  const bytes = buffer instanceof ArrayBuffer ? Buffer.from(buffer) : buffer;
-  try {
-    // exceljs 的 .d.ts 里 Buffer 是自定义的 ArrayBuffer 别名，运行时实际要 Node Buffer
-    await wb.xlsx.load(bytes as unknown as Parameters<typeof wb.xlsx.load>[0]);
-  } catch (e) {
-    throw new WorkbookParseError(e instanceof Error ? e.message : String(e));
-  }
-  if (wb.worksheets.length === 0) throw new WorkbookParseError("文件里没有工作表");
+  const wb = await loadWorkbook(buffer);
 
   let usedIdKey = false;
   const sheets: AdminImportResult["sheets"] = [];
