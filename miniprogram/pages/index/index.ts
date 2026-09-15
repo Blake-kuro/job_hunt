@@ -1,0 +1,2 @@
+import { request } from "../../utils/request";
+Page({data:{dashboard:null as any,error:""},onShow(){this.load()},async load(){try{this.setData({dashboard:await request("/quiz/dashboard"),error:""})}catch(e:any){this.setData({error:e.message});if(e.message.includes("登录"))wx.navigateTo({url:"/pages/login/login"})}},login(){wx.navigateTo({url:"/pages/login/login"})},start(){wx.navigateTo({url:"/pages/quiz/quiz"})}});
