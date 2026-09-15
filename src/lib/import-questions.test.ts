@@ -53,6 +53,50 @@ describe("parseQuestionSheet", () => {
     ]);
   });
 
+  it("选项列不连续时跳过而不是重赋字母", () => {
+    const { ws } = sheetWith([
+      [1, "单选题", "", "B 列空洞", "甲", "", "丙", "丁", "", "", "C"],
+      [2, "多选题", "", "两处空洞", "甲", "", "丙", "", "戊", "", "AC"],
+      [3, "判断题", "", "判断题不看选项列", "", "对", "", "", "", "", "A"],
+    ]);
+    const { rows, skipped } = parseQuestionSheet(ws);
+    expect(skipped).toEqual(["第 2 行：选项列不连续（缺 B）", "第 3 行：选项列不连续（缺 B、D）"]);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ type: "JUDGE", options: JUDGE_OPTIONS, answer: "A" });
+  });
+
+  it("答案全角转半角；判断题接受 对 / 错 / 正确 / 错误 / √ / ×，A/B 列内容被覆盖", () => {
+    const { ws } = sheetWith([
+      [1, "单选题", "", "全角答案", "1", "2", "3", "", "", "", "Ｂ"],
+      [2, "多选题", "", "全角多选", "1", "2", "3", "", "", "", "Ａ，Ｃ"],
+      [3, "判断题", "", "对", "对", "错", "", "", "", "", "对"],
+      [4, "判断题", "", "错", "", "", "", "", "", "", "错"],
+      [5, "判断题", "", "正确", "", "", "", "", "", "", "正确"],
+      [6, "判断题", "", "错误", "", "", "", "", "", "", "错误"],
+      [7, "判断题", "", "√", "", "", "", "", "", "", "√"],
+      [8, "判断题", "", "×", "", "", "", "", "", "", "×"],
+      [9, "", "", "缺题型也能推断判断题", "正确", "错误", "", "", "", "", "√"],
+      [10, "单项选择题", "", "未知题型走推断", "1", "2", "", "", "", "", "A"],
+      [11, "constructor", "", "原型键不算题型", "1", "2", "", "", "", "", "B"],
+    ]);
+    const { rows, skipped } = parseQuestionSheet(ws);
+    expect(skipped).toEqual([]);
+    expect(rows.map((r) => [r.type, r.answer])).toEqual([
+      ["SINGLE", "B"],
+      ["MULTI", "AC"],
+      ["JUDGE", "A"],
+      ["JUDGE", "B"],
+      ["JUDGE", "A"],
+      ["JUDGE", "B"],
+      ["JUDGE", "A"],
+      ["JUDGE", "B"],
+      ["JUDGE", "A"],
+      ["SINGLE", "A"],
+      ["SINGLE", "B"],
+    ]);
+    expect(rows[2].options).toEqual(JUDGE_OPTIONS);
+  });
+
   it("缺少 题干 / 答案 列时抛 WorkbookParseError", () => {
     const wb = new ExcelJS.Workbook();
     const ws = wb.addWorksheet("x");

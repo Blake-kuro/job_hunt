@@ -342,7 +342,19 @@ describe.skipIf(!hasDb)("/api/admin", () => {
       body: bad,
     });
     expect(badRes.status).toBe(400);
-    expect(await badRes.json()).toMatchObject({ error: { message: "无法解析 Excel 文件" } });
+    expect(await badRes.json()).toMatchObject({ error: { message: "无法解析 Excel 文件：不是有效的 xlsx 文件" } });
+    const noHeader = new ExcelJS.Workbook();
+    noHeader.addWorksheet("x").addRow(["a", "b"]);
+    const noHeaderForm = new FormData();
+    noHeaderForm.append("file", new File([Buffer.from(await noHeader.xlsx.writeBuffer())], "x.xlsx"));
+    const noHeaderRes = await apiRequest(`/api/admin/question-categories/${category.id}/import`, {
+      method: "POST",
+      body: noHeaderForm,
+    });
+    expect(noHeaderRes.status).toBe(400);
+    expect(await noHeaderRes.json()).toMatchObject({
+      error: { message: "无法解析 Excel 文件：找不到含 题干 / 答案 列的工作表" },
+    });
     const missing = new FormData();
     missing.append("file", new File([Buffer.from(await wb.xlsx.writeBuffer())], "questions.xlsx"));
     expect(

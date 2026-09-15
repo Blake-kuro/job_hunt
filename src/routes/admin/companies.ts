@@ -12,7 +12,7 @@ import {
   ApiErrorSchema,
 } from "../../contract";
 import { prisma } from "../../db";
-import { AppError, NotFoundError } from "../../lib/errors";
+import { AppError, isUniqueViolation, NotFoundError } from "../../lib/errors";
 import { WorkbookParseError } from "../../lib/excel";
 import { importQuestionWorkbook } from "../../lib/import-questions";
 import { newAdminRouter } from "./guard";
@@ -142,6 +142,16 @@ async function assertCategoryNameFree(companyId: string, name: string, exceptId?
   if (dup && dup.id !== exceptId) throw new AppError(400, "VALIDATION", "分类已存在");
 }
 
+/** 重名检查之后再兜一层唯一约束冲突（并发时 check-then-write 会撞 P2002） */
+async function orConflict<T>(write: Promise<T>, message: string): Promise<T> {
+  try {
+    return await write;
+  } catch (e) {
+    if (isUniqueViolation(e)) throw new AppError(400, "VALIDATION", message);
+    throw e;
+  }
+}
+
 const router = newAdminRouter();
 router.use("/question-categories/:id/import", bodyLimit({ maxSize: MAX_IMPORT_BYTES }));
 
@@ -183,7 +193,7 @@ export const companyRoutes = router
   .openapi(createCompany, async (c) => {
     const { name } = c.req.valid("json");
     await assertCompanyNameFree(name);
-    const created = await prisma.company.create({ data: { name } });
+    const created = await orConflict(prisma.company.create({ data: { name } }), "公司已存在");
     return c.json({ id: created.id, name: created.name, sortOrder: created.sortOrder }, 201);
   })
   .openapi(updateCompany, async (c) => {
@@ -192,7 +202,7 @@ export const companyRoutes = router
     if (!exists) throw new NotFoundError(`公司 ${id} 不存在`);
     const body = c.req.valid("json");
     if (body.name !== undefined) await assertCompanyNameFree(body.name, id);
-    await prisma.company.update({ where: { id }, data: body });
+    await orConflict(prisma.company.update({ where: { id }, data: body }), "公司已存在");
     return c.body(null, 204);
   })
   .openapi(deleteCompany, async (c) => {
@@ -207,7 +217,7 @@ export const companyRoutes = router
     const company = await prisma.company.findUnique({ where: { id: companyId }, select: { id: true } });
     if (!company) throw new AppError(400, "VALIDATION", `公司 ${companyId} 不存在`);
     await assertCategoryNameFree(companyId, name);
-    const created = await prisma.questionCategory.create({ data: { companyId, name } });
+    const created = await orConflict(prisma.questionCategory.create({ data: { companyId, name } }), "分类已存在");
     return c.json(
       { id: created.id, companyId: created.companyId, name: created.name, sortOrder: created.sortOrder },
       201,
@@ -219,7 +229,7 @@ export const companyRoutes = router
     if (!current) throw new NotFoundError(`分类 ${id} 不存在`);
     const body = c.req.valid("json");
     if (body.name !== undefined) await assertCategoryNameFree(current.companyId, body.name, id);
-    await prisma.questionCategory.update({ where: { id }, data: body });
+    await orConflict(prisma.questionCategory.update({ where: { id }, data: body }), "分类已存在");
     return c.body(null, 204);
   })
   .openapi(deleteCategory, async (c) => {
@@ -235,7 +245,7 @@ export const companyRoutes = router
     try {
       return c.json(await importQuestionWorkbook(id, await file.arrayBuffer()), 200);
     } catch (e) {
-      if (e instanceof WorkbookParseError) throw new AppError(400, "VALIDATION", "无法解析 Excel 文件");
+      if (e instanceof WorkbookParseError) throw new AppError(400, "VALIDATION", `无法解析 Excel 文件：${e.message}`);
       throw e;
     }
   });

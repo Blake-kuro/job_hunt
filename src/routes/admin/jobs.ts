@@ -213,7 +213,7 @@ export const jobRoutes = router
     try {
       return c.json(await importWorkbook(await file.arrayBuffer()), 200);
     } catch (e) {
-      if (e instanceof WorkbookParseError) throw new AppError(400, "VALIDATION", "无法解析 Excel 文件");
+      if (e instanceof WorkbookParseError) throw new AppError(400, "VALIDATION", `无法解析 Excel 文件：${e.message}`);
       throw e;
     }
   });

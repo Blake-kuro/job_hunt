@@ -3,6 +3,7 @@ import type { ErrorHandler } from "hono";
 import { HTTPException } from "hono/http-exception";
 import type { Env } from "../env";
 import type { ApiErrorCode } from "../contract";
+import { Prisma } from "../generated/prisma/client";
 
 export class NotFoundError extends Error {
   constructor(message = "not found") {
@@ -20,6 +21,11 @@ export class AppError extends Error {
     super(message);
     this.name = "AppError";
   }
+}
+
+/** Prisma 唯一约束冲突（P2002）：check-then-write 并发撞唯一索引时的兜底判断 */
+export function isUniqueViolation(e: unknown): boolean {
+  return e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002";
 }
 
 /** OpenAPIHono 的 defaultHook：校验失败统一 400 */

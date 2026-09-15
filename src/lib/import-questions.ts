@@ -7,14 +7,27 @@ import { NotFoundError } from "./errors";
 import { cellText, loadWorkbook, WorkbookParseError } from "./excel";
 import { JUDGE_OPTIONS, LETTERS, normalizeAnswer, type OptionShape, validateQuestionShape } from "./grade";
 
-const TYPE_MAP: Record<string, QuestionType> = {
-  单选题: "SINGLE",
-  单选: "SINGLE",
-  多选题: "MULTI",
-  多选: "MULTI",
-  判断题: "JUDGE",
-  判断: "JUDGE",
-};
+const TYPE_MAP = new Map<string, QuestionType>([
+  ["单选题", "SINGLE"],
+  ["单选", "SINGLE"],
+  ["多选题", "MULTI"],
+  ["多选", "MULTI"],
+  ["判断题", "JUDGE"],
+  ["判断", "JUDGE"],
+]);
+/** 判断题答案别名（NFKC + 大写后匹配）→ A 正确 / B 错误 */
+const JUDGE_ANSWER = new Map<string, string>([
+  ["对", "A"],
+  ["正确", "A"],
+  ["√", "A"],
+  ["T", "A"],
+  ["TRUE", "A"],
+  ["错", "B"],
+  ["错误", "B"],
+  ["×", "B"],
+  ["F", "B"],
+  ["FALSE", "B"],
+]);
 
 export interface ParsedRow {
   /** Excel 行号（从 1 起，表头为第 1 行） */
@@ -74,14 +87,25 @@ export function parseQuestionSheet(ws: ExcelJS.Worksheet): { rows: ParsedRow[]; 
       if (!blank) skipped.push(`第 ${n} 行：缺少题干`);
       return;
     }
-    const answer = normalizeAnswer([...rawAnswer.toUpperCase().replace(/[^A-F]/g, "")]);
-    const letterOptions: OptionShape[] = [];
-    for (const letter of LETTERS) {
-      const t = text(row, col(letter));
-      if (t) letterOptions.push({ letter: LETTERS[letterOptions.length], text: t });
+    // 全角 → 半角（Ａ → A），只保留 A–F
+    const answerText = rawAnswer.normalize("NFKC").trim().toUpperCase();
+    let answer = normalizeAnswer([...answerText.replace(/[^A-F]/g, "")]);
+    const filled = LETTERS.map((letter) => ({ letter, text: text(row, col(letter)) }));
+    const lastFilled = filled.findLastIndex((o) => o.text);
+    const letterOptions: OptionShape[] = filled.slice(0, lastFilled + 1);
+    const type = TYPE_MAP.get(text(row, col("题型"))) ?? inferType(letterOptions, answer);
+    let options = letterOptions;
+    if (type === "JUDGE") {
+      options = JUDGE_OPTIONS.map((o) => ({ ...o }));
+      answer = JUDGE_ANSWER.get(answerText) ?? answer;
+    } else {
+      // 选项列有空洞（如 A、C 有值 B 空）不重赋字母，否则答案会静默指错
+      const gaps = letterOptions.filter((o) => !o.text).map((o) => o.letter);
+      if (gaps.length) {
+        skipped.push(`第 ${n} 行：选项列不连续（缺 ${gaps.join("、")}）`);
+        return;
+      }
     }
-    const type = TYPE_MAP[text(row, col("题型"))] ?? inferType(letterOptions, answer);
-    const options = type === "JUDGE" ? JUDGE_OPTIONS.map((o) => ({ ...o })) : letterOptions;
     const invalid = validateQuestionShape(type, options, answer);
     if (invalid) {
       skipped.push(`第 ${n} 行：${invalid}`);
