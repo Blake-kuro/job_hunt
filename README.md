@@ -69,6 +69,16 @@ pnpm dev                      # http://localhost:3001
 - `DELETE /api/admin/jobs/{id}` 删除岗位（收藏 / 投递级联删除；不存在 404）
 - `POST /api/admin/jobs/import` 上传 xlsx（`multipart/form-data` 的 `file` 字段，≤ 20 MB）导入岗位，返回各工作表新增 / 更新 / 跳过明细（无法解析或超限 400）
 
+## 迁移说明
+
+2026-09-15 把 `20260914064333_access_tiers` 改名为 `20260914093000_access_tiers`（它依赖更晚的 `phone_auth` 建的枚举，全新库按文件名顺序 `migrate deploy` 会失败）。**在改名之前已经跑过迁移的库**（本机开发库 / 测试库、已建好的线上库）执行一次即可：
+
+```sql
+UPDATE "_prisma_migrations" SET migration_name = '20260914093000_access_tiers' WHERE migration_name = '20260914064333_access_tiers';
+```
+
+全新的库不需要任何操作。
+
 ## 测试
 
 集成测试打真库且会清空业务表，只接受以 `_test` 结尾的 `TEST_DATABASE_URL`：
