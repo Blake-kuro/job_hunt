@@ -1,7 +1,7 @@
 import { z } from "@hono/zod-openapi";
 import { PlanSchema, TierSchema } from "./access";
 import { CategoryIdSchema, jobListQuerySchema } from "./job";
-import { QuizOptionLetterSchema, QuizOptionSchema } from "./quiz";
+import { AnswerLettersSchema, QuestionTypeSchema, QuizOptionSchema, quizOptionsSchema } from "./quiz";
 
 export const ContentTypeSchema = z.enum(["MATERIAL", "QUESTION", "COURSE"]).openapi("ContentType");
 const NullableDateTime = z.string().datetime().nullable();
@@ -156,13 +156,30 @@ export const AdminContentBodySchema = z
 // ── 题库 ──
 export const AdminQuizMetaSchema = z
   .object({
-    categories: z.array(z.object({ id: z.string(), name: z.string(), questionCount: z.number().int() })),
-    companySets: z.array(z.object({ id: z.string(), company: z.string(), track: z.string(), focus: z.string() })),
+    companies: z.array(
+      z.object({
+        id: z.string(),
+        name: z.string(),
+        sortOrder: z.number().int(),
+        categories: z.array(
+          z.object({
+            id: z.string(),
+            name: z.string(),
+            sortOrder: z.number().int(),
+            questionCount: z.number().int(),
+            publishedCount: z.number().int(),
+          }),
+        ),
+      }),
+    ),
   })
   .openapi("AdminQuizMeta");
 export const adminQuestionQuerySchema = z.object({
   q: z.string().trim().min(1).optional(),
+  companyId: z.string().min(1).optional(),
   categoryId: z.string().min(1).optional(),
+  type: QuestionTypeSchema.optional(),
+  section: z.string().trim().min(1).optional(),
   published: BoolQuery,
   ...pageQuery,
 });
@@ -170,12 +187,16 @@ export const DifficultySchema = z.enum(["EASY", "MEDIUM", "HARD"]).openapi("Diff
 export const AdminQuestionSchema = z
   .object({
     id: z.string(),
-    prompt: z.string(),
+    companyId: z.string(),
+    companyName: z.string(),
     categoryId: z.string(),
     categoryName: z.string(),
-    companySetId: z.string().nullable(),
+    type: QuestionTypeSchema,
+    section: z.string().nullable(),
+    sortOrder: z.number().int(),
+    prompt: z.string(),
     options: z.array(QuizOptionSchema),
-    answer: QuizOptionLetterSchema,
+    answer: AnswerLettersSchema,
     explanation: z.array(z.string()),
     difficulty: DifficultySchema,
     source: z.string(),
@@ -185,11 +206,13 @@ export const AdminQuestionSchema = z
 export const AdminQuestionListSchema = paged(AdminQuestionSchema, "AdminQuestionList");
 export const AdminQuestionBodySchema = z
   .object({
-    prompt: z.string().min(1),
     categoryId: z.string().min(1),
-    companySetId: z.string().nullable().optional(),
-    options: z.array(QuizOptionSchema).length(4),
-    answer: QuizOptionLetterSchema,
+    type: QuestionTypeSchema,
+    section: z.string().trim().nullable().optional(),
+    sortOrder: z.number().int().optional(),
+    prompt: z.string().min(1),
+    options: quizOptionsSchema,
+    answer: AnswerLettersSchema,
     explanation: z.array(z.string()),
     difficulty: DifficultySchema,
     source: z.string().min(1),
@@ -198,9 +221,11 @@ export const AdminQuestionBodySchema = z
   .openapi("AdminQuestionBody");
 export const AdminQuestionPatchSchema = AdminQuestionBodySchema.partial().openapi("AdminQuestionPatch");
 export const AdminCategoryBodySchema = z
-  .object({ name: z.string().trim().min(1).max(30) })
+  .object({ companyId: z.string().min(1), name: z.string().trim().min(1).max(30) })
   .openapi("AdminCategoryBody");
-export const AdminCategorySchema = z.object({ id: z.string(), name: z.string() }).openapi("AdminCategory");
+export const AdminCategorySchema = z
+  .object({ id: z.string(), companyId: z.string(), name: z.string(), sortOrder: z.number().int() })
+  .openapi("AdminCategory");
 
 // ── 岗位 ──
 export const adminJobQuerySchema = z.object({

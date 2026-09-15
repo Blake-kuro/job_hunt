@@ -1,37 +1,40 @@
 import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
 import {
   ApiErrorSchema,
-  CompanySetListSchema,
+  CategoryIdParamSchema,
   QuestionIdParamSchema,
   QuizAnswerResultSchema,
+  QuizBanksSchema,
   QuizDashboardSchema,
-  QuizTodaySchema,
+  QuizNextSchema,
   SetMasteredSchema,
   SubmitAttemptSchema,
   WrongBookListSchema,
 } from "../contract";
 import type { Env } from "../env";
 import { validationHook } from "../lib/errors";
-import {
-  getDashboard,
-  getTodayQuestion,
-  listCompanySets,
-  listWrongBook,
-  setMastered,
-  submitAnswer,
-} from "../services/quiz";
+import { getDashboard, listBanks, listWrongBook, nextQuestion, setMastered, submitAnswer } from "../services/quiz";
 
 const json = <S>(schema: S, description: string) => ({ description, content: { "application/json": { schema } } });
 const badRequest = json(ApiErrorSchema, "参数校验失败");
 const notFound = json(ApiErrorSchema, "不存在");
-const forbidden = json(ApiErrorSchema, "当前档位不可作答");
+const forbidden = json(ApiErrorSchema, "作答次数已用完");
 
-const todayRoute = createRoute({
+const banksRoute = createRoute({
   method: "get",
-  path: "/today",
+  path: "/banks",
   tags: ["quiz"],
-  operationId: "getTodayQuestion",
-  responses: { 200: json(QuizTodaySchema, "今日一题") },
+  operationId: "listQuizBanks",
+  responses: { 200: json(QuizBanksSchema, "题库（公司 → 分类）与当前用户进度、配额") },
+});
+
+const nextRoute = createRoute({
+  method: "get",
+  path: "/categories/{categoryId}/next",
+  tags: ["quiz"],
+  operationId: "getNextQuestion",
+  request: { params: CategoryIdParamSchema },
+  responses: { 200: json(QuizNextSchema, "该分类下一道未作答题"), 404: notFound },
 });
 
 const attemptsRoute = createRoute({
@@ -71,26 +74,18 @@ const setMasteredRoute = createRoute({
   responses: { 204: { description: "已更新" }, 400: badRequest, 404: notFound },
 });
 
-const companySetsRoute = createRoute({
-  method: "get",
-  path: "/company-sets",
-  tags: ["quiz"],
-  operationId: "listCompanySets",
-  responses: { 200: json(CompanySetListSchema, "公司题集") },
-});
-
 export const quizRoutes = new OpenAPIHono<Env>({ defaultHook: validationHook })
-  .openapi(todayRoute, async (c) => c.json(await getTodayQuestion(c.var.userId, c.var.access, c.var.role), 200))
+  .openapi(banksRoute, async (c) => c.json(await listBanks(c.var.userId, c.var.access, c.var.role), 200))
+  .openapi(nextRoute, async (c) =>
+    c.json(await nextQuestion(c.var.userId, c.req.valid("param").categoryId, c.var.access, c.var.role), 200),
+  )
   .openapi(attemptsRoute, async (c) => {
     const { questionId, picked } = c.req.valid("json");
     return c.json(await submitAnswer(c.var.userId, questionId, picked, c.var.access, c.var.role), 200);
   })
   .openapi(dashboardRoute, async (c) => c.json(await getDashboard(c.var.userId, c.var.access, c.var.role), 200))
-  .openapi(wrongBookRoute, async (c) =>
-    c.json({ items: await listWrongBook(c.var.userId, c.var.access, c.var.role) }, 200),
-  )
+  .openapi(wrongBookRoute, async (c) => c.json({ items: await listWrongBook(c.var.userId) }, 200))
   .openapi(setMasteredRoute, async (c) => {
     await setMastered(c.var.userId, c.req.valid("param").questionId, c.req.valid("json").mastered);
     return c.body(null, 204);
-  })
-  .openapi(companySetsRoute, async (c) => c.json({ items: await listCompanySets() }, 200));
+  });

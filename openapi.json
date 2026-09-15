@@ -678,7 +678,7 @@
       "AdminQuizMeta": {
         "type": "object",
         "properties": {
-          "categories": {
+          "companies": {
             "type": "array",
             "items": {
               "type": "object",
@@ -689,47 +689,51 @@
                 "name": {
                   "type": "string"
                 },
-                "questionCount": {
+                "sortOrder": {
                   "type": "integer"
+                },
+                "categories": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "sortOrder": {
+                        "type": "integer"
+                      },
+                      "questionCount": {
+                        "type": "integer"
+                      },
+                      "publishedCount": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "name",
+                      "sortOrder",
+                      "questionCount",
+                      "publishedCount"
+                    ]
+                  }
                 }
               },
               "required": [
                 "id",
                 "name",
-                "questionCount"
-              ]
-            }
-          },
-          "companySets": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "type": "string"
-                },
-                "company": {
-                  "type": "string"
-                },
-                "track": {
-                  "type": "string"
-                },
-                "focus": {
-                  "type": "string"
-                }
-              },
-              "required": [
-                "id",
-                "company",
-                "track",
-                "focus"
+                "sortOrder",
+                "categories"
               ]
             }
           }
         },
         "required": [
-          "categories",
-          "companySets"
+          "companies"
         ]
       },
       "AdminQuestionList": {
@@ -764,7 +768,10 @@
           "id": {
             "type": "string"
           },
-          "prompt": {
+          "companyId": {
+            "type": "string"
+          },
+          "companyName": {
             "type": "string"
           },
           "categoryId": {
@@ -773,11 +780,20 @@
           "categoryName": {
             "type": "string"
           },
-          "companySetId": {
+          "type": {
+            "$ref": "#/components/schemas/QuestionType"
+          },
+          "section": {
             "type": [
               "string",
               "null"
             ]
+          },
+          "sortOrder": {
+            "type": "integer"
+          },
+          "prompt": {
+            "type": "string"
           },
           "options": {
             "type": "array",
@@ -786,7 +802,8 @@
             }
           },
           "answer": {
-            "$ref": "#/components/schemas/QuizOptionLetter"
+            "type": "string",
+            "pattern": "^[A-F]+$"
           },
           "explanation": {
             "type": "array",
@@ -806,16 +823,28 @@
         },
         "required": [
           "id",
-          "prompt",
+          "companyId",
+          "companyName",
           "categoryId",
           "categoryName",
-          "companySetId",
+          "type",
+          "section",
+          "sortOrder",
+          "prompt",
           "options",
           "answer",
           "explanation",
           "difficulty",
           "source",
           "published"
+        ]
+      },
+      "QuestionType": {
+        "type": "string",
+        "enum": [
+          "SINGLE",
+          "MULTI",
+          "JUDGE"
         ]
       },
       "QuizOption": {
@@ -840,7 +869,9 @@
           "A",
           "B",
           "C",
-          "D"
+          "D",
+          "E",
+          "F"
         ]
       },
       "Difficulty": {
@@ -854,28 +885,37 @@
       "AdminQuestionBody": {
         "type": "object",
         "properties": {
-          "prompt": {
-            "type": "string",
-            "minLength": 1
-          },
           "categoryId": {
             "type": "string",
             "minLength": 1
           },
-          "companySetId": {
+          "type": {
+            "$ref": "#/components/schemas/QuestionType"
+          },
+          "section": {
             "type": [
               "string",
               "null"
             ]
           },
+          "sortOrder": {
+            "type": "integer"
+          },
+          "prompt": {
+            "type": "string",
+            "minLength": 1
+          },
           "options": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/QuizOption"
-            }
+            },
+            "minItems": 2,
+            "maxItems": 6
           },
           "answer": {
-            "$ref": "#/components/schemas/QuizOptionLetter"
+            "type": "string",
+            "pattern": "^[A-F]+$"
           },
           "explanation": {
             "type": "array",
@@ -895,8 +935,9 @@
           }
         },
         "required": [
-          "prompt",
           "categoryId",
+          "type",
+          "prompt",
           "options",
           "answer",
           "explanation",
@@ -908,28 +949,37 @@
       "AdminQuestionPatch": {
         "type": "object",
         "properties": {
-          "prompt": {
-            "type": "string",
-            "minLength": 1
-          },
           "categoryId": {
             "type": "string",
             "minLength": 1
           },
-          "companySetId": {
+          "type": {
+            "$ref": "#/components/schemas/QuestionType"
+          },
+          "section": {
             "type": [
               "string",
               "null"
             ]
           },
+          "sortOrder": {
+            "type": "integer"
+          },
+          "prompt": {
+            "type": "string",
+            "minLength": 1
+          },
           "options": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/QuizOption"
-            }
+            },
+            "minItems": 2,
+            "maxItems": 6
           },
           "answer": {
-            "$ref": "#/components/schemas/QuizOptionLetter"
+            "type": "string",
+            "pattern": "^[A-F]+$"
           },
           "explanation": {
             "type": "array",
@@ -955,18 +1005,30 @@
           "id": {
             "type": "string"
           },
+          "companyId": {
+            "type": "string"
+          },
           "name": {
             "type": "string"
+          },
+          "sortOrder": {
+            "type": "integer"
           }
         },
         "required": [
           "id",
-          "name"
+          "companyId",
+          "name",
+          "sortOrder"
         ]
       },
       "AdminCategoryBody": {
         "type": "object",
         "properties": {
+          "companyId": {
+            "type": "string",
+            "minLength": 1
+          },
           "name": {
             "type": "string",
             "minLength": 1,
@@ -974,6 +1036,7 @@
           }
         },
         "required": [
+          "companyId",
           "name"
         ]
       },
@@ -1751,9 +1814,115 @@
           "status"
         ]
       },
-      "QuizToday": {
+      "QuizBanks": {
         "type": "object",
         "properties": {
+          "companies": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "categories": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "total": {
+                        "type": "integer"
+                      },
+                      "answered": {
+                        "type": "integer"
+                      },
+                      "correct": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "name",
+                      "total",
+                      "answered",
+                      "correct"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "categories"
+              ]
+            }
+          },
+          "quota": {
+            "$ref": "#/components/schemas/QuizQuota"
+          }
+        },
+        "required": [
+          "companies",
+          "quota"
+        ]
+      },
+      "QuizQuota": {
+        "type": "object",
+        "properties": {
+          "tier": {
+            "$ref": "#/components/schemas/Tier"
+          },
+          "limit": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "used": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "tier",
+          "limit",
+          "used"
+        ]
+      },
+      "QuizNext": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "company": {
+                "type": "string"
+              },
+              "total": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "company",
+              "total"
+            ]
+          },
           "question": {
             "anyOf": [
               {
@@ -1764,14 +1933,11 @@
               }
             ]
           },
-          "indexLabel": {
-            "type": "string"
-          },
-          "attemptedToday": {
+          "index": {
             "type": "integer"
           },
-          "date": {
-            "type": "string"
+          "answered": {
+            "type": "integer"
           },
           "exhausted": {
             "type": [
@@ -1786,10 +1952,10 @@
           }
         },
         "required": [
+          "category",
           "question",
-          "indexLabel",
-          "attemptedToday",
-          "date",
+          "index",
+          "answered",
           "exhausted"
         ]
       },
@@ -1798,6 +1964,15 @@
         "properties": {
           "id": {
             "type": "string"
+          },
+          "type": {
+            "$ref": "#/components/schemas/QuestionType"
+          },
+          "section": {
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "prompt": {
             "type": "string"
@@ -1811,6 +1986,9 @@
           "category": {
             "type": "string"
           },
+          "company": {
+            "type": "string"
+          },
           "difficulty": {
             "type": "string"
           },
@@ -1820,9 +1998,12 @@
         },
         "required": [
           "id",
+          "type",
+          "section",
           "prompt",
           "options",
           "category",
+          "company",
           "difficulty",
           "source"
         ]
@@ -1834,7 +2015,10 @@
             "type": "boolean"
           },
           "answer": {
-            "$ref": "#/components/schemas/QuizOptionLetter"
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QuizOptionLetter"
+            }
           },
           "explanation": {
             "type": "array",
@@ -1864,7 +2048,12 @@
             "minLength": 1
           },
           "picked": {
-            "$ref": "#/components/schemas/QuizOptionLetter"
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QuizOptionLetter"
+            },
+            "minItems": 1,
+            "maxItems": 6
           }
         },
         "required": [
@@ -1914,36 +2103,14 @@
           "totalSolved": {
             "type": "integer"
           },
-          "categories": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "type": "string"
-                },
-                "label": {
-                  "type": "string"
-                },
-                "count": {
-                  "type": "integer"
-                }
-              },
-              "required": [
-                "id",
-                "label",
-                "count"
-              ]
-            }
-          },
           "wrongList": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/WrongBookItem"
             }
           },
-          "access": {
-            "$ref": "#/components/schemas/Access"
+          "quota": {
+            "$ref": "#/components/schemas/QuizQuota"
           }
         },
         "required": [
@@ -1952,9 +2119,8 @@
           "weekSolved",
           "weekTarget",
           "totalSolved",
-          "categories",
           "wrongList",
-          "access"
+          "quota"
         ]
       },
       "WrongBookItem": {
@@ -1999,47 +2165,6 @@
         },
         "required": [
           "mastered"
-        ]
-      },
-      "CompanySetList": {
-        "type": "object",
-        "properties": {
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/CompanySetItem"
-            }
-          }
-        },
-        "required": [
-          "items"
-        ]
-      },
-      "CompanySetItem": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "company": {
-            "type": "string"
-          },
-          "track": {
-            "type": "string"
-          },
-          "focus": {
-            "type": "string"
-          },
-          "count": {
-            "type": "integer"
-          }
-        },
-        "required": [
-          "id",
-          "company",
-          "track",
-          "focus",
-          "count"
         ]
       }
     },
@@ -2486,7 +2611,7 @@
         "operationId": "getAdminQuizMeta",
         "responses": {
           "200": {
-            "description": "题库分类与企业专项",
+            "description": "公司 → 分类树（含题量）",
             "content": {
               "application/json": {
                 "schema": {
@@ -2520,7 +2645,33 @@
               "minLength": 1
             },
             "required": false,
+            "name": "companyId",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required": false,
             "name": "categoryId",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "$ref": "#/components/schemas/QuestionType"
+            },
+            "required": false,
+            "name": "type",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required": false,
+            "name": "section",
             "in": "query"
           },
           {
@@ -2597,7 +2748,7 @@
             }
           },
           "400": {
-            "description": "分类 / 企业专项不存在",
+            "description": "分类不存在或题目形状不合法",
             "content": {
               "application/json": {
                 "schema": {
@@ -2640,7 +2791,7 @@
             "description": "已更新"
           },
           "400": {
-            "description": "分类 / 企业专项不存在",
+            "description": "分类不存在或题目形状不合法",
             "content": {
               "application/json": {
                 "schema": {
@@ -2721,7 +2872,7 @@
             }
           },
           "400": {
-            "description": "分类已存在",
+            "description": "公司不存在或同公司下分类已存在",
             "content": {
               "application/json": {
                 "schema": {
@@ -3324,19 +3475,61 @@
         }
       }
     },
-    "/api/quiz/today": {
+    "/api/quiz/banks": {
       "get": {
         "tags": [
           "quiz"
         ],
-        "operationId": "getTodayQuestion",
+        "operationId": "listQuizBanks",
         "responses": {
           "200": {
-            "description": "今日一题",
+            "description": "题库（公司 → 分类）与当前用户进度、配额",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/QuizToday"
+                  "$ref": "#/components/schemas/QuizBanks"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/quiz/categories/{categoryId}/next": {
+      "get": {
+        "tags": [
+          "quiz"
+        ],
+        "operationId": "getNextQuestion",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "example": "cat-1"
+            },
+            "required": true,
+            "name": "categoryId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "该分类下一道未作答题",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuizNext"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
                 }
               }
             }
@@ -3382,7 +3575,7 @@
             }
           },
           "403": {
-            "description": "当前档位不可作答",
+            "description": "作答次数已用完",
             "content": {
               "application/json": {
                 "schema": {
@@ -3492,26 +3685,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/quiz/company-sets": {
-      "get": {
-        "tags": [
-          "quiz"
-        ],
-        "operationId": "listCompanySets",
-        "responses": {
-          "200": {
-            "description": "公司题集",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CompanySetList"
                 }
               }
             }

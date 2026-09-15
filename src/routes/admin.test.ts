@@ -188,14 +188,25 @@ describe.skipIf(!hasDb)("/api/admin", () => {
     expect(await res.json()).toMatchObject({ error: { code: "VALIDATION" } });
   });
 
-  it("题库：分类、分页列表、创建 / 修改 / 删除", async () => {
-    const cat = await apiRequest("/api/admin/question-categories", json("POST", { name: "算法" }));
+  it("题库：公司 / 分类、分页列表、创建 / 修改 / 删除、形状校验", async () => {
+    const company = await prisma.company.create({ data: { name: "测试公司" } });
+    const cat = await apiRequest(
+      "/api/admin/question-categories",
+      json("POST", { companyId: company.id, name: "算法" }),
+    );
     expect(cat.status).toBe(201);
     const { id: categoryId } = (await cat.json()) as { id: string };
-    expect((await apiRequest("/api/admin/question-categories", json("POST", { name: "算法" }))).status).toBe(400);
+    expect(
+      (await apiRequest("/api/admin/question-categories", json("POST", { companyId: company.id, name: "算法" })))
+        .status,
+    ).toBe(400);
+    expect(
+      (await apiRequest("/api/admin/question-categories", json("POST", { companyId: "nope", name: "算法" }))).status,
+    ).toBe(400);
     const body = {
       prompt: "1+1=?",
       categoryId,
+      type: "SINGLE",
       options: [
         { letter: "A", text: "1" },
         { letter: "B", text: "2" },
@@ -212,18 +223,37 @@ describe.skipIf(!hasDb)("/api/admin", () => {
     expect(created.status).toBe(201);
     const { id } = (await created.json()) as { id: string };
     expect((await apiRequest("/api/admin/questions", json("POST", { ...body, categoryId: "nope" }))).status).toBe(400);
-    expect((await apiRequest("/api/admin/questions", json("POST", { ...body, companySetId: "" }))).status).toBe(400);
+    const badMulti = await apiRequest("/api/admin/questions", json("POST", { ...body, type: "MULTI", answer: "A" }));
+    expect(badMulti.status).toBe(400);
+    expect(await badMulti.json()).toMatchObject({
+      error: { code: "VALIDATION", message: "多选题至少 3 个选项、2 个正确答案" },
+    });
+    expect((await apiRequest(`/api/admin/questions/${id}`, json("PATCH", { answer: "AB" }))).status).toBe(400);
     const meta = (await (await apiRequest("/api/admin/quiz-meta")).json()) as {
-      categories: { name: string; questionCount: number }[];
+      companies: { name: string; categories: { name: string; questionCount: number; publishedCount: number }[] }[];
     };
-    expect(meta.categories).toMatchObject([{ name: "算法", questionCount: 1 }]);
-    expect((await apiRequest(`/api/admin/questions/${id}`, json("PATCH", { published: true }))).status).toBe(204);
-    const list = (await (await apiRequest("/api/admin/questions?published=true&q=1%2B1")).json()) as {
+    expect(meta.companies).toMatchObject([
+      { name: "测试公司", categories: [{ name: "算法", questionCount: 1, publishedCount: 0 }] },
+    ]);
+    expect(
+      (await apiRequest(`/api/admin/questions/${id}`, json("PATCH", { published: true, section: " 基础 " }))).status,
+    ).toBe(204);
+    const list = (await (
+      await apiRequest(`/api/admin/questions?published=true&q=1%2B1&companyId=${company.id}`)
+    ).json()) as {
       total: number;
       items: { categoryName: string; options: unknown[] }[];
     };
     expect(list.total).toBe(1);
-    expect(list.items[0]).toMatchObject({ categoryName: "算法", answer: "B", published: true });
+    expect(list.items[0]).toMatchObject({
+      companyName: "测试公司",
+      categoryName: "算法",
+      type: "SINGLE",
+      section: "基础",
+      sortOrder: 0,
+      answer: "B",
+      published: true,
+    });
     expect(list.items[0].options).toHaveLength(4);
     const student = await prisma.user.create({
       data: { name: "学生", identities: { create: { provider: "PHONE", providerKey: "13900000099" } } },

@@ -10,12 +10,14 @@ import {
   ApiErrorSchema,
   IdResultSchema,
 } from "../../contract";
-import { QuizOptionLetterSchema, quizOptionsSchema } from "../../contract/quiz";
+import { quizOptionsSchema } from "../../contract/quiz";
 import { prisma } from "../../db";
 import { AppError, NotFoundError } from "../../lib/errors";
+import { validateQuestionShape } from "../../lib/grade";
 import { newAdminRouter } from "./guard";
 
 const err = { "application/json": { schema: ApiErrorSchema } };
+const ORDER = [{ sortOrder: "asc" }, { name: "asc" }] as const;
 
 const getQuizMeta = createRoute({
   method: "get",
@@ -23,7 +25,7 @@ const getQuizMeta = createRoute({
   tags: ["admin"],
   operationId: "getAdminQuizMeta",
   responses: {
-    200: { description: "题库分类与企业专项", content: { "application/json": { schema: AdminQuizMetaSchema } } },
+    200: { description: "公司 → 分类树（含题量）", content: { "application/json": { schema: AdminQuizMetaSchema } } },
   },
 });
 const listQuestions = createRoute({
@@ -44,7 +46,7 @@ const createQuestion = createRoute({
   request: { body: { required: true, content: { "application/json": { schema: AdminQuestionBodySchema } } } },
   responses: {
     201: { description: "已创建", content: { "application/json": { schema: IdResultSchema } } },
-    400: { description: "分类 / 企业专项不存在", content: err },
+    400: { description: "分类不存在或题目形状不合法", content: err },
   },
 });
 const updateQuestion = createRoute({
@@ -58,7 +60,7 @@ const updateQuestion = createRoute({
   },
   responses: {
     204: { description: "已更新" },
-    400: { description: "分类 / 企业专项不存在", content: err },
+    400: { description: "分类不存在或题目形状不合法", content: err },
     404: { description: "不存在", content: err },
   },
 });
@@ -78,64 +80,87 @@ const createCategory = createRoute({
   request: { body: { required: true, content: { "application/json": { schema: AdminCategoryBodySchema } } } },
   responses: {
     201: { description: "已创建", content: { "application/json": { schema: AdminCategorySchema } } },
-    400: { description: "分类已存在", content: err },
+    400: { description: "公司不存在或同公司下分类已存在", content: err },
   },
 });
 
-/** POST / PATCH 共用：校验引用的分类 / 企业专项存在 */
-async function assertQuestionRefs(body: { categoryId?: string; companySetId?: string | null }) {
-  if (body.categoryId !== undefined) {
-    const exists = await prisma.questionCategory.findUnique({ where: { id: body.categoryId }, select: { id: true } });
-    if (!exists) throw new AppError(400, "VALIDATION", `分类 ${body.categoryId} 不存在`);
-  }
-  if (body.companySetId !== undefined && body.companySetId !== null) {
-    const exists = await prisma.companySet.findUnique({ where: { id: body.companySetId }, select: { id: true } });
-    if (!exists) throw new AppError(400, "VALIDATION", `企业专项 ${body.companySetId} 不存在`);
-  }
+/** POST / PATCH 共用：校验引用的分类存在 */
+async function assertCategoryExists(categoryId: string | undefined) {
+  if (categoryId === undefined) return;
+  const exists = await prisma.questionCategory.findUnique({ where: { id: categoryId }, select: { id: true } });
+  if (!exists) throw new AppError(400, "VALIDATION", `分类 ${categoryId} 不存在`);
+}
+
+/** 题型 / 选项 / 答案组合不合法 → 400 */
+function assertShape(shape: { type: "SINGLE" | "MULTI" | "JUDGE"; options: unknown; answer: string }) {
+  const msg = validateQuestionShape(shape.type, quizOptionsSchema.parse(shape.options), shape.answer);
+  if (msg) throw new AppError(400, "VALIDATION", msg);
 }
 
 export const questionRoutes = newAdminRouter()
   .openapi(getQuizMeta, async (c) => {
-    const [categories, companySets] = await Promise.all([
-      prisma.questionCategory.findMany({
-        orderBy: { name: "asc" },
-        include: { _count: { select: { questions: true } } },
-      }),
-      prisma.companySet.findMany({ orderBy: [{ company: "asc" }, { track: "asc" }] }),
-    ]);
+    const companies = await prisma.company.findMany({
+      orderBy: [...ORDER],
+      include: {
+        categories: {
+          orderBy: [...ORDER],
+          include: {
+            _count: { select: { questions: true } },
+            questions: { where: { published: true }, select: { id: true } },
+          },
+        },
+      },
+    });
     return c.json(
       {
-        categories: categories.map((cat) => ({ id: cat.id, name: cat.name, questionCount: cat._count.questions })),
-        companySets: companySets.map((s) => ({ id: s.id, company: s.company, track: s.track, focus: s.focus })),
+        companies: companies.map((co) => ({
+          id: co.id,
+          name: co.name,
+          sortOrder: co.sortOrder,
+          categories: co.categories.map((cat) => ({
+            id: cat.id,
+            name: cat.name,
+            sortOrder: cat.sortOrder,
+            questionCount: cat._count.questions,
+            publishedCount: cat.questions.length,
+          })),
+        })),
       },
       200,
     );
   })
   .openapi(listQuestions, async (c) => {
-    const { q, categoryId, published, page, pageSize } = c.req.valid("query");
+    const { q, companyId, categoryId, type, section, published, page, pageSize } = c.req.valid("query");
     const where = {
       ...(q && { prompt: { contains: q } }),
+      ...(companyId && { category: { companyId } }),
       ...(categoryId && { categoryId }),
+      ...(type && { type }),
+      ...(section && { section }),
       ...(published !== undefined && { published }),
     };
     const [total, rows] = await Promise.all([
       prisma.question.count({ where }),
       prisma.question.findMany({
         where,
-        orderBy: { id: "asc" },
+        orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
         skip: (page - 1) * pageSize,
         take: pageSize,
-        include: { category: { select: { name: true } } },
+        include: { category: { select: { name: true, company: { select: { id: true, name: true } } } } },
       }),
     ]);
     const items = rows.map((row) => ({
       id: row.id,
-      prompt: row.prompt,
+      companyId: row.category.company.id,
+      companyName: row.category.company.name,
       categoryId: row.categoryId,
       categoryName: row.category.name,
-      companySetId: row.companySetId,
+      type: row.type,
+      section: row.section,
+      sortOrder: row.sortOrder,
+      prompt: row.prompt,
       options: quizOptionsSchema.parse(row.options),
-      answer: QuizOptionLetterSchema.parse(row.answer),
+      answer: row.answer,
       explanation: row.explanation,
       difficulty: row.difficulty,
       source: row.source,
@@ -145,12 +170,15 @@ export const questionRoutes = newAdminRouter()
   })
   .openapi(createQuestion, async (c) => {
     const body = c.req.valid("json");
-    await assertQuestionRefs(body);
+    await assertCategoryExists(body.categoryId);
+    assertShape(body);
     const created = await prisma.question.create({
       data: {
-        prompt: body.prompt,
         categoryId: body.categoryId,
-        companySetId: body.companySetId ?? null,
+        type: body.type,
+        section: body.section?.trim() || null,
+        sortOrder: body.sortOrder ?? 0,
+        prompt: body.prompt,
         options: body.options,
         answer: body.answer,
         explanation: body.explanation,
@@ -163,11 +191,21 @@ export const questionRoutes = newAdminRouter()
   })
   .openapi(updateQuestion, async (c) => {
     const id = c.req.valid("param").id;
-    const exists = await prisma.question.findUnique({ where: { id }, select: { id: true } });
-    if (!exists) throw new NotFoundError(`题目 ${id} 不存在`);
+    const current = await prisma.question.findUnique({
+      where: { id },
+      select: { type: true, options: true, answer: true },
+    });
+    if (!current) throw new NotFoundError(`题目 ${id} 不存在`);
     const body = c.req.valid("json");
-    await assertQuestionRefs(body);
-    await prisma.question.update({ where: { id }, data: body });
+    await assertCategoryExists(body.categoryId);
+    if (body.type !== undefined || body.options !== undefined || body.answer !== undefined) {
+      assertShape({ ...current, ...body });
+    }
+    const { section, ...rest } = body;
+    await prisma.question.update({
+      where: { id },
+      data: { ...rest, ...(section !== undefined && { section: section?.trim() || null }) },
+    });
     return c.body(null, 204);
   })
   .openapi(deleteQuestion, async (c) => {
@@ -181,9 +219,14 @@ export const questionRoutes = newAdminRouter()
     return c.body(null, 204);
   })
   .openapi(createCategory, async (c) => {
-    const { name } = c.req.valid("json");
-    const exists = await prisma.questionCategory.findUnique({ where: { name } });
-    if (exists) throw new AppError(400, "VALIDATION", "分类已存在");
-    const created = await prisma.questionCategory.create({ data: { name } });
-    return c.json({ id: created.id, name: created.name }, 201);
+    const { companyId, name } = c.req.valid("json");
+    const company = await prisma.company.findUnique({ where: { id: companyId }, select: { id: true } });
+    if (!company) throw new AppError(400, "VALIDATION", `公司 ${companyId} 不存在`);
+    const exists = await prisma.questionCategory.findUnique({ where: { companyId_name: { companyId, name } } });
+    if (exists) throw new AppError(400, "VALIDATION", "该公司下分类已存在");
+    const created = await prisma.questionCategory.create({ data: { companyId, name } });
+    return c.json(
+      { id: created.id, companyId: created.companyId, name: created.name, sortOrder: created.sortOrder },
+      201,
+    );
   });

@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import app from "../app";
 import { prisma } from "../db";
 import type { Prisma } from "../generated/prisma/client";
+import { JUDGE_OPTIONS } from "../lib/grade";
 
 export const hasDb = Boolean(process.env.DATABASE_URL);
 
@@ -11,7 +12,7 @@ export async function resetDb() {
     throw new Error("拒绝清空非测试数据库");
   }
   await prisma.$executeRawUnsafe(
-    'TRUNCATE "CourseLesson","Course","StudyMaterial","AccessGrant","SmsVerification","Session","AuthIdentity","Attempt","WrongBookEntry","Question","CompanySet","QuestionCategory","Application","Favorite","Job","User" RESTART IDENTITY CASCADE',
+    'TRUNCATE "CourseLesson","Course","StudyMaterial","AccessGrant","SmsVerification","Session","AuthIdentity","Attempt","WrongBookEntry","Question","QuestionCategory","Company","Application","Favorite","Job","User" RESTART IDENTITY CASCADE',
   );
 }
 
@@ -57,6 +58,46 @@ export function guestClient() {
     }
     return res;
   };
+}
+
+/**
+ * 一个公司「测试公司」+ 一个分类「基础」，25 道已发布题（sortOrder 1–25）：
+ * 1–21 单选（4 选项，答案 B）、22–23 多选（4 选项，答案 AC）、24–25 判断（答案 A）。
+ */
+export async function seedBank() {
+  const company = await prisma.company.create({ data: { id: "co-test", name: "测试公司" } });
+  const category = await prisma.questionCategory.create({
+    data: { id: "cat-test", companyId: company.id, name: "基础" },
+  });
+  const four = ["A", "B", "C", "D"].map((letter) => ({ letter, text: `选项 ${letter}` }));
+  const ids: string[] = [];
+  const data: Prisma.QuestionCreateManyInput[] = [];
+  for (let n = 1; n <= 25; n++) {
+    const id = `tq-${String(n).padStart(3, "0")}`;
+    ids.push(id);
+    const shape =
+      n <= 21
+        ? { type: "SINGLE" as const, options: four, answer: "B" }
+        : n <= 23
+          ? { type: "MULTI" as const, options: four, answer: "AC" }
+          : {
+              type: "JUDGE" as const,
+              options: JUDGE_OPTIONS.map(({ letter, text }) => ({ letter, text })),
+              answer: "A",
+            };
+    data.push({
+      id,
+      categoryId: category.id,
+      sortOrder: n,
+      prompt: `第 ${n} 题的题干，长度足够长以便测试截断到二十四个字的行为是否正确`,
+      explanation: ["解析一", "解析二"],
+      difficulty: "MEDIUM",
+      source: "测试",
+      ...shape,
+    });
+  }
+  await prisma.question.createMany({ data });
+  return { companyId: company.id, categoryId: category.id, ids };
 }
 
 export async function insertJobs(rows: Prisma.JobCreateManyInput[]) {

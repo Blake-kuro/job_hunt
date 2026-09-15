@@ -1,10 +1,7 @@
-import type { QuizToday, QuizDashboard, CompanySetItem, WrongBookItem } from "../contract";
+import type { QuizAnswerResult, QuizBanks, QuizDashboard, QuizNext, WrongBookItem } from "../contract";
 import { beforeEach, describe, expect, it } from "vitest";
-import { DEV_USER_EMAIL } from "../auth";
-import { prisma } from "../db";
-import { apiRequest, guestClient, hasDb, resetDb, seedDevUser } from "../test/db";
+import { apiRequest, guestClient, hasDb, resetDb, seedBank, seedDevUser } from "../test/db";
 
-const LETTERS = ["A", "B", "C", "D"] as const;
 const post = (body: unknown) => ({
   method: "POST",
   headers: { "content-type": "application/json" },
@@ -15,107 +12,82 @@ const put = (body: unknown) => ({
   headers: { "content-type": "application/json" },
   body: JSON.stringify(body),
 });
+const qid = (n: number) => `tq-${String(n).padStart(3, "0")}`;
 
-async function insertQuestions() {
-  await prisma.questionCategory.create({ data: { id: "cat-1", name: "言语理解与表达" } });
-  await prisma.companySet.create({ data: { id: "set-1", company: "阿里巴巴", track: "互联网 · 后端", focus: "JVM" } });
-  for (const [i, answer] of (["B", "C"] as const).entries()) {
-    await prisma.question.create({
-      data: {
-        id: `q-00${i + 1}`,
-        categoryId: "cat-1",
-        companySetId: i === 1 ? "set-1" : null,
-        prompt: `第 ${i + 1} 题的题干，长度足够长以便测试截断到二十四个字的行为是否正确`,
-        options: LETTERS.map((letter) => ({ letter, text: `选项 ${letter}` })),
-        answer,
-        explanation: ["解析一", "解析二"],
-        difficulty: "MEDIUM",
-        source: "测试",
-      },
-    });
-  }
-}
+type Client = (path: string, init?: RequestInit) => Promise<Response> | Response;
+const answer = (client: Client, questionId: string, picked: string[]) =>
+  client("/api/quiz/attempts", post({ questionId, picked }));
+const next = async (client: Client, categoryId: string) =>
+  (await (await client(`/api/quiz/categories/${categoryId}/next`)).json()) as QuizNext;
+const banks = async (client: Client) => (await (await client("/api/quiz/banks")).json()) as QuizBanks;
+const wrongBook = async (client: Client) =>
+  ((await (await client("/api/quiz/wrong-book")).json()) as { items: WrongBookItem[] }).items;
 
 describe.skipIf(!hasDb)("/api/quiz", () => {
+  let categoryId: string;
   beforeEach(async () => {
     await resetDb();
     await seedDevUser();
-    await insertQuestions();
+    ({ categoryId } = await seedBank());
   });
 
-  it("today 返回第一道未答题，不含答案", async () => {
-    const body = (await (await apiRequest("/api/quiz/today")).json()) as QuizToday;
-    expect(body.question?.id).toBe("q-001");
-    expect(body.question).not.toHaveProperty("answer");
-    expect(body.question?.options).toHaveLength(4);
-    expect(body).toMatchObject({ indexLabel: "试题 1 / 20", attemptedToday: 0 });
+  it("banks：公司 → 分类，带已发布题数、作答进度与配额", async () => {
+    const before = await banks(apiRequest);
+    expect(before.companies).toHaveLength(1);
+    expect(before.companies[0]).toMatchObject({ name: "测试公司" });
+    expect(before.companies[0].categories).toEqual([
+      { id: categoryId, name: "基础", total: 25, answered: 0, correct: 0 },
+    ]);
+    expect(before.quota).toEqual({ tier: "FREE", limit: null, used: 0 });
+
+    await answer(apiRequest, qid(1), ["B"]);
+    await answer(apiRequest, qid(2), ["A"]);
+    await answer(apiRequest, qid(2), ["A"]);
+    const after = await banks(apiRequest);
+    expect(after.companies[0].categories[0]).toMatchObject({ answered: 2, correct: 1 });
+    expect(after.quota.used).toBe(2);
   });
 
-  it("答错：写 Attempt、进错题本、today 换到下一题", async () => {
-    const res = await apiRequest("/api/quiz/attempts", post({ questionId: "q-001", picked: "A" }));
+  it("next：按 sortOrder 给第一道未答题，index 从 1 起；不含答案", async () => {
+    const first = await next(apiRequest, categoryId);
+    expect(first.category).toEqual({ id: categoryId, name: "基础", company: "测试公司", total: 25 });
+    expect(first.question?.id).toBe(qid(1));
+    expect(first.question).toMatchObject({ type: "SINGLE", section: null, category: "基础", company: "测试公司" });
+    expect(first.question).not.toHaveProperty("answer");
+    expect(first).toMatchObject({ index: 1, answered: 0, exhausted: null });
+
+    const res = await answer(apiRequest, qid(1), ["B"]);
     expect(res.status).toBe(200);
-    expect(await res.json()).toMatchObject({
-      correct: false,
-      answer: "B",
-      explanation: ["解析一", "解析二"],
-      accuracyRate: 0,
-    });
-    const wrong = (await (await apiRequest("/api/quiz/wrong-book")).json()) as { items: WrongBookItem[] };
-    expect(wrong.items).toHaveLength(1);
-    expect(wrong.items[0]).toMatchObject({ questionId: "q-001", due: "明天" });
-    expect(wrong.items[0].title).toHaveLength(24);
-    const today = (await (await apiRequest("/api/quiz/today")).json()) as QuizToday;
-    expect(today.question?.id).toBe("q-002");
-    expect(today.indexLabel).toBe("试题 2 / 20");
+    expect(await res.json()).toMatchObject({ correct: true, answer: ["B"], accuracyRate: 100 });
+    const second = await next(apiRequest, categoryId);
+    expect(second.question?.id).toBe(qid(2));
+    expect(second).toMatchObject({ index: 2, answered: 1, exhausted: null });
   });
 
-  it("答对：不进错题本，正确率 100", async () => {
-    const body = await (await apiRequest("/api/quiz/attempts", post({ questionId: "q-002", picked: "C" }))).json();
-    expect(body).toMatchObject({ correct: true, accuracyRate: 100 });
-    expect(
-      ((await (await apiRequest("/api/quiz/wrong-book")).json()) as { items: WrongBookItem[] }).items,
-    ).toHaveLength(0);
+  it("next：分类不存在 → 404", async () => {
+    expect((await apiRequest("/api/quiz/categories/nope/next")).status).toBe(404);
   });
 
-  it("attempts 校验：非法 picked → 400；不存在的题 → 404", async () => {
-    expect((await apiRequest("/api/quiz/attempts", post({ questionId: "q-001", picked: "E" }))).status).toBe(400);
-    expect((await apiRequest("/api/quiz/attempts", post({ questionId: "nope", picked: "A" }))).status).toBe(404);
+  it("多选按集合判题，顺序无关；答错进错题本；判断题", async () => {
+    const multi = (await (await answer(apiRequest, qid(22), ["C", "A"])).json()) as QuizAnswerResult;
+    expect(multi).toMatchObject({ correct: true, answer: ["A", "C"], explanation: ["解析一", "解析二"] });
+    const partial = (await (await answer(apiRequest, qid(22), ["A"])).json()) as QuizAnswerResult;
+    expect(partial.correct).toBe(false);
+    const wrong = await wrongBook(apiRequest);
+    expect(wrong).toHaveLength(1);
+    expect(wrong[0]).toMatchObject({ questionId: qid(22), due: "明天" });
+    expect(wrong[0].title).toHaveLength(24);
+
+    const judge = (await (await answer(apiRequest, qid(24), ["B"])).json()) as QuizAnswerResult;
+    expect(judge).toMatchObject({ correct: false, answer: ["A"] });
+    const single = (await (await answer(apiRequest, qid(3), ["A", "B"])).json()) as QuizAnswerResult;
+    expect(single.correct).toBe(false);
   });
 
-  it("dashboard：打卡、本周、分类、错题", async () => {
-    await apiRequest("/api/quiz/attempts", post({ questionId: "q-001", picked: "A" }));
-    const body = (await (await apiRequest("/api/quiz/dashboard")).json()) as QuizDashboard;
-    expect(body.streakDays).toBe(1);
-    expect(body.week).toHaveLength(7);
-    expect(body.week.filter((d: { done: boolean }) => d.done)).toHaveLength(1);
-    expect(body).toMatchObject({ weekSolved: 1, weekTarget: 20, totalSolved: 1 });
-    expect(body.categories).toEqual([{ id: "cat-1", label: "言语理解与表达", count: 2 }]);
-    expect(body.wrongList).toHaveLength(1);
-  });
-
-  it("wrong-book PUT mastered → 204 且从列表消失；不存在 → 404", async () => {
-    await apiRequest("/api/quiz/attempts", post({ questionId: "q-001", picked: "A" }));
-    const res = await apiRequest("/api/quiz/wrong-book/q-001", put({ mastered: true }));
-    expect(res.status).toBe(204);
-    expect(
-      ((await (await apiRequest("/api/quiz/wrong-book")).json()) as { items: WrongBookItem[] }).items,
-    ).toHaveLength(0);
-    expect((await apiRequest("/api/quiz/wrong-book/q-002", put({ mastered: true }))).status).toBe(404);
-  });
-
-  it("company-sets 带题数", async () => {
-    const body = (await (await apiRequest("/api/quiz/company-sets")).json()) as { items: CompanySetItem[] };
-    expect(body.items).toEqual([{ id: "set-1", company: "阿里巴巴", track: "互联网 · 后端", focus: "JVM", count: 1 }]);
-  });
-
-  it("题库答完 today.question 为 null", async () => {
-    await apiRequest("/api/quiz/attempts", post({ questionId: "q-001", picked: "B" }));
-    await apiRequest("/api/quiz/attempts", post({ questionId: "q-002", picked: "C" }));
-    const body = (await (await apiRequest("/api/quiz/today")).json()) as QuizToday;
-    expect(body.question).toBeNull();
-    expect(body.attemptedToday).toBe(2);
-  });
-  it("非法 JSON 返回统一的 400 错误", async () => {
+  it("attempts 校验：非法 picked / 空数组 → 400；不存在的题 → 404；非法 JSON → 400", async () => {
+    expect((await answer(apiRequest, qid(1), ["G"])).status).toBe(400);
+    expect((await answer(apiRequest, qid(1), [])).status).toBe(400);
+    expect((await answer(apiRequest, "nope", ["A"])).status).toBe(404);
     const res = await apiRequest("/api/quiz/attempts", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -125,87 +97,54 @@ describe.skipIf(!hasDb)("/api/quiz", () => {
     expect(await res.json()).toMatchObject({ error: { code: "VALIDATION" } });
   });
 
-  it("再次答错会重新激活已掌握的错题，重复作答不增加累计题数", async () => {
-    await apiRequest("/api/quiz/attempts", post({ questionId: "q-001", picked: "A" }));
-    await apiRequest("/api/quiz/wrong-book/q-001", put({ mastered: true }));
-    await apiRequest("/api/quiz/attempts", post({ questionId: "q-001", picked: "D" }));
-    const dashboard = (await (await apiRequest("/api/quiz/dashboard")).json()) as QuizDashboard;
-    expect(dashboard.wrongList).toHaveLength(1);
-    expect(dashboard.totalSolved).toBe(1);
-    expect(dashboard.weekSolved).toBe(1);
-  });
-});
-
-async function insertManyQuestions(n: number) {
-  await prisma.questionCategory.create({ data: { id: "cat-x", name: "配额测试" } });
-  await prisma.question.createMany({
-    data: Array.from({ length: n }, (_, i) => ({
-      id: `qq-${String(i + 1).padStart(3, "0")}`,
-      categoryId: "cat-x",
-      prompt: `第 ${i + 1} 题`,
-      options: LETTERS.map((letter) => ({ letter, text: `选项 ${letter}` })),
-      answer: "A",
-      explanation: ["解析"],
-      difficulty: "EASY",
-      source: "测试",
-    })),
-  });
-}
-
-describe.skipIf(!hasDb)("/api/quiz 配额", () => {
-  beforeEach(async () => {
-    await resetDb();
-    await seedDevUser();
-    await insertManyQuestions(22);
-  });
-
-  it("游客答完 20 道后 exhausted=QUOTA，第 21 道 403", async () => {
+  it("配额：游客答满 20 道不同题后第 21 道 403、next 为 QUOTA；重答已答题仍 200", async () => {
     const guest = guestClient();
     for (let i = 1; i <= 20; i++) {
-      const today = (await (await guest("/api/quiz/today")).json()) as QuizToday;
-      expect(today.question?.id).toBe(`qq-${String(i).padStart(3, "0")}`);
-      expect(today.exhausted).toBeNull();
-      expect((await guest("/api/quiz/attempts", post({ questionId: today.question?.id, picked: "A" }))).status).toBe(
-        200,
-      );
+      const n = await next(guest, categoryId);
+      expect(n.question?.id).toBe(qid(i));
+      expect(n.exhausted).toBeNull();
+      expect((await answer(guest, qid(i), ["B"])).status).toBe(200);
     }
-    const done = (await (await guest("/api/quiz/today")).json()) as QuizToday;
-    expect(done).toMatchObject({ question: null, exhausted: "QUOTA" });
-    const forbidden = await guest("/api/quiz/attempts", post({ questionId: "qq-021", picked: "A" }));
+    const forbidden = await answer(guest, qid(21), ["B"]);
     expect(forbidden.status).toBe(403);
     expect(await forbidden.json()).toMatchObject({ error: { code: "FORBIDDEN" } });
-    const dash = (await (await guest("/api/quiz/dashboard")).json()) as QuizDashboard;
-    expect(dash.access).toEqual({ tier: "GUEST", visible: 20, total: 22 });
+    const done = await next(guest, categoryId);
+    expect(done).toMatchObject({ question: null, exhausted: "QUOTA", index: 20, answered: 20 });
+    expect((await banks(guest)).quota).toEqual({ tier: "GUEST", limit: 20, used: 20 });
+    expect((await answer(guest, qid(1), ["A"])).status).toBe(200);
+    expect((await banks(guest)).quota.used).toBe(20);
   });
 
-  it("PRO 无限制；全部答完 exhausted=ALL", async () => {
-    await prisma.user.updateMany({ where: { email: DEV_USER_EMAIL }, data: { plan: "PRO", role: "STUDENT" } });
-    for (let i = 1; i <= 22; i++) {
-      await apiRequest("/api/quiz/attempts", post({ questionId: `qq-${String(i).padStart(3, "0")}`, picked: "A" }));
-    }
-    const done = (await (await apiRequest("/api/quiz/today")).json()) as QuizToday;
-    expect(done).toMatchObject({ question: null, exhausted: "ALL" });
-    const dash = (await (await apiRequest("/api/quiz/dashboard")).json()) as QuizDashboard;
-    expect(dash.access).toEqual({ tier: "PRO", visible: null, total: 22 });
+  it("管理员不限配额；答完全部题后 next 为 ALL", async () => {
+    for (let n = 1; n <= 25; n++) await answer(apiRequest, qid(n), ["B"]);
+    const done = await next(apiRequest, categoryId);
+    expect(done).toMatchObject({ question: null, exhausted: "ALL", index: 25, answered: 25 });
+    expect((await banks(apiRequest)).companies[0].categories[0]).toMatchObject({ answered: 25, correct: 21 });
   });
 
-  it("FREE 学生（游客）被单独授权第 21 道后可以看到并作答它；档位数字不变", async () => {
-    const guest = guestClient();
-    for (let i = 1; i <= 20; i++) {
-      const today = (await (await guest("/api/quiz/today")).json()) as QuizToday;
-      await guest("/api/quiz/attempts", post({ questionId: today.question?.id, picked: "A" }));
-    }
-    const me = (await (await guest("/api/me")).json()) as { id: string };
-    const dev = await prisma.user.findFirstOrThrow({ where: { email: DEV_USER_EMAIL } });
-    await prisma.accessGrant.create({
-      data: { userId: me.id, contentType: "QUESTION", contentId: "qq-021", grantedById: dev.id },
-    });
-    const today = (await (await guest("/api/quiz/today")).json()) as QuizToday;
-    expect(today.question?.id).toBe("qq-021");
-    expect(today.exhausted).toBeNull();
-    const res = await guest("/api/quiz/attempts", post({ questionId: "qq-021", picked: "A" }));
-    expect(res.status).toBe(200);
-    const dash = (await (await guest("/api/quiz/dashboard")).json()) as QuizDashboard;
-    expect(dash.access).toEqual({ tier: "GUEST", visible: 20, total: 22 });
+  it("dashboard：打卡、本周、配额、错题；重复作答不增加累计题数", async () => {
+    await answer(apiRequest, qid(1), ["A"]);
+    await apiRequest(`/api/quiz/wrong-book/${qid(1)}`, put({ mastered: true }));
+    await answer(apiRequest, qid(1), ["D"]);
+    const body = (await (await apiRequest("/api/quiz/dashboard")).json()) as QuizDashboard;
+    expect(body.streakDays).toBe(1);
+    expect(body.week).toHaveLength(7);
+    expect(body.week.filter((d) => d.done)).toHaveLength(1);
+    expect(body).toMatchObject({ weekSolved: 1, weekTarget: 20, totalSolved: 1 });
+    expect(body.quota).toEqual({ tier: "FREE", limit: null, used: 1 });
+    expect(body.wrongList).toHaveLength(1);
+    expect(body).not.toHaveProperty("categories");
+  });
+
+  it("wrong-book PUT mastered → 204 且从列表消失；不存在 → 404", async () => {
+    await answer(apiRequest, qid(1), ["A"]);
+    expect((await apiRequest(`/api/quiz/wrong-book/${qid(1)}`, put({ mastered: true }))).status).toBe(204);
+    expect(await wrongBook(apiRequest)).toHaveLength(0);
+    expect((await apiRequest(`/api/quiz/wrong-book/${qid(2)}`, put({ mastered: true }))).status).toBe(404);
+  });
+
+  it("旧端点 /today、/company-sets 已删除", async () => {
+    expect((await apiRequest("/api/quiz/today")).status).toBe(404);
+    expect((await apiRequest("/api/quiz/company-sets")).status).toBe(404);
   });
 });

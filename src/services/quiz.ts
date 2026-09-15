@@ -1,106 +1,145 @@
 import {
-  type CompanySetItem,
   type QuizAnswerResult,
+  type QuizBanks,
   type QuizDashboard,
+  type QuizNext,
   type QuizOptionLetter,
-  type QuizToday,
+  type QuizQuestionPublic,
+  QuizOptionLetterSchema,
   type WeekLabel,
   type WrongBookItem,
   quizOptionsSchema,
-  quizOptionLetterSchema,
 } from "../contract";
 import { prisma } from "../db";
-import type { Access } from "../lib/access";
+import { type Access, assertQuestionQuota, quotaExhausted, quotaOf, type Role, usedQuestionQuota } from "../lib/access";
 import { addDays, computeStreak, dateKey, dueLabel, keyToInstant, weekStartKey } from "../lib/dates";
-import { AppError, NotFoundError } from "../lib/errors";
+import { NotFoundError } from "../lib/errors";
+import { grade, normalizeAnswer } from "../lib/grade";
 
 const DIFFICULTY_LABEL = { EASY: "难度 简单", MEDIUM: "难度 中等", HARD: "难度 困难" } as const;
 const WEEK_LABELS: WeekLabel[] = ["一", "二", "三", "四", "五", "六", "日"];
 const WEEK_TARGET = 20;
-type Role = "STUDENT" | "ADMIN";
+const ORDER = [{ sortOrder: "asc" }, { name: "asc" }] as const;
 
-/**
- * 当前用户可见的题目 id：档位窗口（已发布题按 id 升序前 access.questions 道）
- * 与该用户未过期的按题授权（AccessGrant{ contentType: QUESTION }）取并集去重。
- * null = 不限制（管理员，或 PRO 档位）。
- */
-async function visibleQuestionIds(userId: string, access: Access, role: Role): Promise<string[] | null> {
-  if (role === "ADMIN") return null;
-  if (access.questions === null) return null;
-  const [window, grants] = await Promise.all([
-    prisma.question.findMany({
-      where: { published: true },
-      orderBy: { id: "asc" },
-      take: access.questions,
-      select: { id: true },
+export async function listBanks(userId: string, access: Access, role: Role): Promise<QuizBanks> {
+  const [companies, attempts, used] = await Promise.all([
+    prisma.company.findMany({
+      orderBy: [...ORDER],
+      include: {
+        categories: {
+          orderBy: [...ORDER],
+          include: { _count: { select: { questions: { where: { published: true } } } } },
+        },
+      },
     }),
-    prisma.accessGrant.findMany({
-      where: { userId, contentType: "QUESTION", OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }] },
-      select: { contentId: true },
+    prisma.attempt.findMany({
+      where: { userId },
+      select: { questionId: true, correct: true, question: { select: { categoryId: true } } },
     }),
-  ]);
-  return [...new Set([...window.map((w) => w.id), ...grants.map((g) => g.contentId)])];
-}
-
-export async function getTodayQuestion(userId: string, access: Access, role: Role): Promise<QuizToday> {
-  const today = dateKey();
-  const visible = await visibleQuestionIds(userId, access, role);
-  const unattempted = { attempts: { none: { userId } } } as const;
-  const [question, attemptedToday] = await Promise.all([
-    prisma.question.findFirst({
-      where: { published: true, ...unattempted, ...(visible && { id: { in: visible } }) },
-      orderBy: { id: "asc" },
-      include: { category: { select: { name: true } } },
-    }),
-    prisma.attempt.count({
-      where: { userId, answeredAt: { gte: keyToInstant(today), lt: keyToInstant(addDays(today, 1)) } },
-    }),
+    usedQuestionQuota(userId),
   ]);
 
-  let exhausted: QuizToday["exhausted"] = null;
-  if (!question) {
-    const anyLeft = await prisma.question.count({ where: { published: true, ...unattempted } });
-    exhausted = anyLeft > 0 ? "QUOTA" : "ALL";
+  // 每分类：作答过的不同题、其中有过正确作答的不同题
+  const answered = new Map<string, Set<string>>();
+  const correct = new Map<string, Set<string>>();
+  for (const a of attempts) {
+    const cat = a.question.categoryId;
+    (answered.get(cat) ?? answered.set(cat, new Set()).get(cat))?.add(a.questionId);
+    if (a.correct) (correct.get(cat) ?? correct.set(cat, new Set()).get(cat))?.add(a.questionId);
   }
 
   return {
-    question: question
-      ? {
-          id: question.id,
-          prompt: question.prompt,
-          options: quizOptionsSchema.parse(question.options),
-          category: question.category.name,
-          difficulty: DIFFICULTY_LABEL[question.difficulty],
-          source: question.source,
-        }
-      : null,
-    indexLabel: `试题 ${attemptedToday + 1} / ${WEEK_TARGET}`,
-    attemptedToday,
-    date: today,
-    exhausted,
+    companies: companies.map((co) => ({
+      id: co.id,
+      name: co.name,
+      categories: co.categories.map((cat) => ({
+        id: cat.id,
+        name: cat.name,
+        total: cat._count.questions,
+        answered: answered.get(cat.id)?.size ?? 0,
+        correct: correct.get(cat.id)?.size ?? 0,
+      })),
+    })),
+    quota: quotaOf(access, role, used),
   };
+}
+
+async function answeredInCategory(userId: string, categoryId: string): Promise<number> {
+  const rows = await prisma.attempt.findMany({
+    where: { userId, question: { categoryId } },
+    select: { questionId: true },
+    distinct: ["questionId"],
+  });
+  return rows.length;
+}
+
+export async function nextQuestion(userId: string, categoryId: string, access: Access, role: Role): Promise<QuizNext> {
+  const category = await prisma.questionCategory.findUnique({
+    where: { id: categoryId },
+    include: { company: { select: { name: true } } },
+  });
+  if (!category) throw new NotFoundError(`分类 ${categoryId} 不存在`);
+
+  const [total, answered, used] = await Promise.all([
+    prisma.question.count({ where: { categoryId, published: true } }),
+    answeredInCategory(userId, categoryId),
+    usedQuestionQuota(userId),
+  ]);
+  const base = { category: { id: category.id, name: category.name, company: category.company.name, total }, answered };
+
+  if (quotaExhausted(quotaOf(access, role, used))) {
+    return { ...base, question: null, index: answered, exhausted: "QUOTA" };
+  }
+  const q = await prisma.question.findFirst({
+    where: { categoryId, published: true, attempts: { none: { userId } } },
+    orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
+  });
+  if (!q) return { ...base, question: null, index: answered, exhausted: "ALL" };
+
+  const before = await prisma.question.count({
+    where: {
+      categoryId,
+      published: true,
+      OR: [{ sortOrder: { lt: q.sortOrder } }, { sortOrder: q.sortOrder, id: { lt: q.id } }],
+    },
+  });
+  const question: QuizQuestionPublic = {
+    id: q.id,
+    type: q.type,
+    section: q.section,
+    prompt: q.prompt,
+    options: quizOptionsSchema.parse(q.options),
+    category: category.name,
+    company: category.company.name,
+    difficulty: DIFFICULTY_LABEL[q.difficulty],
+    source: q.source,
+  };
+  return { ...base, question, index: before + 1, exhausted: null };
 }
 
 export async function submitAnswer(
   userId: string,
   questionId: string,
-  picked: QuizOptionLetter,
+  picked: readonly QuizOptionLetter[],
   access: Access,
   role: Role,
 ): Promise<QuizAnswerResult> {
-  const visible = await visibleQuestionIds(userId, access, role);
-  if (visible && !visible.includes(questionId)) {
-    throw new AppError(403, "FORBIDDEN", "当前档位不可作答此题，登录或升级后继续");
-  }
   const q = await prisma.question.findFirst({
     where: { published: true, id: questionId },
-    select: { answer: true, explanation: true },
+    select: {
+      type: true,
+      answer: true,
+      explanation: true,
+      attempts: { where: { userId }, take: 1, select: { id: true } },
+    },
   });
   if (!q) throw new NotFoundError(`题目 ${questionId} 不存在`);
+  // 重复作答同一题不占配额；作答新题时配额必须未用尽
+  if (q.attempts.length === 0) await assertQuestionQuota(userId, access, role);
 
-  const correct = picked === q.answer;
+  const correct = grade(q.type, q.answer, picked);
   await prisma.$transaction(async (tx) => {
-    await tx.attempt.create({ data: { userId, questionId, picked, correct } });
+    await tx.attempt.create({ data: { userId, questionId, picked: normalizeAnswer(picked), correct } });
     if (!correct) {
       const nextReviewAt = keyToInstant(addDays(dateKey(), 1));
       await tx.wrongBookEntry.upsert({
@@ -118,17 +157,16 @@ export async function submitAnswer(
 
   return {
     correct,
-    answer: quizOptionLetterSchema.parse(q.answer),
+    answer: [...q.answer].map((l) => QuizOptionLetterSchema.parse(l)),
     explanation: q.explanation,
     accuracyRate: total === 0 ? null : Math.round((right / total) * 100),
   };
 }
 
-export async function listWrongBook(userId: string, access: Access, role: Role): Promise<WrongBookItem[]> {
+export async function listWrongBook(userId: string): Promise<WrongBookItem[]> {
   const today = dateKey();
-  const visible = await visibleQuestionIds(userId, access, role);
   const rows = await prisma.wrongBookEntry.findMany({
-    where: { userId, mastered: false, question: { published: true, ...(visible && { id: { in: visible } }) } },
+    where: { userId, mastered: false, question: { published: true } },
     orderBy: { nextReviewAt: "asc" },
     select: { questionId: true, nextReviewAt: true, question: { select: { prompt: true } } },
   });
@@ -143,20 +181,15 @@ export async function getDashboard(userId: string, access: Access, role: Role): 
   const today = dateKey();
   const weekStart = weekStartKey(today);
 
-  const [attempts, weekAttempts, allSolved, categories, wrongList, questionTotal] = await Promise.all([
+  const [attempts, weekAttempts, used, wrongList] = await Promise.all([
     prisma.attempt.findMany({ where: { userId }, select: { answeredAt: true } }),
     prisma.attempt.findMany({
       where: { userId, answeredAt: { gte: keyToInstant(weekStart), lt: keyToInstant(addDays(weekStart, 7)) } },
       select: { questionId: true },
       distinct: ["questionId"],
     }),
-    prisma.attempt.findMany({ where: { userId }, select: { questionId: true }, distinct: ["questionId"] }),
-    prisma.questionCategory.findMany({
-      select: { id: true, name: true, _count: { select: { questions: true } } },
-      orderBy: { id: "asc" },
-    }),
-    listWrongBook(userId, access, role),
-    prisma.question.count({ where: { published: true } }),
+    usedQuestionQuota(userId),
+    listWrongBook(userId),
   ]);
 
   const days = new Set(attempts.map((a) => dateKey(a.answeredAt)));
@@ -165,22 +198,13 @@ export async function getDashboard(userId: string, access: Access, role: Role): 
     week: WEEK_LABELS.map((label, i) => ({ label, done: days.has(addDays(weekStart, i)) })),
     weekSolved: weekAttempts.length,
     weekTarget: WEEK_TARGET,
-    totalSolved: allSolved.length,
-    categories: categories.map((c) => ({ id: c.id, label: c.name, count: c._count.questions })),
+    totalSolved: used,
     wrongList,
-    access: { tier: access.tier, visible: access.questions, total: questionTotal },
+    quota: quotaOf(access, role, used),
   };
 }
 
 export async function setMastered(userId: string, questionId: string, mastered: boolean): Promise<void> {
   const r = await prisma.wrongBookEntry.updateMany({ where: { userId, questionId }, data: { mastered } });
   if (r.count === 0) throw new NotFoundError(`错题本里没有题目 ${questionId}`);
-}
-
-export async function listCompanySets(): Promise<CompanySetItem[]> {
-  const rows = await prisma.companySet.findMany({
-    select: { id: true, company: true, track: true, focus: true, _count: { select: { questions: true } } },
-    orderBy: { id: "asc" },
-  });
-  return rows.map((r) => ({ id: r.id, company: r.company, track: r.track, focus: r.focus, count: r._count.questions }));
 }
