@@ -27,11 +27,23 @@ pnpm dev                      # http://localhost:3001
 - 开发环境会在后端日志和发送接口的 `developmentCode` 字段显示验证码；生产环境接入短信服务商前会拒绝发送。
 - 登录身份独立保存，已预留 `WECHAT` / `QQ` 类型，后续可将扫码身份绑定到同一用户。
 - 管理后台见下文「后台管理」一节。
-- 学习内容接口只返回已发布且仍在授权有效期内的资料和网课，刷题按档位窗口可见（游客 20 / 登录 200 / PRO 全部），管理员授权可在窗口之外额外解锁单题。
+- 学习内容接口只返回已发布且仍在授权有效期内的资料和网课；刷题配额见下文「刷题 API 与配额」。
 - 错误统一 `{ error: { code, message, issues? } }`，包括参数、登录态、验证码及频控错误。
 - 跨域：`CORS_ORIGINS` 逗号分隔；前端走 Vite 代理时不需要。
 - 时区 Asia/Shanghai：日期边界只经 `src/lib/dates.ts`。
-- 三档访问：游客（device Cookie 匿名建档）看岗位前 20 条 / 题库前 20 道；手机号登录后 100 条 / 200 道；PRO 无限制。手动开通：`pnpm set-plan <手机号> PRO [天数]`（不填天数为永久；`FREE` 取消）。
+- 三档访问：游客（device Cookie 匿名建档）看岗位前 20 条 / 累计可作答 20 道题；手机号登录后 100 条 / 200 道；PRO 无限制。手动开通：`pnpm set-plan <手机号> PRO [天数]`（不填天数为永久；`FREE` 取消）。
+
+## 刷题 API 与配额
+
+题库三层：**公司 → 分类 → 题目**（`Company` / `QuestionCategory` / `Question`）。题目有题型 `type`（`SINGLE` 单选 / `MULTI` 多选 / `JUDGE` 判断，判断题选项固定 A 正确 / B 错误）、可选的 `section`（所属部分标签）与分类内顺序 `sortOrder`；`options` 为 2–6 个 `{ letter, text }`，`answer` 是已排序的字母串（如 `"B"`、`"AC"`）。判题与形状校验都在 `src/lib/grade.ts`。种子数据把 20 道示例题放在「通用题库」公司下。
+
+- `GET /api/quiz/banks` 公司 → 分类列表（只计已发布题），每个分类带 `total / answered / correct`，外加当前用户 `quota`
+- `GET /api/quiz/categories/{categoryId}/next` 该分类按 `sortOrder, id` 第一道未作答题，`index` 为它在分类内的序号（1 起）；无题时 `question: null`，`exhausted` 为 `QUOTA`（配额用尽）或 `ALL`（已答完）；分类不存在 404
+- `POST /api/quiz/attempts` body `{ questionId, picked: ["A", "C"] }`；多选按集合判等（顺序无关），单选 / 判断要求恰好选一个；返回 `{ correct, answer: [...], explanation, accuracyRate }`；配额用尽作答新题 → 403 `FORBIDDEN`
+- `GET /api/quiz/dashboard` 打卡 / 本周 / 累计 / 错题 + `quota`
+- `GET /api/quiz/wrong-book`、`PUT /api/quiz/wrong-book/{questionId}` 错题本
+
+配额 `quota = { tier, limit, used }` **全站共通、按作答过的不同题数计**：`used` = 该用户 `Attempt` 里去重后的题数；`limit` 为档位上限（游客 20 / 登录 200 / PRO 与管理员 `null`）。重复作答已答过的题不占配额，也不会被 403。按题授权（`AccessGrant{ QUESTION }`）数据保留但不再影响配额。
 
 ## 后台管理
 
@@ -45,12 +57,12 @@ pnpm dev                      # http://localhost:3001
 - `GET /api/admin/courses` 全部课程（含课时）
 - `POST /api/admin/content` 创建 / 更新资料或课程（带 `id` 为更新），返回 `201 { id }`
 - `DELETE /api/admin/content/{type}/{id}` 删除资料或课程，并清理对应授权
-- `GET /api/admin/quiz-meta` 题库分类（含题量）与企业专项列表
-- `GET /api/admin/questions?q&categoryId&published&page&pageSize` 题目分页列表，含分类名 / 选项 / 答案
-- `POST /api/admin/questions` 创建题目，返回 `201 { id }`（分类 / 企业专项不存在 400）
-- `PATCH /api/admin/questions/{id}` 修改题目（分类 / 企业专项不存在 400，题目不存在 404）
+- `GET /api/admin/quiz-meta` 公司 → 分类树（含题量 / 已发布题量）
+- `GET /api/admin/questions?q&companyId&categoryId&type&section&published&page&pageSize` 题目分页列表（按 `sortOrder, id`），含公司名 / 分类名 / 题型 / 选项 / 答案
+- `POST /api/admin/questions` 创建题目，返回 `201 { id }`（分类不存在或题型 / 选项 / 答案形状不合法 400）
+- `PATCH /api/admin/questions/{id}` 修改题目（校验合并后的题型 / 选项 / 答案；题目不存在 404）
 - `DELETE /api/admin/questions/{id}` 删除题目并清理对应授权
-- `POST /api/admin/question-categories` 创建题目分类（同名已存在 400）
+- `POST /api/admin/question-categories` body `{ companyId, name }` 创建分类（公司不存在 / 同公司下同名 400）
 - `GET /api/admin/jobs?q&category&page&pageSize` 岗位分页列表（按创建时间倒序，含收藏 / 投递计数）
 - `POST /api/admin/jobs` 创建岗位，返回 `201 { id }`
 - `PATCH /api/admin/jobs/{id}` 修改岗位（只写提供的字段，`null` 清空；不存在 404）
