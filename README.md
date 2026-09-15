@@ -26,12 +26,36 @@ pnpm dev                      # http://localhost:3001
 - 手机号验证码免密登录；验证成功后自动注册，使用 HttpOnly Cookie 保存 30 天会话。
 - 开发环境会在后端日志和发送接口的 `developmentCode` 字段显示验证码；生产环境接入短信服务商前会拒绝发送。
 - 登录身份独立保存，已预留 `WECHAT` / `QQ` 类型，后续可将扫码身份绑定到同一用户。
-- 管理后台通过 `ADMIN_PHONE_NUMBERS`（逗号分隔）指定管理员手机号；支持停用学生、FREE/PRO 调整，以及按资料、单题、网课授权。
+- 管理后台见下文「后台管理」一节。
 - 学习内容接口只返回已发布且仍在授权有效期内的资料和网课，刷题按档位窗口可见（游客 20 / 登录 200 / PRO 全部），管理员授权可在窗口之外额外解锁单题。
 - 错误统一 `{ error: { code, message, issues? } }`，包括参数、登录态、验证码及频控错误。
 - 跨域：`CORS_ORIGINS` 逗号分隔；前端走 Vite 代理时不需要。
 - 时区 Asia/Shanghai：日期边界只经 `src/lib/dates.ts`。
 - 三档访问：游客（device Cookie 匿名建档）看岗位前 20 条 / 题库前 20 道；手机号登录后 100 条 / 200 道；PRO 无限制。手动开通：`pnpm set-plan <手机号> PRO [天数]`（不填天数为永久；`FREE` 取消）。
+
+## 后台管理
+
+管理员由 `ADMIN_PHONE_NUMBERS`（逗号分隔手机号）在登录时提升为 `ADMIN`（只升不降）；`/api/admin/*` 要求 `ADMIN` 角色，其余用户 403。管理端仓库：`Blake-kuro/job_hunt_admin`。
+
+- `GET /api/admin/summary` 概览计数（学生 / 启用 / PRO / 游客 / 岗位 / 题目 / 已发布题目 / 资料 / 课程）
+- `GET /api/admin/students?q&plan&enabled&page&pageSize` 学生分页列表（有手机号的用户），含档位、统计与授权内容标题
+- `PATCH /api/admin/students/{id}` 修改姓名 / 启用 / 套餐 / PRO 到期（管理员账号 403）
+- `PUT /api/admin/students/{id}/access` 整体替换授权（内容不存在 400）
+- `GET /api/admin/materials` 全部资料
+- `GET /api/admin/courses` 全部课程（含课时）
+- `POST /api/admin/content` 创建 / 更新资料或课程（带 `id` 为更新），返回 `201 { id }`
+- `DELETE /api/admin/content/{type}/{id}` 删除资料或课程，并清理对应授权
+- `GET /api/admin/quiz-meta` 题库分类（含题量）与企业专项列表
+- `GET /api/admin/questions?q&categoryId&published&page&pageSize` 题目分页列表，含分类名 / 选项 / 答案
+- `POST /api/admin/questions` 创建题目，返回 `201 { id }`（分类 / 企业专项不存在 400）
+- `PATCH /api/admin/questions/{id}` 修改题目（分类 / 企业专项不存在 400，题目不存在 404）
+- `DELETE /api/admin/questions/{id}` 删除题目并清理对应授权
+- `POST /api/admin/question-categories` 创建题目分类（同名已存在 400）
+- `GET /api/admin/jobs?q&category&page&pageSize` 岗位分页列表（按创建时间倒序，含收藏 / 投递计数）
+- `POST /api/admin/jobs` 创建岗位，返回 `201 { id }`
+- `PATCH /api/admin/jobs/{id}` 修改岗位（只写提供的字段，`null` 清空；不存在 404）
+- `DELETE /api/admin/jobs/{id}` 删除岗位（收藏 / 投递级联删除；不存在 404）
+- `POST /api/admin/jobs/import` 上传 xlsx（`multipart/form-data` 的 `file` 字段，≤ 20 MB）导入岗位，返回各工作表新增 / 更新 / 跳过明细（无法解析或超限 400）
 
 ## 测试
 
@@ -45,4 +69,9 @@ pnpm test
 
 ## Excel 导入
 
-多工作表；表名含"秋招/实习"→分类 1，"央国企/国企"→2，"外企"→3。有 `id` 列按 id upsert（之后按提示执行 `setval`），否则按 `serialNumber`，再否则插入。
+多工作表；表名含"秋招/实习"→分类 1，"央国企/国企"→2，"外企"→3。有 `id` 列按 id upsert，否则按 `serialNumber`，再否则插入。按 id 写入过时会自动同步 `Job.id` 的自增序列，不再需要手动执行 `setval`。
+
+导入逻辑在 `src/lib/import-jobs.ts`（`importWorkbook`），两种入口：
+
+- 命令行：`pnpm db:import -- <文件.xlsx>`
+- 后台：`POST /api/admin/jobs/import` 上传文件，管理端可直接操作
