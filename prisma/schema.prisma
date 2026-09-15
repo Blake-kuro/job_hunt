@@ -198,35 +198,53 @@ enum Difficulty {
   HARD
 }
 
-model QuestionCategory {
-  id        String     @id @default(cuid())
-  name      String     @unique
-  questions Question[]
+model Company {
+  id         String             @id @default(cuid())
+  name       String             @unique
+  sortOrder  Int                @default(0)
+  createdAt  DateTime           @default(now())
+  categories QuestionCategory[]
 }
 
-model CompanySet {
+model QuestionCategory {
   id        String     @id @default(cuid())
-  company   String
-  track     String
-  focus     String
+  companyId String
+  name      String
+  sortOrder Int        @default(0)
+  company   Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
   questions Question[]
+
+  @@unique([companyId, name])
+}
+
+enum QuestionType {
+  SINGLE
+  MULTI
+  JUDGE
 }
 
 model Question {
-  id           String            @id @default(cuid())
-  categoryId   String
-  companySetId String?
-  prompt       String
-  options      Json
-  answer       String
-  explanation  String[]
-  difficulty   Difficulty
-  source       String
-  published    Boolean           @default(true)
-  category     QuestionCategory  @relation(fields: [categoryId], references: [id])
-  companySet   CompanySet?       @relation(fields: [companySetId], references: [id])
-  attempts     Attempt[]
-  wrongBook    WrongBookEntry[]
+  id          String           @id @default(cuid())
+  categoryId  String
+  type        QuestionType     @default(SINGLE)
+  /// 所属部分（题目上的标签，可筛选）
+  section     String?
+  /// 分类内顺序（导入时 = 题号）
+  sortOrder   Int              @default(0)
+  prompt      String
+  /// [{ letter: "A", text }, …] 2–6 项；判断题固定 A 正确 / B 错误
+  options     Json
+  /// 已排序的字母串，如 "B" / "ABC"
+  answer      String
+  explanation String[]
+  difficulty  Difficulty       @default(MEDIUM)
+  source      String
+  published   Boolean          @default(true)
+  category    QuestionCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  attempts    Attempt[]
+  wrongBook   WrongBookEntry[]
+
+  @@index([categoryId, sortOrder])
 }
 
 model Attempt {

@@ -1,8 +1,9 @@
 import "../src/load-env";
 import { prisma } from "../src/db";
-import { CATEGORIES, COMPANY_SETS, QUESTIONS } from "./quiz-data";
+import { CATEGORIES, QUESTIONS } from "./quiz-data";
 
 const DEV_USER_EMAIL = "dev@local";
+const GENERAL_COMPANY = { id: "company-general", name: "通用题库" } as const;
 
 async function seedUser() {
   await prisma.user.upsert({
@@ -16,20 +17,26 @@ async function seedUser() {
 const LETTERS = ["A", "B", "C", "D"] as const;
 
 async function seedQuiz() {
-  for (const c of CATEGORIES) {
-    await prisma.questionCategory.upsert({ where: { id: c.id }, update: { name: c.name }, create: c });
-  }
-  for (const s of COMPANY_SETS) {
-    await prisma.companySet.upsert({
-      where: { id: s.id },
-      update: { company: s.company, track: s.track, focus: s.focus },
-      create: s,
+  await prisma.company.upsert({
+    where: { id: GENERAL_COMPANY.id },
+    update: { name: GENERAL_COMPANY.name },
+    create: GENERAL_COMPANY,
+  });
+  for (const [i, c] of CATEGORIES.entries()) {
+    await prisma.questionCategory.upsert({
+      where: { id: c.id },
+      update: { name: c.name, companyId: GENERAL_COMPANY.id, sortOrder: i + 1 },
+      create: { ...c, companyId: GENERAL_COMPANY.id, sortOrder: i + 1 },
     });
   }
+  const perCategory = new Map<string, number>();
   for (const item of QUESTIONS) {
+    const sortOrder = (perCategory.get(item.categoryId) ?? 0) + 1;
+    perCategory.set(item.categoryId, sortOrder);
     const data = {
       categoryId: item.categoryId,
-      companySetId: item.companySetId ?? null,
+      type: "SINGLE" as const,
+      sortOrder,
       prompt: item.prompt,
       options: item.options.map((text, i) => ({ letter: LETTERS[i], text })),
       answer: item.answer,
@@ -39,7 +46,7 @@ async function seedQuiz() {
     };
     await prisma.question.upsert({ where: { id: item.id }, update: data, create: { id: item.id, ...data } });
   }
-  console.log(`题库就绪：${CATEGORIES.length} 个分类，${COMPANY_SETS.length} 个题集，${QUESTIONS.length} 道题`);
+  console.log(`题库就绪：1 个公司，${CATEGORIES.length} 个分类，${QUESTIONS.length} 道题`);
 }
 
 async function main() {

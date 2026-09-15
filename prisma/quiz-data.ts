@@ -8,17 +8,9 @@ export const CATEGORIES = [
   { id: "cat-5", name: "公司真题合集" },
 ] as const;
 
-export const COMPANY_SETS = [
-  { id: "set-1", company: "阿里巴巴", track: "互联网 · 后端", focus: "JVM、MySQL 索引、分布式事务、场景设计题" },
-  { id: "set-2", company: "腾讯", track: "互联网 · 客户端", focus: "C++ 内存模型、网络协议、操作系统调度" },
-  { id: "set-3", company: "字节跳动", track: "互联网 · 全栈", focus: "算法中等偏难、浏览器渲染、系统设计" },
-  { id: "set-4", company: "华为", track: "硬件 · 嵌入式", focus: "C 语言指针、RTOS、数字电路与通信基础" },
-] as const;
-
 export interface SeedQuestion {
   id: string;
   categoryId: string;
-  companySetId?: string;
   prompt: string;
   options: [string, string, string, string]; // A B C D
   answer: "A" | "B" | "C" | "D";
@@ -36,8 +28,7 @@ const q = (
   options: [string, string, string, string],
   answer: SeedQuestion["answer"],
   explanation: string[],
-  companySetId?: string,
-): SeedQuestion => ({ id, categoryId, companySetId, prompt, options, answer, explanation, difficulty, source });
+): SeedQuestion => ({ id, categoryId, prompt, options, answer, explanation, difficulty, source });
 
 export const QUESTIONS: SeedQuestion[] = [
   q(
@@ -157,7 +148,6 @@ export const QUESTIONS: SeedQuestion[] = [
     ],
     "C",
     ["二级索引叶子只存主键值，查询列不在索引里就得再按主键去聚簇索引取整行，即回表；覆盖索引正是为了避免这一步。"],
-    "set-1",
   ),
   q(
     "q-010",
@@ -168,7 +158,6 @@ export const QUESTIONS: SeedQuestion[] = [
     ["老年代", "新生代 Eden 区", "方法区", "虚拟机栈"],
     "B",
     ["对象优先在 Eden 分配，Minor GC 后存活的进入 Survivor，多次存活后晋升老年代；大对象可能直接进老年代。"],
-    "set-1",
   ),
   q(
     "q-011",
@@ -179,7 +168,6 @@ export const QUESTIONS: SeedQuestion[] = [
     ["协调者单点故障", "参与者在准备阶段后同步阻塞", "协调者与参与者同时宕机时可能数据不一致", "无法保证原子性"],
     "D",
     ["2PC 的目标正是原子提交，正常运行时能保证原子性；它的问题是阻塞、单点和极端故障下的不一致。"],
-    "set-1",
   ),
   q(
     "q-012",
@@ -190,7 +178,6 @@ export const QUESTIONS: SeedQuestion[] = [
     ["可以被拷贝构造", "只能通过 std::move 转移所有权", "内部使用引用计数", "不能用于管理数组"],
     "B",
     ["unique_ptr 独占所有权，拷贝构造被删除，只能移动；引用计数是 shared_ptr；unique_ptr<T[]> 可以管理数组。"],
-    "set-2",
   ),
   q(
     "q-013",
@@ -201,7 +188,6 @@ export const QUESTIONS: SeedQuestion[] = [
     ["多路复用", "头部压缩（HPACK）", "改为基于 UDP 传输", "服务器推送"],
     "C",
     ["HTTP/2 仍基于 TCP；基于 UDP 的是 HTTP/3（QUIC）。"],
-    "set-2",
   ),
   q(
     "q-014",
@@ -214,7 +200,6 @@ export const QUESTIONS: SeedQuestion[] = [
     [
       "SJF 总是优先短作业，长作业在短作业源源不断时会一直等待；轮转和 FCFS 都保证每个作业最终执行，老化机制正是为了解决饥饿。",
     ],
-    "set-2",
   ),
   q(
     "q-015",
@@ -225,7 +210,6 @@ export const QUESTIONS: SeedQuestion[] = [
     ["仅重绘（repaint）", "强制同步布局（回流）", "仅合成层更新", "什么也不触发"],
     "B",
     ["读取布局属性会迫使浏览器立刻执行排队中的样式计算与布局，得到最新几何值，这就是强制同步布局。"],
-    "set-3",
   ),
   q(
     "q-016",
@@ -236,7 +220,6 @@ export const QUESTIONS: SeedQuestion[] = [
     ["线段树", "前缀和", "每次查询遍历区间", "哈希表"],
     "B",
     ["无修改场景下前缀和 O(n) 预处理、O(1) 查询；线段树适合带修改的场景，代价更高。"],
-    "set-3",
   ),
   q(
     "q-017",
@@ -247,7 +230,6 @@ export const QUESTIONS: SeedQuestion[] = [
     ["增加数据库分片", "本地缓存 + 分布式缓存的多级缓存", "提高数据库连接数", "把写改为同步"],
     "B",
     ["热点读的问题在于单个 key 打到同一节点，分片解决不了；多级缓存让绝大多数读在应用进程内命中。"],
-    "set-3",
   ),
   q(
     "q-018",
@@ -258,7 +240,6 @@ export const QUESTIONS: SeedQuestion[] = [
     ["指向含 4 个 int 的数组的指针", "含 4 个 int 指针的数组", "指向 int 的指针", "返回 int 指针的函数"],
     "B",
     ["[] 优先级高于 *，先结合成数组 p[4]，元素类型为 int*。指向数组的指针要写成 int (*p)[4]。"],
-    "set-4",
   ),
   q(
     "q-019",
@@ -269,7 +250,6 @@ export const QUESTIONS: SeedQuestion[] = [
     ["增大时间片", "优先级继承协议", "关闭所有中断", "改用轮询"],
     "B",
     ["低优先级任务持有高优先级任务需要的锁时，临时把它提升到高优先级，避免被中优先级任务抢占。"],
-    "set-4",
   ),
   q(
     "q-020",
@@ -280,6 +260,5 @@ export const QUESTIONS: SeedQuestion[] = [
     ["-127 ~ 127", "-128 ~ 127", "0 ~ 255", "-128 ~ 128"],
     "B",
     ["补码只有一个 0，负数比正数多一个：-2^7 ~ 2^7 - 1。"],
-    "set-4",
   ),
 ];
