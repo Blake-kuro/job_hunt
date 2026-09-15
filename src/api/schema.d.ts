@@ -52,14 +52,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/dashboard": {
+    "/api/admin/summary": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["getAdminDashboard"];
+        get: operations["getAdminSummary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/students": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listAdminStudents"];
         put?: never;
         post?: never;
         delete?: never;
@@ -100,6 +116,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/materials": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listAdminMaterials"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/courses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listAdminCourses"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/content": {
         parameters: {
             query?: never;
@@ -132,6 +180,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/quiz-meta": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getAdminQuizMeta"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/questions": {
         parameters: {
             query?: never;
@@ -139,7 +203,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        get: operations["listAdminQuestions"];
         put?: never;
         post: operations["createAdminQuestion"];
         delete?: never;
@@ -158,10 +222,74 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        delete?: never;
+        delete: operations["deleteAdminQuestion"];
         options?: never;
         head?: never;
         patch: operations["updateAdminQuestion"];
+        trace?: never;
+    };
+    "/api/admin/question-categories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["createAdminQuestionCategory"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listAdminJobs"];
+        put?: never;
+        post: operations["createAdminJob"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/jobs/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["deleteAdminJob"];
+        options?: never;
+        head?: never;
+        patch: operations["updateAdminJob"];
+        trace?: never;
+    };
+    "/api/admin/jobs/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["importAdminJobs"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/content": {
@@ -402,78 +530,57 @@ export interface components {
             phone: string;
             code: string;
         };
-        AdminDashboard: {
-            summary: {
-                students: number;
-                enabledStudents: number;
-                materials: number;
-                courses: number;
-                questions: number;
+        AdminSummary: {
+            students: number;
+            enabledStudents: number;
+            proStudents: number;
+            guests: number;
+            jobs: number;
+            questions: number;
+            publishedQuestions: number;
+            materials: number;
+            courses: number;
+        };
+        AdminStudentList: {
+            items: components["schemas"]["AdminStudent"][];
+            total: number;
+            page: number;
+            pageSize: number;
+        };
+        AdminStudent: {
+            id: string;
+            name: string;
+            phone: string | null;
+            /** @enum {string} */
+            role: "STUDENT" | "ADMIN";
+            enabled: boolean;
+            plan: components["schemas"]["Plan"];
+            /** Format: date-time */
+            proExpiresAt: string | null;
+            tier: components["schemas"]["Tier"];
+            /** Format: date-time */
+            createdAt: string;
+            stats: {
+                favorites: number;
+                applications: number;
+                attempts: number;
             };
-            students: {
-                id: string;
-                name: string;
-                phone: string | null;
-                enabled: boolean;
-                /** @enum {string} */
-                plan: "FREE" | "PRO";
-                /** Format: date-time */
-                proExpiresAt: string | null;
-                createdAt: string;
-                grants: {
-                    id: string;
-                    contentType: components["schemas"]["ContentType"];
-                    contentId: string;
-                    /** Format: date-time */
-                    expiresAt: string | null;
-                }[];
-            }[];
-            materials: {
-                id: string;
-                title: string;
-                description: string | null;
-                category: string;
-                resourceUrl: string;
-                published: boolean;
-                updatedAt: string;
-            }[];
-            courses: {
-                id: string;
-                title: string;
-                description: string | null;
-                coverUrl: string | null;
-                published: boolean;
-                updatedAt: string;
-                lessons: {
-                    id: string;
-                    title: string;
-                    videoUrl: string;
-                    durationMinutes: number | null;
-                    sortOrder: number;
-                }[];
-            }[];
-            categories: {
-                id: string;
-                name: string;
-            }[];
-            questions: {
-                id: string;
-                prompt: string;
-                categoryId: string;
-                options?: unknown;
-                answer: string;
-                explanation: string[];
-                difficulty: string;
-                source: string;
-                published: boolean;
-            }[];
+            grants: components["schemas"]["AdminGrant"][];
+        };
+        AdminGrant: {
+            id: string;
+            contentType: components["schemas"]["ContentType"];
+            contentId: string;
+            contentTitle: string | null;
+            /** Format: date-time */
+            expiresAt: string | null;
         };
         /** @enum {string} */
         ContentType: "MATERIAL" | "QUESTION" | "COURSE";
         AdminStudentPatch: {
+            name?: string;
             enabled?: boolean;
-            /** @enum {string} */
-            plan?: "FREE" | "PRO";
+            plan?: components["schemas"]["Plan"];
             /** Format: date-time */
             proExpiresAt?: string | null;
         };
@@ -484,6 +591,36 @@ export interface components {
                 /** Format: date-time */
                 expiresAt?: string | null;
             }[];
+        };
+        AdminMaterial: {
+            id: string;
+            title: string;
+            description: string | null;
+            category: string;
+            resourceUrl: string;
+            published: boolean;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        AdminCourse: {
+            id: string;
+            title: string;
+            description: string | null;
+            coverUrl: string | null;
+            published: boolean;
+            /** Format: date-time */
+            updatedAt: string;
+            lessons: components["schemas"]["AdminCourseLesson"][];
+        };
+        AdminCourseLesson: {
+            id: string;
+            title: string;
+            videoUrl: string;
+            durationMinutes: number | null;
+            sortOrder: number;
+        };
+        IdResult: {
+            id: string;
         };
         AdminContentBody: components["schemas"]["AdminMaterialBody"] | components["schemas"]["AdminCourseBody"];
         AdminMaterialBody: {
@@ -519,22 +656,150 @@ export interface components {
                 durationMinutes?: number | null;
             }[];
         };
+        AdminQuizMeta: {
+            categories: {
+                id: string;
+                name: string;
+                questionCount: number;
+            }[];
+            companySets: {
+                id: string;
+                company: string;
+                track: string;
+                focus: string;
+            }[];
+        };
+        AdminQuestionList: {
+            items: components["schemas"]["AdminQuestion"][];
+            total: number;
+            page: number;
+            pageSize: number;
+        };
+        AdminQuestion: {
+            id: string;
+            prompt: string;
+            categoryId: string;
+            categoryName: string;
+            companySetId: string | null;
+            options: components["schemas"]["QuizOption"][];
+            answer: components["schemas"]["QuizOptionLetter"];
+            explanation: string[];
+            difficulty: components["schemas"]["Difficulty"];
+            source: string;
+            published: boolean;
+        };
+        QuizOption: {
+            letter: components["schemas"]["QuizOptionLetter"];
+            text: string;
+        };
+        /** @enum {string} */
+        QuizOptionLetter: "A" | "B" | "C" | "D";
+        /** @enum {string} */
+        Difficulty: "EASY" | "MEDIUM" | "HARD";
         AdminQuestionBody: {
             prompt: string;
             categoryId: string;
             companySetId?: string | null;
-            options: {
-                /** @enum {string} */
-                letter: "A" | "B" | "C" | "D";
-                text: string;
-            }[];
-            /** @enum {string} */
-            answer: "A" | "B" | "C" | "D";
+            options: components["schemas"]["QuizOption"][];
+            answer: components["schemas"]["QuizOptionLetter"];
             explanation: string[];
-            /** @enum {string} */
-            difficulty: "EASY" | "MEDIUM" | "HARD";
+            difficulty: components["schemas"]["Difficulty"];
             source: string;
             published: boolean;
+        };
+        AdminQuestionPatch: {
+            prompt?: string;
+            categoryId?: string;
+            companySetId?: string | null;
+            options?: components["schemas"]["QuizOption"][];
+            answer?: components["schemas"]["QuizOptionLetter"];
+            explanation?: string[];
+            difficulty?: components["schemas"]["Difficulty"];
+            source?: string;
+            published?: boolean;
+        };
+        AdminCategory: {
+            id: string;
+            name: string;
+        };
+        AdminCategoryBody: {
+            name: string;
+        };
+        AdminJobList: {
+            items: components["schemas"]["AdminJob"][];
+            total: number;
+            page: number;
+            pageSize: number;
+        };
+        AdminJob: {
+            id: number;
+            serialNumber: string | null;
+            categoryId: components["schemas"]["CategoryId"];
+            recruitmentBatch: string | null;
+            enterpriseNature: string | null;
+            industry: string | null;
+            workLocation: string | null;
+            position: string;
+            enterpriseName: string;
+            graduationYear: string | null;
+            degree: string | null;
+            announcementLink: string | null;
+            deliveryAddress: string | null;
+            deadline: string | null;
+            deadlineAt: string | null;
+            /** Format: date-time */
+            createTime: string;
+            /** Format: date-time */
+            updateTime: string;
+            stats: {
+                favorites: number;
+                applications: number;
+            };
+        };
+        CategoryId: 1 | 2 | 3;
+        IntIdResult: {
+            id: number;
+        };
+        AdminJobBody: {
+            categoryId: components["schemas"]["CategoryId"];
+            position: string;
+            enterpriseName: string;
+            serialNumber?: string | null;
+            recruitmentBatch?: string | null;
+            enterpriseNature?: string | null;
+            industry?: string | null;
+            workLocation?: string | null;
+            graduationYear?: string | null;
+            degree?: string | null;
+            announcementLink?: string | null;
+            deliveryAddress?: string | null;
+            deadline?: string | null;
+            deadlineAt?: string | null;
+        };
+        AdminJobPatch: {
+            categoryId?: components["schemas"]["CategoryId"];
+            position?: string;
+            enterpriseName?: string;
+            serialNumber?: string | null;
+            recruitmentBatch?: string | null;
+            enterpriseNature?: string | null;
+            industry?: string | null;
+            workLocation?: string | null;
+            graduationYear?: string | null;
+            degree?: string | null;
+            announcementLink?: string | null;
+            deliveryAddress?: string | null;
+            deadline?: string | null;
+            deadlineAt?: string | null;
+        };
+        AdminImportResult: {
+            sheets: {
+                name: string;
+                created: number;
+                updated: number;
+                skipped: string[];
+            }[];
+            usedIdKey: boolean;
         };
         StudentContent: {
             materials: {
@@ -585,7 +850,6 @@ export interface components {
             starred: boolean;
             applicationStatus: components["schemas"]["ApplicationStatus"] | null;
         };
-        CategoryId: 1 | 2 | 3;
         /** @enum {string} */
         ApplicationStatus: "APPLIED" | "INTERVIEWING";
         Access: {
@@ -630,12 +894,6 @@ export interface components {
             difficulty: string;
             source: string;
         };
-        QuizOption: {
-            letter: components["schemas"]["QuizOptionLetter"];
-            text: string;
-        };
-        /** @enum {string} */
-        QuizOptionLetter: "A" | "B" | "C" | "D";
         QuizAnswerResult: {
             correct: boolean;
             answer: components["schemas"]["QuizOptionLetter"];
@@ -787,7 +1045,7 @@ export interface operations {
             };
         };
     };
-    getAdminDashboard: {
+    getAdminSummary: {
         parameters: {
             query?: never;
             header?: never;
@@ -796,13 +1054,39 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description 后台数据 */
+            /** @description 后台概览计数 */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AdminDashboard"];
+                    "application/json": components["schemas"]["AdminSummary"];
+                };
+            };
+        };
+    };
+    listAdminStudents: {
+        parameters: {
+            query?: {
+                q?: string;
+                plan?: components["schemas"]["Plan"];
+                enabled?: "true" | "false";
+                page?: number;
+                pageSize?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 学生列表（有手机号的用户） */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminStudentList"];
                 };
             };
         };
@@ -829,6 +1113,24 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description 不能修改管理员 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
         };
     };
     replaceStudentAccess: {
@@ -853,6 +1155,64 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description 内容不存在 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    listAdminMaterials: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 全部资料 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminMaterial"][];
+                };
+            };
+        };
+    };
+    listAdminCourses: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 全部课程 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminCourse"][];
+                };
+            };
         };
     };
     saveAdminContent: {
@@ -869,11 +1229,22 @@ export interface operations {
         };
         responses: {
             /** @description 已保存 */
-            204: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["IdResult"];
+                };
+            };
+            /** @description 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
             };
         };
     };
@@ -896,6 +1267,61 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    getAdminQuizMeta: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 题库分类与企业专项 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminQuizMeta"];
+                };
+            };
+        };
+    };
+    listAdminQuestions: {
+        parameters: {
+            query?: {
+                q?: string;
+                categoryId?: string;
+                published?: "true" | "false";
+                page?: number;
+                pageSize?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 题目分页列表 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminQuestionList"];
+                };
+            };
         };
     };
     createAdminQuestion: {
@@ -912,11 +1338,51 @@ export interface operations {
         };
         responses: {
             /** @description 已创建 */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IdResult"];
+                };
+            };
+            /** @description 分类 / 企业专项不存在 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    deleteAdminQuestion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 已删除 */
             204: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
             };
         };
     };
@@ -931,23 +1397,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": {
-                    prompt?: string;
-                    categoryId?: string;
-                    companySetId?: string | null;
-                    options?: {
-                        /** @enum {string} */
-                        letter: "A" | "B" | "C" | "D";
-                        text: string;
-                    }[];
-                    /** @enum {string} */
-                    answer?: "A" | "B" | "C" | "D";
-                    explanation?: string[];
-                    /** @enum {string} */
-                    difficulty?: "EASY" | "MEDIUM" | "HARD";
-                    source?: string;
-                    published?: boolean;
-                };
+                "application/json": components["schemas"]["AdminQuestionPatch"];
             };
         };
         responses: {
@@ -957,6 +1407,204 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description 分类 / 企业专项不存在 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    createAdminQuestionCategory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminCategoryBody"];
+            };
+        };
+        responses: {
+            /** @description 已创建 */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminCategory"];
+                };
+            };
+            /** @description 分类已存在 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    listAdminJobs: {
+        parameters: {
+            query?: {
+                q?: string;
+                category?: 1 | 2 | 3;
+                page?: number;
+                pageSize?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 岗位分页列表 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminJobList"];
+                };
+            };
+        };
+    };
+    createAdminJob: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminJobBody"];
+            };
+        };
+        responses: {
+            /** @description 已创建 */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntIdResult"];
+                };
+            };
+        };
+    };
+    deleteAdminJob: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 已删除 */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    updateAdminJob: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminJobPatch"];
+            };
+        };
+        responses: {
+            /** @description 已更新 */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    importAdminJobs: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description 导入结果 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminImportResult"];
+                };
+            };
+            /** @description 文件无法解析或超过 20 MB */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
             };
         };
     };
