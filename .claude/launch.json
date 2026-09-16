@@ -3,9 +3,9 @@
   "configurations": [
     {
       "name": "job-hunt-front-dev",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
-      "port": 3000
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["dev:web"],
+      "port": 5173
     }
   ]
 }

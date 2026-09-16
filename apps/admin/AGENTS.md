@@ -1,6 +1,6 @@
 # 项目约定（管理端）
 
-React 19 + Vite 8 + TanStack Router / Query + Tailwind v4，TypeScript 7，pnpm，Node 22。后端在独立仓库 `Blake-kuro/job_hunt_back`，学生端在 `Blake-kuro/job_hunt_front`。
+React 19 + Vite 8 + TanStack Router / Query + Tailwind v4，TypeScript 7，pnpm，Node 22。后端在 `../api`，学生端在 `../web`。
 
 - 命令前 `source ~/.nvm/nvm.sh && nvm use`；用 pnpm。
 - 接口类型来自 `src/api/schema.d.ts`（由后端 `openapi.json` 生成，提交在仓库里）。后端接口变了：`OPENAPI_SOURCE=<url 或 openapi.json 路径> pnpm gen:api`，然后一起提交。不要手改 `schema.d.ts`。

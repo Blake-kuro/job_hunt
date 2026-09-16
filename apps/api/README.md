@@ -1,4 +1,6 @@
-# job_hunt_back
+# job_hunt API
+
+本项目位于 monorepo 的 `apps/api`。依赖统一在仓库根目录安装；下文应用命令在本目录执行，或使用根目录的 `pnpm --filter job-hunt-back <命令>`。
 
 职寻 · 校园招聘岗位与刷题的后端 API。Hono 4 + Prisma 7 + PostgreSQL，Node 22，pnpm。
 
@@ -13,7 +15,7 @@ pnpm dev                      # http://localhost:3001
 ```
 
 - 接口文档：http://localhost:3001/api/docs （Swagger UI）
-- OpenAPI 3.1：http://localhost:3001/api/openapi.json ，同一份提交在仓库根 `openapi.json`
+- OpenAPI 3.1：http://localhost:3001/api/openapi.json ，同一份提交在本应用目录 `openapi.json`
 
 ## 契约
 
@@ -47,7 +49,7 @@ pnpm dev                      # http://localhost:3001
 
 ## 后台管理
 
-管理员由 `ADMIN_PHONE_NUMBERS`（逗号分隔手机号）在登录时提升为 `ADMIN`（只升不降）；`/api/admin/*` 要求 `ADMIN` 角色，其余用户 403。管理端仓库：`Blake-kuro/job_hunt_admin`。
+管理员由 `ADMIN_PHONE_NUMBERS`（逗号分隔手机号）在登录时提升为 `ADMIN`（只升不降）；`/api/admin/*` 要求 `ADMIN` 角色，其余用户 403。管理端目录：`../admin`。
 
 - `GET /api/admin/summary` 概览计数（学生 / 启用 / PRO / 游客 / 岗位 / 公司 / 题目 / 已发布题目 / 资料 / 课程）
 - `GET /api/admin/students?q&plan&enabled&page&pageSize` 学生分页列表（有手机号的用户），含档位、统计与授权内容标题

@@ -1,0 +1,20 @@
+{
+  "name": "job-hunt",
+  "private": true,
+  "packageManager": "pnpm@12.4.1",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "dev": "pnpm --parallel --filter job-hunt-front --filter job-hunt-back --filter job-hunt-admin dev",
+    "dev:web": "pnpm --filter job-hunt-front dev",
+    "dev:api": "pnpm --filter job-hunt-back dev",
+    "dev:admin": "pnpm --filter job-hunt-admin dev",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "lint": "pnpm -r --if-present lint",
+    "test": "pnpm -r --if-present test",
+    "build": "pnpm -r --if-present build",
+    "db:up": "pnpm --filter job-hunt-back db:up",
+    "db:migrate": "pnpm --filter job-hunt-back db:migrate",
+    "db:seed": "pnpm --filter job-hunt-back db:seed",
+    "gen:api": "pnpm --filter job-hunt-back openapi && pnpm --filter job-hunt-front gen:api && pnpm --filter job-hunt-admin gen:api"
+  }
+}

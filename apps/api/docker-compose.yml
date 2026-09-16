@@ -1,3 +1,5 @@
+# 保持迁移前的 Compose 项目名，继续使用已有 pgdata 卷。
+name: job_hunt_back
 services:
   db:
     image: postgres:16

@@ -1,6 +1,6 @@
 # 职寻 · 管理后台
 
-「职寻」校园招聘 + 刷题应用的运营控制台：管理学生档位与授权、岗位（含 Excel 导入）、题库、资料与网课。复用后端 `job_hunt_back` 的 `/api/admin/*` 接口，仅 `ADMIN_PHONE_NUMBERS` 中的手机号可登录。
+「职寻」校园招聘 + 刷题应用的运营控制台：管理学生档位与授权、岗位（含 Excel 导入）、题库、资料与网课。复用 `../api` 的 `/api/admin/*` 接口，仅 `ADMIN_PHONE_NUMBERS` 中的手机号可登录。
 
 技术栈：React 19 + Vite 8 + TanStack Router / Query + Tailwind v4，TypeScript 7，pnpm，Node 22。
 
@@ -20,7 +20,7 @@ pnpm dev                     # http://localhost:5174
 `src/api/schema.d.ts` 由后端 `openapi.json` 生成，不要手改：
 
 ```bash
-OPENAPI_SOURCE=/path/to/job_hunt_back/openapi.json pnpm gen:api
+pnpm gen:api # 默认读取 ../api/openapi.json；依赖统一在仓库根目录安装
 ```
 
 ## 约定

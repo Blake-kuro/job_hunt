@@ -22,7 +22,7 @@
     "set-plan": "tsx scripts/set-plan.ts",
     "postinstall": "prisma generate",
     "openapi": "tsx scripts/openapi.ts",
-    "openapi:check": "pnpm openapi && git diff --exit-code -- openapi.json",
+    "openapi:check": "tsx scripts/openapi.ts --check",
     "pretest": "pnpm openapi:check"
   },
   "dependencies": {

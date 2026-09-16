@@ -1,4 +1,6 @@
-# 仅用于 pnpm 12 的 allowBuilds（非 workspace 仓库）
+packages:
+  - apps/*
+
 allowBuilds:
   '@prisma/engines': true
   esbuild: true
