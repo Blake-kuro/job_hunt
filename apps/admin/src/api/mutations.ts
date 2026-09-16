@@ -13,6 +13,14 @@ import type {
 
 type AdminResource = "summary" | "students" | "materials" | "courses" | "quiz-meta" | "questions" | "jobs";
 
+export function useCreateCompany() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { name: string }) => unwrap(client.POST("/api/admin/companies", { body })),
+    onSuccess: () => invalidate(qc, "quiz-meta"),
+  });
+}
+
 /** 写操作成功后失效相关资源的列表缓存 */
 function invalidate(qc: QueryClient, ...resources: AdminResource[]) {
   return Promise.all(resources.map((r) => qc.invalidateQueries({ queryKey: ["admin", r] })));

@@ -15,6 +15,6 @@
     "db:up": "pnpm --filter job-hunt-back db:up",
     "db:migrate": "pnpm --filter job-hunt-back db:migrate",
     "db:seed": "pnpm --filter job-hunt-back db:seed",
-    "gen:api": "pnpm --filter job-hunt-back openapi && pnpm --filter job-hunt-front gen:api && pnpm --filter job-hunt-admin gen:api"
+    "gen:api": "pnpm --filter job-hunt-back openapi && pnpm --filter job-hunt-front gen:api && pnpm --filter job-hunt-admin gen:api && pnpm --filter job-hunt-miniprogram gen:api"
   }
 }

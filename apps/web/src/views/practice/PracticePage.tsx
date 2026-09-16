@@ -1,81 +1,90 @@
 import { useState } from "react";
-import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { useSetMastered, useSubmitAttempt } from "@api/mutations";
-import { companySetsQuery, quizDashboardQuery, quizTodayQuery } from "@api/queries";
+import { quizBanksQuery, quizDashboardQuery, quizNextQuery } from "@api/queries";
 import { QuizQuestion } from "@features/quiz-question/QuizQuestion";
-import { Kicker } from "@shared/ui/Kicker";
-import { AccessBanner } from "@widgets/access-banner/AccessBanner";
 import { CompanySets } from "@widgets/company-sets/CompanySets";
 import { Navbar } from "@widgets/navbar/Navbar";
 import { PracticeSidebar } from "@widgets/practice-sidebar/PracticeSidebar";
 
 export function PracticePage() {
-  const qc = useQueryClient();
-  const { data: today } = useSuspenseQuery(quizTodayQuery());
   const { data: dashboard } = useSuspenseQuery(quizDashboardQuery());
-  const { data: sets } = useSuspenseQuery(companySetsQuery());
-  const submit = useSubmitAttempt();
+  const { data: banks } = useSuspenseQuery(quizBanksQuery());
+  const [categoryId, setCategoryId] = useState("");
   const setMastered = useSetMastered();
-  const [loadingNext, setLoadingNext] = useState(false);
-  const [nextError, setNextError] = useState<Error | null>(null);
-  const question = today.question;
-  const result = submit.variables?.questionId === question?.id ? (submit.data ?? null) : null;
-
-  async function nextQuestion() {
-    setLoadingNext(true);
-    setNextError(null);
-    try {
-      await qc.fetchQuery({ ...quizTodayQuery(), staleTime: 0 });
-      submit.reset();
-    } catch (error) {
-      setNextError(error instanceof Error ? error : new Error("加载下一题失败"));
-    } finally {
-      setLoadingNext(false);
-    }
-  }
-
+  const selected = banks.companies.some((co) => co.categories.some((c) => c.id === categoryId));
   return (
     <div className="flex min-h-full flex-col bg-bg">
       <Navbar active="practice" trailing={`连续打卡 ${dashboard.streakDays} 天`} />
+      <CompanySets items={banks.companies} selected={categoryId} onSelect={setCategoryId} />
+      <p className="px-8 pb-4 text-sm text-neutral-700">
+        累计作答 {banks.quota.used} / {banks.quota.limit ?? "不限"} 题（非每日额度）
+      </p>
+      <div className="grid grid-cols-1 border-y border-divider lg:grid-cols-[minmax(0,1fr)_300px]">
+        {selected ? (
+          <CategoryPractice key={categoryId} categoryId={categoryId} />
+        ) : (
+          <p className="p-8">请选择公司下的分类开始练习。</p>
+        )}
+        <div>
+          {setMastered.error && <p role="alert">{setMastered.error.message}</p>}
+          <PracticeSidebar
+            dashboard={dashboard}
+            saving={setMastered.isPending}
+            onMastered={(questionId) => setMastered.mutate({ questionId, mastered: true })}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
 
-      {(submit.error || setMastered.error || nextError) && (
-        <p role="alert" className="px-4 py-3 text-sm text-red-700">
-          {(submit.error || setMastered.error || nextError)?.message}
+function CategoryPractice({ categoryId }: { categoryId: string }) {
+  const next = useQuery({ ...quizNextQuery(categoryId), refetchOnMount: "always" });
+  const submit = useSubmitAttempt();
+  const question = next.data?.question;
+  if (next.isPending) return <p className="p-8">正在加载题目…</p>;
+  if (next.isError)
+    return (
+      <div className="p-8" role="alert">
+        {next.error.message}
+        <button type="button" onClick={() => next.refetch()}>
+          重试
+        </button>
+      </div>
+    );
+  if (!question)
+    return (
+      <div className="p-8">
+        <h2 className="text-xl">{next.data.exhausted === "QUOTA" ? "累计作答额度已用完" : "该分类已全部答完"}</h2>
+        <p className="mt-3">
+          {next.data.exhausted === "QUOTA"
+            ? "请登录提升额度，或联系管理员开通权限；额度不会每天重置。"
+            : "可以选择其他分类继续练习。"}
+        </p>
+      </div>
+    );
+  return (
+    <div>
+      {submit.error && (
+        <p role="alert" className="p-4 text-red-700">
+          {submit.error.message}
         </p>
       )}
-      <div className="grid grid-cols-1 border-b border-divider lg:grid-cols-[minmax(0,1fr)_300px]">
-        {question ? (
-          <QuizQuestion
-            key={question.id}
-            question={question}
-            date={today.date}
-            indexLabel={today.indexLabel}
-            result={result}
-            loadingNext={loadingNext}
-            submitting={submit.isPending}
-            onSubmit={(picked) => submit.mutate({ questionId: question.id, picked })}
-            onNext={nextQuestion}
-          />
-        ) : today.exhausted === "QUOTA" ? (
-          <div className="px-4 py-8 sm:px-8 sm:py-9">
-            <Kicker className="text-accent-700">今日一题</Kicker>
-            <AccessBanner access={dashboard.access} kind="questions" className="mt-4 max-w-[720px]" />
-          </div>
-        ) : (
-          <div className="px-4 py-8 sm:px-8 sm:py-9">
-            <Kicker className="text-accent-700">今日一题</Kicker>
-            <h2 className="mt-3 text-[22px] sm:text-[26px]">题库已全部答完</h2>
-            <p className="mt-2 text-sm text-neutral-700">今天已答 {today.attemptedToday} 题，去错题本复习一下吧。</p>
-          </div>
-        )}
-        <PracticeSidebar
-          dashboard={dashboard}
-          saving={setMastered.isPending}
-          onMastered={(questionId) => setMastered.mutate({ questionId, mastered: true })}
-        />
-      </div>
-
-      <CompanySets items={sets.items} />
+      <QuizQuestion
+        key={question.id}
+        question={question}
+        date={new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Shanghai" })}
+        indexLabel={`${next.data.category.company} · ${next.data.index} / ${next.data.category.total}`}
+        result={submit.variables?.questionId === question.id ? (submit.data ?? null) : null}
+        submitting={submit.isPending}
+        loadingNext={next.isFetching}
+        onSubmit={(picked) => submit.mutate({ questionId: question.id, picked })}
+        onNext={async () => {
+          const result = await next.refetch();
+          if (!result.isError) submit.reset();
+        }}
+      />
     </div>
   );
 }

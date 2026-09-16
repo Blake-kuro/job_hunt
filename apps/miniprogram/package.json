@@ -2,6 +2,12 @@
   "name": "job-hunt-miniprogram",
   "version": "0.1.0",
   "private": true,
-  "scripts": { "typecheck": "tsc --noEmit" },
-  "devDependencies": { "typescript": "7.0.2" }
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "node --test tests/*.test.cjs",
+    "gen:api": "pnpm dlx openapi-typescript@7 \"${OPENAPI_SOURCE:-../api/openapi.json}\" -o miniprogram/api/schema.d.ts"
+  },
+  "devDependencies": {
+    "typescript": "7.0.2"
+  }
 }

@@ -24,7 +24,12 @@ function truncate(text: string, max: number) {
   return text.length > max ? `${text.slice(0, max)}…` : text;
 }
 
-type DialogState = { kind: "create" } | { kind: "edit"; question: AdminQuestion } | { kind: "category" } | null;
+type DialogState =
+  | { kind: "create" }
+  | { kind: "edit"; question: AdminQuestion }
+  | { kind: "category" }
+  | { kind: "company" }
+  | null;
 
 export function QuestionsPage() {
   const search = route.useSearch();
@@ -66,7 +71,7 @@ export function QuestionsPage() {
   return (
     <>
       <h1 className="text-3xl">题库</h1>
-      <p className="mt-2 text-sm text-neutral-700">学生端刷题的单选题；未发布的题目学生看不到。</p>
+      <p className="mt-2 text-sm text-neutral-700">按公司和分类管理单选、多选及判断题；未发布的题目学生看不到。</p>
 
       <div className="mt-6 flex flex-wrap items-center gap-3">
         <Input
@@ -87,11 +92,13 @@ export function QuestionsPage() {
           }}
         >
           <option value="">全部分类</option>
-          {meta.categories.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name} ({c.questionCount})
-            </option>
-          ))}
+          {meta.companies.flatMap((co) =>
+            co.categories.map((c) => (
+              <option key={c.id} value={c.id}>
+                {co.name} / {c.name} ({c.questionCount})
+              </option>
+            )),
+          )}
         </Select>
         <Select
           aria-label="状态"
@@ -107,6 +114,7 @@ export function QuestionsPage() {
           <option value="false">未发布</option>
         </Select>
         <div className="ml-auto flex gap-2">
+          <Button onClick={() => setDialog({ kind: "company" })}>新建公司</Button>
           <Button onClick={() => setDialog({ kind: "category" })}>新建分类</Button>
           <Button variant="primary" onClick={() => setDialog({ kind: "create" })}>
             新增题目
@@ -148,7 +156,9 @@ export function QuestionsPage() {
                   <td className={`${td} max-w-[420px] whitespace-normal`} title={q.prompt}>
                     {truncate(q.prompt, PROMPT_MAX)}
                   </td>
-                  <td className={`${td} text-neutral-700`}>{q.categoryName}</td>
+                  <td className={`${td} text-neutral-700`}>
+                    {q.companyName} / {q.categoryName}
+                  </td>
                   <td className={`${td} text-neutral-700`}>{DIFFICULTY_LABEL[q.difficulty]}</td>
                   <td className={`${td} text-neutral-700`}>{q.source}</td>
                   <td className={td}>
@@ -188,7 +198,13 @@ export function QuestionsPage() {
         open={dialog?.kind === "create" || dialog?.kind === "edit"}
         onClose={() => setDialog(null)}
       />
-      <CategoryDialog open={dialog?.kind === "category"} onClose={() => setDialog(null)} />
+      <CategoryDialog
+        key={dialog?.kind === "company" ? "company" : "category"}
+        meta={meta}
+        company={dialog?.kind === "company"}
+        open={dialog?.kind === "category" || dialog?.kind === "company"}
+        onClose={() => setDialog(null)}
+      />
     </>
   );
 }

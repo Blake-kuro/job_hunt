@@ -28,7 +28,7 @@ pnpm dev
 
 ## 验证与接口类型
 
-**当前保留的已知差异：** 导入的后端 `feat/company-banks` 已切换公司/分类刷题接口及数组答案，学生端、管理端和小程序仍保留导入时的实现。各应用独立检查通过不代表公司题库已完成跨端联调。本次迁移不自动完成该功能；运行 `pnpm gen:api` 会暴露前端尚待适配的类型错误，应与接口适配一并进行。
+公司题库统一使用「公司 → 分类 → 题目」结构。后台先创建公司及分类，再新增单选、多选或判断题；学生端及小程序选择分类刷题。作答请求和判题返回的答案为字母数组，后台编辑答案为排序后的字母串。累计配额不会每天重置。
 
 ```bash
 pnpm typecheck
@@ -38,11 +38,11 @@ pnpm build
 pnpm gen:api
 ```
 
-`typecheck` 覆盖四个应用；`lint`、`test` 覆盖提供对应脚本的 Web、API、Admin；`build` 构建两个 Web 应用。API 使用 tsx 运行，小程序使用微信开发者工具编译。
+`typecheck` 和 `test` 覆盖四个应用；`lint` 覆盖 Web、API、Admin；`build` 构建两个 Web 应用。API 使用 tsx 运行，小程序使用微信开发者工具编译；小程序页面逻辑另有 Node 回归测试，不替代开发者工具和真机验收。
 
 API 集成测试要求后端 `.env` 设置独立的 `TEST_DATABASE_URL`，数据库名必须以 `_test` 结尾，未配置时数据库测试会跳过。先对测试库执行迁移；不要使用开发或生产数据库。
 
-根目录 `pnpm gen:api` 先生成 `apps/api/openapi.json`，再更新学生端和管理端的 `src/api/schema.d.ts`。类型文件不得手改。单端可运行 `pnpm --filter job-hunt-front gen:api` 或 `pnpm --filter job-hunt-admin gen:api`；支持 `OPENAPI_SOURCE` 覆盖输入。
+根目录 `pnpm gen:api` 先生成 `apps/api/openapi.json`，再更新学生端、管理端的 `src/api/schema.d.ts` 和小程序的 `miniprogram/api/schema.d.ts`。类型文件不得手改。单端可运行 `pnpm --filter <包名> gen:api`；支持 `OPENAPI_SOURCE` 覆盖输入。
 
 其他命令通过 `pnpm --filter <包名> <命令>` 执行，如 `pnpm --filter job-hunt-back db:import /absolute/path/岗位.xlsx`。仅维护根目录 workspace 与锁文件。
 

@@ -12,7 +12,7 @@ export function PracticeSidebar({
   onMastered: (questionId: string) => void;
   saving: boolean;
 }) {
-  const { streakDays, week, weekSolved, weekTarget, totalSolved, categories, wrongList } = dashboard;
+  const { streakDays, week, weekSolved, weekTarget, totalSolved, wrongList } = dashboard;
   return (
     <aside className="flex flex-col gap-7 border-t border-divider px-4 py-8 sm:px-8 lg:border-l lg:border-t-0 lg:px-6 lg:py-9">
       <section>
@@ -37,20 +37,6 @@ export function PracticeSidebar({
             累计 <b className="tabular-nums">{totalSolved}</b> 题
           </span>
         </div>
-      </section>
-
-      <section>
-        <Kicker className="mb-2.5">题库分类</Kicker>
-        <ul>
-          {categories.map((c) => (
-            <li key={c.label}>
-              <div className="flex items-center justify-between border-b border-hairline py-2.5 text-sm">
-                <span>{c.label}</span>
-                <span className="text-xs tabular-nums text-neutral-700">{c.count}</span>
-              </div>
-            </li>
-          ))}
-        </ul>
       </section>
 
       <section>

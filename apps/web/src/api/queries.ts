@@ -19,20 +19,20 @@ export const jobsQuery = (q: JobListQuery) =>
 export const progressQuery = () =>
   queryOptions({ queryKey: ["jobs", "progress"] as const, queryFn: () => unwrap(client.GET("/api/jobs/progress")) });
 
-export const quizTodayQuery = () =>
+export const quizNextQuery = (categoryId: string) =>
   queryOptions({
     staleTime: Number.POSITIVE_INFINITY,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
-    queryKey: ["quiz", "today"] as const,
-    queryFn: () => unwrap(client.GET("/api/quiz/today")),
+    queryKey: ["quiz", "next", categoryId] as const,
+    queryFn: () => unwrap(client.GET("/api/quiz/categories/{categoryId}/next", { params: { path: { categoryId } } })),
   });
 
 export const quizDashboardQuery = () =>
   queryOptions({ queryKey: ["quiz", "dashboard"] as const, queryFn: () => unwrap(client.GET("/api/quiz/dashboard")) });
 
-export const companySetsQuery = () =>
+export const quizBanksQuery = () =>
   queryOptions({
-    queryKey: ["quiz", "company-sets"] as const,
-    queryFn: () => unwrap(client.GET("/api/quiz/company-sets")),
+    queryKey: ["quiz", "banks"] as const,
+    queryFn: () => unwrap(client.GET("/api/quiz/banks")),
   });

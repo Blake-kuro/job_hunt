@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useCreateQuestion, usePatchQuestion } from "@api/mutations";
-import type { AdminQuestion, AdminQuestionBody, AdminQuizMeta, Difficulty } from "@api/types";
+import type { AdminQuestion, AdminQuestionBody, AdminQuizMeta, Difficulty, QuestionType } from "@api/types";
 import { Button } from "@shared/ui/Button";
 import { Dialog } from "@shared/ui/Dialog";
 import { Field } from "@shared/ui/Field";
@@ -9,6 +9,7 @@ import { Select } from "@shared/ui/Select";
 import { Textarea } from "@shared/ui/Textarea";
 import {
   DIFFICULTY_LABEL,
+  TYPE_LABEL,
   emptyQuestionForm,
   fromQuestion,
   LETTERS,
@@ -130,49 +131,104 @@ function QuestionForm({ question, meta, serverError, onSubmit }: QuestionFormPro
       <Field label="分类" htmlFor="question-category">
         <Select id="question-category" value={state.categoryId} onChange={(e) => set("categoryId", e.target.value)}>
           <option value="">请选择分类</option>
-          {meta.categories.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
+          {meta.companies.flatMap((co) =>
+            co.categories.map((c) => (
+              <option key={c.id} value={c.id}>
+                {co.name} / {c.name}
+              </option>
+            )),
+          )}
+        </Select>
+      </Field>
+      <Field label="题型" htmlFor="question-type">
+        <Select
+          id="question-type"
+          value={state.type}
+          onChange={(e) => {
+            const type = e.target.value as QuestionType;
+            setState((s) => ({
+              ...s,
+              type,
+              answer: "A",
+              options: type === "JUDGE" ? ["正确", "错误"] : ["", "", "", ""],
+            }));
+          }}
+        >
+          {(Object.keys(TYPE_LABEL) as QuestionType[]).map((type) => (
+            <option key={type} value={type}>
+              {TYPE_LABEL[type]}
             </option>
           ))}
         </Select>
       </Field>
-      <Field label="公司题集" htmlFor="question-company-set" hint="可选；用于公司专项练习">
-        <Select
-          id="question-company-set"
-          value={state.companySetId}
-          onChange={(e) => set("companySetId", e.target.value)}
-        >
-          <option value="">无</option>
-          {meta.companySets.map((s) => (
-            <option key={s.id} value={s.id}>
-              {s.company} · {s.track}
-            </option>
-          ))}
-        </Select>
+      <Field label="章节（可选）" htmlFor="question-section">
+        <Input id="question-section" value={state.section} onChange={(e) => set("section", e.target.value)} />
+      </Field>
+      <Field label="排序" htmlFor="question-order">
+        <Input
+          id="question-order"
+          type="number"
+          step="1"
+          value={state.sortOrder}
+          onChange={(e) => set("sortOrder", Number(e.target.value))}
+        />
       </Field>
 
       <fieldset className="flex flex-col gap-2 sm:col-span-2">
-        <legend className="mb-1.5 text-xs font-medium text-neutral-800">选项（选中单选框标记正确答案）</legend>
-        {LETTERS.map((letter, i) => (
+        <legend className="mb-1.5 text-xs font-medium text-neutral-800">选项（勾选正确答案，多选题至少两个）</legend>
+        {LETTERS.slice(0, state.options.length).map((letter, i) => (
           <div key={letter} className="flex items-center gap-3">
             <label className="flex w-12 shrink-0 cursor-pointer items-center gap-1.5 text-sm font-medium">
               <input
-                type="radio"
+                type={state.type === "MULTI" ? "checkbox" : "radio"}
                 name="question-answer"
                 value={letter}
-                checked={state.answer === letter}
-                onChange={() => set("answer", letter)}
+                checked={state.answer.includes(letter)}
+                onChange={() =>
+                  set(
+                    "answer",
+                    state.type !== "MULTI"
+                      ? letter
+                      : state.answer.includes(letter)
+                        ? state.answer.replace(letter, "")
+                        : [...state.answer, letter].sort().join(""),
+                  )
+                }
               />
               {letter}
             </label>
             <Input
               aria-label={`选项 ${letter}`}
               value={state.options[i]}
+              disabled={state.type === "JUDGE"}
               onChange={(e) => setOption(i, e.target.value)}
             />
           </div>
         ))}
+        {state.type !== "JUDGE" && (
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              disabled={state.options.length >= 6}
+              onClick={() => set("options", [...state.options, ""])}
+            >
+              添加选项
+            </Button>
+            <Button
+              type="button"
+              disabled={state.options.length <= (state.type === "MULTI" ? 3 : 2)}
+              onClick={() =>
+                setState((s) => ({
+                  ...s,
+                  options: s.options.slice(0, -1),
+                  answer: s.answer.replace(LETTERS[s.options.length - 1], ""),
+                }))
+              }
+            >
+              移除末项
+            </Button>
+          </div>
+        )}
       </fieldset>
 
       <div className="sm:col-span-2">

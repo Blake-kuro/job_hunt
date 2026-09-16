@@ -1,10 +1,10 @@
 export type {
-  CompanySetItem,
+  QuizBanks,
   QuizAnswerResult,
   QuizDashboard,
   QuizOption,
   QuizOptionLetter,
   QuizQuestionPublic,
-  QuizToday,
+  QuizNext,
   WrongBookItem,
 } from "@api/types";

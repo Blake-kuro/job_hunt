@@ -75,10 +75,14 @@ export function useMarkApplied(q: JobListQuery) {
 export function useSubmitAttempt() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (vars: { questionId: string; picked: QuizOptionLetter }) =>
+    mutationFn: (vars: { questionId: string; picked: QuizOptionLetter[] }) =>
       unwrap(client.POST("/api/quiz/attempts", { body: vars })),
-    // 答完题打卡/错题本会变；today 留到用户点"下一题"再失效
-    onSuccess: () => qc.invalidateQueries({ queryKey: quizDashboardQuery().queryKey }),
+    // 保留当前题解析，直到用户主动点击下一题。
+    onSuccess: () =>
+      Promise.all([
+        qc.invalidateQueries({ queryKey: quizDashboardQuery().queryKey }),
+        qc.invalidateQueries({ queryKey: ["quiz", "banks"] }),
+      ]),
   });
 }
 

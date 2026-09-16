@@ -12,15 +12,20 @@ interface QuizQuestionProps {
   result: QuizAnswerResult | null;
   submitting: boolean;
   loadingNext: boolean;
-  onSubmit: (picked: QuizOptionLetter) => void;
+  onSubmit: (picked: QuizOptionLetter[]) => void;
   onNext: () => void;
 }
 
 type OptionState = "idle" | "picked" | "right" | "wrong";
 
-function optionState(option: QuizOption, picked: string | null, revealed: boolean, answer: string): OptionState {
-  const isPicked = picked === option.letter;
-  if (revealed && option.letter === answer) return "right";
+function optionState(
+  option: QuizOption,
+  picked: QuizOptionLetter[],
+  revealed: boolean,
+  answer: QuizOptionLetter[],
+): OptionState {
+  const isPicked = picked.includes(option.letter);
+  if (revealed && answer.includes(option.letter)) return "right";
   if (revealed && isPicked) return "wrong";
   if (isPicked) return "picked";
   return "idle";
@@ -57,7 +62,7 @@ export function QuizQuestion({
   onSubmit,
   onNext,
 }: QuizQuestionProps) {
-  const [picked, setPicked] = useState<QuizOptionLetter | null>(null);
+  const [picked, setPicked] = useState<QuizOptionLetter[]>([]);
   const revealed = result !== null;
 
   return (
@@ -65,6 +70,7 @@ export function QuizQuestion({
       <div className="flex flex-wrap items-center gap-2.5">
         <Kicker className="text-accent-700">今日一题 · {date.slice(5).replace("-", " / ")}</Kicker>
         <Tag>{question.category}</Tag>
+        <Tag>{question.type === "MULTI" ? "多选题" : question.type === "JUDGE" ? "判断题" : "单选题"}</Tag>
         <Tag>{question.difficulty}</Tag>
         <Tag variant="outline">{question.source}</Tag>
         <span className="text-xs tabular-nums text-neutral-700">{indexLabel}</span>
@@ -74,14 +80,22 @@ export function QuizQuestion({
 
       <div className="mt-5 flex max-w-[880px] flex-col gap-2.5">
         {question.options.map((option) => {
-          const state = optionState(option, picked, revealed, result?.answer ?? "");
+          const state = optionState(option, picked, revealed, result?.answer ?? []);
           return (
             <button
               key={option.letter}
               type="button"
-              aria-pressed={picked === option.letter}
+              aria-pressed={picked.includes(option.letter)}
               disabled={revealed || submitting || loadingNext}
-              onClick={() => setPicked(option.letter)}
+              onClick={() =>
+                setPicked((old) =>
+                  question.type !== "MULTI"
+                    ? [option.letter]
+                    : old.includes(option.letter)
+                      ? old.filter((l) => l !== option.letter)
+                      : [...old, option.letter].sort(),
+                )
+              }
               className={cn(
                 "grid cursor-pointer grid-cols-[26px_minmax(0,1fr)] items-center gap-x-3.5 gap-y-2 border px-4 py-3 text-left transition-colors sm:grid-cols-[26px_minmax(0,1fr)_auto]",
                 rowClass[state],
@@ -117,8 +131,8 @@ export function QuizQuestion({
           size="lg"
           blueprint
           className="px-5"
-          disabled={!picked || submitting || revealed || loadingNext}
-          onClick={() => picked && onSubmit(picked)}
+          disabled={!picked.length || submitting || revealed || loadingNext}
+          onClick={() => picked.length && onSubmit(picked)}
         >
           {submitting ? "提交中…" : "提交并查看答案"}
         </Button>
@@ -126,13 +140,15 @@ export function QuizQuestion({
           {loadingNext ? "加载中…" : "下一题 →"}
         </Button>
         <div className="hidden flex-1 sm:block" />
-        <span className="text-xs tabular-nums text-neutral-700">{picked ? `已选 ${picked}` : "未作答"}</span>
+        <span className="text-xs tabular-nums text-neutral-700">
+          {picked.length ? `已选 ${picked.join("、")}` : "未作答"}
+        </span>
       </div>
 
       {result && (
         <div className="mt-6 max-w-[880px] border-t border-divider pt-5">
           <div className="flex flex-wrap items-center gap-3">
-            <Kicker className="text-accent-700">答案 {result.answer}</Kicker>
+            <Kicker className="text-accent-700">答案 {result.answer.join("、")}</Kicker>
             <Tag variant={result.correct ? "accent" : "neutral"}>
               {result.correct ? "回答正确" : "回答错误 · 已加入错题本"}
             </Tag>

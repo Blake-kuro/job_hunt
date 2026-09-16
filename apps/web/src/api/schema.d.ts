@@ -196,6 +196,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/companies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["createAdminCompany"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/companies/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["deleteAdminCompany"];
+        options?: never;
+        head?: never;
+        patch: operations["updateAdminCompany"];
+        trace?: never;
+    };
+    "/api/admin/question-categories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["createAdminQuestionCategory"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/question-categories/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["deleteAdminQuestionCategory"];
+        options?: never;
+        head?: never;
+        patch: operations["updateAdminQuestionCategory"];
+        trace?: never;
+    };
+    "/api/admin/question-categories/{id}/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["importAdminQuestions"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/questions": {
         parameters: {
             query?: never;
@@ -226,22 +306,6 @@ export interface paths {
         options?: never;
         head?: never;
         patch: operations["updateAdminQuestion"];
-        trace?: never;
-    };
-    "/api/admin/question-categories": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["createAdminQuestionCategory"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
         trace?: never;
     };
     "/api/admin/jobs": {
@@ -388,14 +452,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/quiz/today": {
+    "/api/quiz/banks": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["getTodayQuestion"];
+        get: operations["listQuizBanks"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/quiz/categories/{categoryId}/next": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getNextQuestion"];
         put?: never;
         post?: never;
         delete?: never;
@@ -468,22 +548,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/quiz/company-sets": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["listCompanySets"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -536,6 +600,7 @@ export interface components {
             proStudents: number;
             guests: number;
             jobs: number;
+            companies: number;
             questions: number;
             publishedQuestions: number;
             materials: number;
@@ -657,17 +722,48 @@ export interface components {
             }[];
         };
         AdminQuizMeta: {
-            categories: {
+            companies: {
                 id: string;
                 name: string;
-                questionCount: number;
+                sortOrder: number;
+                categories: {
+                    id: string;
+                    name: string;
+                    sortOrder: number;
+                    questionCount: number;
+                    publishedCount: number;
+                }[];
             }[];
-            companySets: {
-                id: string;
-                company: string;
-                track: string;
-                focus: string;
-            }[];
+        };
+        AdminCompany: {
+            id: string;
+            name: string;
+            sortOrder: number;
+        };
+        AdminCompanyBody: {
+            name: string;
+        };
+        AdminCompanyPatch: {
+            name?: string;
+            sortOrder?: number;
+        };
+        AdminCategory: {
+            id: string;
+            companyId: string;
+            name: string;
+            sortOrder: number;
+        };
+        AdminCategoryBody: {
+            companyId: string;
+            name: string;
+        };
+        AdminCategoryPatch: {
+            name?: string;
+            sortOrder?: number;
+        };
+        AdminQuestionImportResult: {
+            created: number;
+            skipped: string[];
         };
         AdminQuestionList: {
             items: components["schemas"]["AdminQuestion"][];
@@ -677,53 +773,56 @@ export interface components {
         };
         AdminQuestion: {
             id: string;
-            prompt: string;
+            companyId: string;
+            companyName: string;
             categoryId: string;
             categoryName: string;
-            companySetId: string | null;
+            type: components["schemas"]["QuestionType"];
+            section: string | null;
+            sortOrder: number;
+            prompt: string;
             options: components["schemas"]["QuizOption"][];
-            answer: components["schemas"]["QuizOptionLetter"];
+            answer: string;
             explanation: string[];
             difficulty: components["schemas"]["Difficulty"];
             source: string;
             published: boolean;
         };
+        /** @enum {string} */
+        QuestionType: "SINGLE" | "MULTI" | "JUDGE";
         QuizOption: {
             letter: components["schemas"]["QuizOptionLetter"];
             text: string;
         };
         /** @enum {string} */
-        QuizOptionLetter: "A" | "B" | "C" | "D";
+        QuizOptionLetter: "A" | "B" | "C" | "D" | "E" | "F";
         /** @enum {string} */
         Difficulty: "EASY" | "MEDIUM" | "HARD";
         AdminQuestionBody: {
-            prompt: string;
             categoryId: string;
-            companySetId?: string | null;
+            type: components["schemas"]["QuestionType"];
+            section?: string | null;
+            sortOrder?: number;
+            prompt: string;
             options: components["schemas"]["QuizOption"][];
-            answer: components["schemas"]["QuizOptionLetter"];
+            answer: string;
             explanation: string[];
             difficulty: components["schemas"]["Difficulty"];
             source: string;
             published: boolean;
         };
         AdminQuestionPatch: {
-            prompt?: string;
             categoryId?: string;
-            companySetId?: string | null;
+            type?: components["schemas"]["QuestionType"];
+            section?: string | null;
+            sortOrder?: number;
+            prompt?: string;
             options?: components["schemas"]["QuizOption"][];
-            answer?: components["schemas"]["QuizOptionLetter"];
+            answer?: string;
             explanation?: string[];
             difficulty?: components["schemas"]["Difficulty"];
             source?: string;
             published?: boolean;
-        };
-        AdminCategory: {
-            id: string;
-            name: string;
-        };
-        AdminCategoryBody: {
-            name: string;
         };
         AdminJobList: {
             items: components["schemas"]["AdminJob"][];
@@ -878,31 +977,58 @@ export interface components {
         ApplicationBody: {
             status: components["schemas"]["ApplicationStatus"];
         };
-        QuizToday: {
+        QuizBanks: {
+            companies: {
+                id: string;
+                name: string;
+                categories: {
+                    id: string;
+                    name: string;
+                    total: number;
+                    answered: number;
+                    correct: number;
+                }[];
+            }[];
+            quota: components["schemas"]["QuizQuota"];
+        };
+        QuizQuota: {
+            tier: components["schemas"]["Tier"];
+            limit: number | null;
+            used: number;
+        };
+        QuizNext: {
+            category: {
+                id: string;
+                name: string;
+                company: string;
+                total: number;
+            };
             question: components["schemas"]["QuizQuestionPublic"] | null;
-            indexLabel: string;
-            attemptedToday: number;
-            date: string;
+            index: number;
+            answered: number;
             /** @enum {string|null} */
             exhausted: "QUOTA" | "ALL" | null;
         };
         QuizQuestionPublic: {
             id: string;
+            type: components["schemas"]["QuestionType"];
+            section: string | null;
             prompt: string;
             options: components["schemas"]["QuizOption"][];
             category: string;
+            company: string;
             difficulty: string;
             source: string;
         };
         QuizAnswerResult: {
             correct: boolean;
-            answer: components["schemas"]["QuizOptionLetter"];
+            answer: components["schemas"]["QuizOptionLetter"][];
             explanation: string[];
             accuracyRate: number | null;
         };
         SubmitAttempt: {
             questionId: string;
-            picked: components["schemas"]["QuizOptionLetter"];
+            picked: components["schemas"]["QuizOptionLetter"][];
         };
         QuizDashboard: {
             streakDays: number;
@@ -914,13 +1040,8 @@ export interface components {
             weekSolved: number;
             weekTarget: number;
             totalSolved: number;
-            categories: {
-                id: string;
-                label: string;
-                count: number;
-            }[];
             wrongList: components["schemas"]["WrongBookItem"][];
-            access: components["schemas"]["Access"];
+            quota: components["schemas"]["QuizQuota"];
         };
         WrongBookItem: {
             questionId: string;
@@ -932,16 +1053,6 @@ export interface components {
         };
         SetMastered: {
             mastered: boolean;
-        };
-        CompanySetList: {
-            items: components["schemas"]["CompanySetItem"][];
-        };
-        CompanySetItem: {
-            id: string;
-            company: string;
-            track: string;
-            focus: string;
-            count: number;
         };
     };
     responses: never;
@@ -1287,7 +1398,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description 题库分类与企业专项 */
+            /** @description 公司 → 分类树（含题量） */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -1298,11 +1409,269 @@ export interface operations {
             };
         };
     };
+    createAdminCompany: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminCompanyBody"];
+            };
+        };
+        responses: {
+            /** @description 已创建 */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminCompany"];
+                };
+            };
+            /** @description 公司已存在 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    deleteAdminCompany: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 已删除（级联分类与题目） */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    updateAdminCompany: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminCompanyPatch"];
+            };
+        };
+        responses: {
+            /** @description 已更新 */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 公司已存在 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    createAdminQuestionCategory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminCategoryBody"];
+            };
+        };
+        responses: {
+            /** @description 已创建 */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminCategory"];
+                };
+            };
+            /** @description 公司不存在或同公司下分类已存在 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    deleteAdminQuestionCategory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 已删除（级联题目） */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    updateAdminQuestionCategory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminCategoryPatch"];
+            };
+        };
+        responses: {
+            /** @description 已更新 */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 同公司下分类已存在 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    importAdminQuestions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description 导入结果（新增数与跳过明细） */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminQuestionImportResult"];
+                };
+            };
+            /** @description 文件无法解析或超过 20 MB */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description 分类不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
     listAdminQuestions: {
         parameters: {
             query?: {
                 q?: string;
+                companyId?: string;
                 categoryId?: string;
+                type?: components["schemas"]["QuestionType"];
+                section?: string;
                 published?: "true" | "false";
                 page?: number;
                 pageSize?: number;
@@ -1346,7 +1715,7 @@ export interface operations {
                     "application/json": components["schemas"]["IdResult"];
                 };
             };
-            /** @description 分类 / 企业专项不存在 */
+            /** @description 分类不存在或题目形状不合法 */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -1408,7 +1777,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description 分类 / 企业专项不存在 */
+            /** @description 分类不存在或题目形状不合法 */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -1419,39 +1788,6 @@ export interface operations {
             };
             /** @description 不存在 */
             404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-        };
-    };
-    createAdminQuestionCategory: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AdminCategoryBody"];
-            };
-        };
-        responses: {
-            /** @description 已创建 */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AdminCategory"];
-                };
-            };
-            /** @description 分类已存在 */
-            400: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1868,7 +2204,7 @@ export interface operations {
             };
         };
     };
-    getTodayQuestion: {
+    listQuizBanks: {
         parameters: {
             query?: never;
             header?: never;
@@ -1877,13 +2213,44 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description 今日一题 */
+            /** @description 题库（公司 → 分类）与当前用户进度、配额 */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["QuizToday"];
+                    "application/json": components["schemas"]["QuizBanks"];
+                };
+            };
+        };
+    };
+    getNextQuestion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                categoryId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 该分类下一道未作答题 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuizNext"];
+                };
+            };
+            /** @description 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
                 };
             };
         };
@@ -1919,7 +2286,7 @@ export interface operations {
                     "application/json": components["schemas"]["ApiError"];
                 };
             };
-            /** @description 当前档位不可作答 */
+            /** @description 作答次数已用完 */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -2017,26 +2384,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ApiError"];
-                };
-            };
-        };
-    };
-    listCompanySets: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 公司题集 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CompanySetList"];
                 };
             };
         };
