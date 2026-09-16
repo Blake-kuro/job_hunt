@@ -1,0 +1,274 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ── 用户 ──────────────────────────────────────────────
+
+model User {
+  id           String    @id @default(cuid())
+  email        String?   @unique
+  name         String
+  plan         Plan      @default(FREE)
+  proExpiresAt DateTime?
+  role         UserRole  @default(STUDENT)
+  enabled      Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+
+  identities   AuthIdentity[]
+  sessions      Session[]
+  favorites    Favorite[]
+  applications Application[]
+  attempts     Attempt[]
+  wrongBook    WrongBookEntry[]
+  accessGrants  AccessGrant[] @relation("StudentGrants")
+  grantedAccess AccessGrant[] @relation("GrantedBy")
+}
+
+enum UserRole {
+  STUDENT
+  ADMIN
+}
+
+enum AuthProvider {
+  PHONE
+  WECHAT
+  QQ
+  DEVICE
+}
+
+enum Plan {
+  FREE
+  PRO
+}
+
+model AuthIdentity {
+  id          String       @id @default(cuid())
+  userId      String
+  provider    AuthProvider
+  providerKey String
+  createdAt   DateTime     @default(now())
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerKey])
+  @@index([userId])
+}
+
+model Session {
+  tokenHash String   @id
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model SmsVerification {
+  id         String    @id @default(cuid())
+  phone      String
+  codeHash   String
+  attempts   Int       @default(0)
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([phone, createdAt])
+  @@index([expiresAt])
+}
+
+enum ContentType {
+  MATERIAL
+  QUESTION
+  COURSE
+}
+
+model AccessGrant {
+  id          String      @id @default(cuid())
+  userId      String
+  contentType ContentType
+  contentId   String
+  expiresAt   DateTime?
+  grantedById String?
+  createdAt   DateTime    @default(now())
+  user        User        @relation("StudentGrants", fields: [userId], references: [id], onDelete: Cascade)
+  grantedBy   User?       @relation("GrantedBy", fields: [grantedById], references: [id], onDelete: SetNull)
+
+  @@unique([userId, contentType, contentId])
+  @@index([userId, contentType, expiresAt])
+}
+
+model StudyMaterial {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  category    String
+  resourceUrl String
+  published   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Course {
+  id          String         @id @default(cuid())
+  title       String
+  description String?
+  coverUrl    String?
+  published   Boolean        @default(false)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  lessons     CourseLesson[]
+}
+
+model CourseLesson {
+  id              String @id @default(cuid())
+  courseId        String
+  title           String
+  videoUrl        String
+  durationMinutes Int?
+  sortOrder       Int    @default(0)
+  course          Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@index([courseId, sortOrder])
+}
+
+// ── 岗位（用户现有 Excel 结构）────────────────────────
+
+model Job {
+  id               Int       @id @default(autoincrement())
+  serialNumber     String?
+  categoryId       Int
+  recruitmentBatch String?
+  enterpriseNature String?
+  industry         String?
+  workLocation     String?
+  position         String
+  enterpriseName   String
+  graduationYear   String?
+  degree           String?
+  announcementLink String?
+  deliveryAddress  String?
+  deadline         String?
+  deadlineAt       DateTime? @db.Date
+  createTime       DateTime  @default(now())
+  updateTime       DateTime  @updatedAt
+
+  favorites    Favorite[]
+  applications Application[]
+
+  @@index([categoryId, deadlineAt])
+  @@index([createTime])
+}
+
+model Favorite {
+  userId String
+  jobId  Int
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  job    Job  @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@id([userId, jobId])
+}
+
+enum AppStatus {
+  APPLIED
+  INTERVIEWING
+}
+
+model Application {
+  userId    String
+  jobId     Int
+  status    AppStatus
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  job       Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@id([userId, jobId])
+}
+
+// ── 刷题 ──────────────────────────────────────────────
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+model Company {
+  id         String             @id @default(cuid())
+  name       String             @unique
+  sortOrder  Int                @default(0)
+  createdAt  DateTime           @default(now())
+  categories QuestionCategory[]
+}
+
+model QuestionCategory {
+  id        String     @id @default(cuid())
+  companyId String
+  name      String
+  sortOrder Int        @default(0)
+  company   Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  questions Question[]
+
+  @@unique([companyId, name])
+}
+
+enum QuestionType {
+  SINGLE
+  MULTI
+  JUDGE
+}
+
+model Question {
+  id          String           @id @default(cuid())
+  categoryId  String
+  type        QuestionType     @default(SINGLE)
+  /// 所属部分（题目上的标签，可筛选）
+  section     String?
+  /// 分类内顺序（导入时 = 题号）
+  sortOrder   Int              @default(0)
+  prompt      String
+  /// [{ letter: "A", text }, …] 2–6 项；判断题固定 A 正确 / B 错误
+  options     Json
+  /// 已排序的字母串，如 "B" / "ABC"
+  answer      String
+  explanation String[]
+  difficulty  Difficulty       @default(MEDIUM)
+  source      String
+  published   Boolean          @default(true)
+  category    QuestionCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  attempts    Attempt[]
+  wrongBook   WrongBookEntry[]
+
+  @@index([categoryId, sortOrder])
+}
+
+model Attempt {
+  id         String   @id @default(cuid())
+  userId     String
+  questionId String
+  picked     String
+  correct    Boolean
+  answeredAt DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@index([userId, answeredAt])
+  @@index([questionId])
+}
+
+model WrongBookEntry {
+  userId       String
+  questionId   String
+  nextReviewAt DateTime
+  mastered     Boolean  @default(false)
+  addedAt      DateTime @default(now())
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  question     Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@id([userId, questionId])
+}

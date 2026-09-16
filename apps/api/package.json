@@ -1,0 +1,47 @@
+{
+  "name": "job-hunt-back",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@12.4.1",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome check .",
+    "format": "biome format --write .",
+    "test": "vitest run",
+    "db:up": "docker compose up -d",
+    "db:migrate": "prisma migrate dev",
+    "db:seed": "prisma db seed",
+    "db:import": "tsx scripts/import-jobs.ts",
+    "db:import-questions": "tsx scripts/import-questions.ts",
+    "set-plan": "tsx scripts/set-plan.ts",
+    "postinstall": "prisma generate",
+    "openapi": "tsx scripts/openapi.ts",
+    "openapi:check": "pnpm openapi && git diff --exit-code -- openapi.json",
+    "pretest": "pnpm openapi:check"
+  },
+  "dependencies": {
+    "@hono/node-server": "^2.1.1",
+    "@hono/swagger-ui": "^0.6.1",
+    "@hono/zod-openapi": "^1.6.3",
+    "@prisma/adapter-pg": "^7.10.0",
+    "@prisma/client": "^7.10.0",
+    "dotenv": "^17.4.2",
+    "exceljs": "^4.4.0",
+    "hono": "^4.13.0",
+    "zod": "^4.5.4"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.13",
+    "@types/node": "^22",
+    "prisma": "^7.10.0",
+    "tsx": "^4.23.13",
+    "typescript": "7.0.2",
+    "vitest": "^5.0.0"
+  }
+}
