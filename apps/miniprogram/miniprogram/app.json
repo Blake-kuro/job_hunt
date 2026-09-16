@@ -1,1 +1,20 @@
-{"pages":["pages/index/index","pages/quiz/quiz","pages/wrong/wrong","pages/login/login"],"window":{"navigationBarTitleText":"职寻刷题","navigationBarBackgroundColor":"#f4f1e8","navigationBarTextStyle":"black","backgroundColor":"#f4f1e8"},"tabBar":{"color":"#77736a","selectedColor":"#315f59","backgroundColor":"#fffdf7","borderStyle":"black","list":[{"pagePath":"pages/index/index","text":"刷题"},{"pagePath":"pages/wrong/wrong","text":"错题本"}]},"sitemapLocation":"sitemap.json"}
+{
+  "pages": ["pages/index/index", "pages/quiz/quiz", "pages/wrong/wrong", "pages/login/login"],
+  "window": {
+    "navigationBarTitleText": "职寻",
+    "navigationBarBackgroundColor": "#f2f2f3",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#f2f2f3"
+  },
+  "tabBar": {
+    "color": "#5d5d60",
+    "selectedColor": "#416180",
+    "backgroundColor": "#e9e9ea",
+    "borderStyle": "black",
+    "list": [
+      { "pagePath": "pages/index/index", "text": "题库" },
+      { "pagePath": "pages/wrong/wrong", "text": "错题本" }
+    ]
+  },
+  "sitemapLocation": "sitemap.json"
+}

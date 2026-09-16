@@ -1,15 +1,68 @@
-<view class="page quiz-page">
-  <view wx:if="{{loading}}" class="loading"><view class="loader"></view><text>正在准备题目</text></view>
-  <view wx:elif="{{error && !today}}" class="empty-state"><view class="error">{{error}}</view><button class="btn" bindtap="next">重试</button><button class="btn btn-light back" bindtap="back">返回题库</button></view>
-  <view wx:elif="{{!today.question}}" class="empty-state"><view class="empty-ring"><text>✓</text></view><view class="title">{{today.exhausted==='QUOTA'?'累计作答额度已用完':'该分类已全部答完'}}</view><view class="muted">{{today.exhausted==='QUOTA'?'请登录提升额度或联系管理员开通权限，额度不会每日重置。':'选择其他分类继续练习吧。'}}</view><button class="btn btn-light back" bindtap="back">返回题库</button></view>
+<view class="page quiz">
+  <view wx:if="{{loading}}" class="empty">正在加载题目…</view>
+
+  <view wx:elif="{{error && !today}}" class="state">
+    <view class="error">{{error}}</view>
+    <button class="btn" bindtap="next">重试</button>
+    <button class="btn btn-secondary" bindtap="back">返回题库</button>
+  </view>
+
+  <view wx:elif="{{!today.question}}" class="state">
+    <view class="crumb"><text class="crumb-link" bindtap="back">题库</text><text class="crumb-sep">›</text><text>{{today.category.company}} · {{today.category.name}}</text></view>
+    <block wx:if="{{today.exhausted==='QUOTA'}}">
+      <view class="banner">
+        <view class="banner-title">{{quotaTier==='GUEST' ? '未登录只能作答 20 道题' : '免费账号可作答 200 道题'}}</view>
+        <view class="banner-body">{{quotaTier==='GUEST' ? '已用完，登录后可作答 200 道。' : '已用完，升级 PRO 不限次数（公司注册中，请到网页版 /pro 查看开通方式）。'}}</view>
+        <button wx:if="{{quotaTier==='GUEST'}}" class="btn" bindtap="login">登录</button>
+      </view>
+    </block>
+    <block wx:else>
+      <view class="kicker accent">本题库</view>
+      <view class="h2">已全部答完</view>
+      <view class="muted">共 {{today.category.total}} 题，去错题本复习一下吧。</view>
+    </block>
+    <button class="btn btn-secondary" bindtap="back">返回题库</button>
+  </view>
+
   <block wx:else>
-    <view class="quiz-top"><view class="counter">{{today.category.company}} · {{today.index}} / {{today.category.total}}</view><view class="close" bindtap="back">×</view></view>
-    <view class="meta"><text class="tag">{{today.question.category}}</text><text class="difficulty">{{today.question.type==='MULTI'?'多选题':today.question.type==='JUDGE'?'判断题':'单选题'}} · {{today.question.difficulty}}</text></view>
-    <view class="question-card card"><view class="question-no">{{today.question.section || 'QUESTION'}}</view><view class="question">{{today.question.prompt}}</view><view class="source">来源 · {{today.question.source}}</view></view>
-    <view class="hint">{{today.question.type==='MULTI'?'选择所有正确答案（可多选）':'选择一个正确答案'}}</view>
-    <view class="options"><view wx:for="{{options}}" wx:key="letter" class="option {{item.selected?'picked':''}} {{item.right?'right':''}} {{item.wrong?'wrong':''}}" data-letter="{{item.letter}}" bindtap="pick"><text class="letter">{{item.letter}}</text><text class="option-text">{{item.text}}</text><text class="check">{{item.right?'✓':item.selected?'●':''}}</text></view></view>
-    <button wx:if="{{!result}}" class="btn submit-answer" disabled="{{!picked.length || submitting}}" loading="{{submitting}}" bindtap="submit">确认答案</button>
-    <view wx:else class="result card"><view class="result-head"><view class="result-icon {{result.correct?'ok-bg':'bad-bg'}}">{{result.correct?'✓':'!'}}</view><view><view class="result-title {{result.correct?'ok':'bad'}}">{{result.correct?'回答正确':'回答错误 · 已加入错题本'}}</view><view class="answer">正确答案是 {{answerText}}</view></view></view><view class="divider"></view><view class="analysis-label">答案解析</view><view wx:for="{{result.explanation}}" wx:key="*this" class="explain"><text class="bullet">{{index+1}}</text><text>{{item}}</text></view><button class="btn next" bindtap="next">下一题 →</button></view>
+    <view class="crumb"><text class="crumb-link" bindtap="back">题库</text><text class="crumb-sep">›</text><text>{{today.category.company}} · {{today.category.name}}</text></view>
+    <view class="meta">
+      <text class="index num">第 {{today.index}} / {{today.category.total}} 题</text>
+      <text class="tag tag-accent">{{typeLabel}}</text>
+      <text wx:if="{{today.question.section}}" class="tag">{{today.question.section}}</text>
+      <text class="tag">{{today.question.difficulty}}</text>
+    </view>
+    <view class="prompt">{{today.question.prompt}}</view>
+    <view class="hint muted">{{today.question.type==='MULTI'?'多选题：选出所有正确答案，再点击确认':today.question.type==='JUDGE'?'判断题：选择正确或错误':'单选题：选择一个答案'}}</view>
+
+    <view class="options">
+      <view wx:for="{{options}}" wx:key="letter" class="option {{item.selected?'picked':''}} {{item.right?'right':''}} {{item.wrong?'wrong':''}}" data-letter="{{item.letter}}" bindtap="pick">
+        <text class="letter">{{item.letter}}</text>
+        <text class="option-text">{{item.text}}</text>
+        <text class="mark">{{item.right?'正确答案':item.wrong?'你的选择':item.selected?'已选':''}}</text>
+      </view>
+    </view>
+
+    <view wx:if="{{!result}}" class="actions">
+      <button class="btn" disabled="{{!picked.length || submitting}}" loading="{{submitting}}" bindtap="submit">提交并查看答案</button>
+      <text class="muted num">{{picked.length ? '已选 ' + pickedText : '未作答'}}</text>
+    </view>
+
+    <view wx:else class="result">
+      <view class="hairline"></view>
+      <view class="result-head">
+        <view class="kicker {{result.correct?'accent':''}}">{{result.correct?'回答正确':'回答错误 · 已加入错题本'}}</view>
+        <text class="result-answer num">答案 {{answerText}}</text>
+        <text wx:if="{{result.accuracyRate!==null}}" class="muted num">全站正确率 {{result.accuracyRate}}%</text>
+      </view>
+      <view wx:if="{{result.explanation.length}}" class="explain">
+        <view class="kicker">解析</view>
+        <view wx:for="{{result.explanation}}" wx:key="*this" class="explain-item"><text class="bullet num">{{index+1}}</text><text>{{item}}</text></view>
+      </view>
+      <button class="btn" bindtap="next">下一题</button>
+    </view>
+
     <view wx:if="{{error}}" class="error">{{error}}</view>
+    <text class="source muted">来源 · {{today.question.source}}</text>
   </block>
 </view>

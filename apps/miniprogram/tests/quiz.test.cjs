@@ -11,11 +11,11 @@ function page(name, request) {
   const file = path.join(__dirname, `../miniprogram/pages/${name}/${name}.ts`);
   const source = fs
     .readFileSync(file, "utf8")
-    .replace(/^import \{ request \} from "..\/..\/utils\/request";/m, 'const { request } = require("request");');
+    .replace(/^import \{([^}]*)\} from "..\/..\/utils\/request";/m, 'const {$1} = require("request");');
   const js = stripTypeScriptTypes(source);
   vm.runInNewContext(js, {
     exports: {},
-    require: () => ({ request }),
+    require: () => ({ request, clearCookies() {} }),
     Page: (p) => {
       instance = p;
     },

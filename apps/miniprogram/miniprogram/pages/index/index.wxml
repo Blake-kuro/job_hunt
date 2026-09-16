@@ -1,1 +1,63 @@
-<view class="page home"><view class="hero"><view class="orb orb-one"></view><view class="orb orb-two"></view><view class="hero-top"><view class="brand-mark">职</view><view class="brand">职寻刷题<text> CAMPUS</text></view><view class="status-dot"></view></view><view class="hero-copy"><view class="eyebrow">DAILY PRACTICE</view><view class="hero-title">今天，也向目标<text>靠近一点。</text></view><view class="hero-sub">每天专注一道题，把准备变成确定感。</view></view></view><view wx:if="{{error}}" class="error">{{error}}</view><view wx:if="{{dashboard}}" class="content"><view class="section-head"><text>学习概览</text><text class="date-label">本周</text></view><view class="stats"><view class="stat card"><view class="stat-icon fire">↗</view><view><text class="stat-value">{{dashboard.streakDays}}</text><text class="stat-unit">天</text><view class="stat-label">连续打卡</view></view></view><view class="stat card"><view class="stat-icon total">✓</view><view><text class="stat-value">{{dashboard.totalSolved}}</text><text class="stat-unit">题</text><view class="stat-label">累计完成</view></view></view></view><view class="week card"><view class="week-top"><view><view class="week-title">本周节奏</view><view class="week-caption">已完成 {{dashboard.weekSolved}} / {{dashboard.weekTarget}} 题</view></view><view class="week-score">{{dashboard.weekSolved}}</view></view><view class="progress"><view class="progress-fill" style="width: {{dashboard.weekSolved/dashboard.weekTarget*100}}%"></view></view><view class="days"><view wx:for="{{dashboard.week}}" wx:key="label" class="day {{item.done?'done':''}}"><view class="day-dot">{{item.done?'✓':''}}</view><text>{{item.label}}</text></view></view></view><button wx:if="{{dashboard.quota.tier==='GUEST'}}" class="btn btn-light login-btn" bindtap="login">手机号登录 · 开通专属题库</button><view class="section-head"><text>公司题库</text></view><view wx:if="{{loading}}" class="muted">加载中…</view><view wx:elif="{{banks && !banks.companies.length}}" class="muted">暂无可见题库，请联系管理员开通。</view><view wx:for="{{banks.companies}}" wx:for-item="company" wx:key="id" class="card"><view class="week-title">{{company.name}}</view><button wx:for="{{company.categories}}" wx:for-item="category" wx:key="id" class="btn btn-light start-btn" data-category-id="{{category.id}}" bindtap="start">{{category.name}} · 已答 {{category.answered}} / {{category.total}} →</button></view><view class="access"><view class="access-dot"></view><text>{{dashboard.quota.tier}} 档位 · 累计作答 {{dashboard.quota.used}} / {{dashboard.quota.limit===null?'不限':dashboard.quota.limit}} 题，非每日额度</text></view></view></view>
+<view class="page">
+  <view class="brand">
+    <view class="brand-sq"></view>
+    <text class="brand-name">职寻</text>
+    <text class="brand-sub">CAMPUS</text>
+    <text wx:if="{{dashboard}}" class="brand-right num">连续打卡 {{dashboard.streakDays}} 天</text>
+  </view>
+
+  <view class="head">
+    <view class="kicker">题库</view>
+    <view class="h1">选择公司与分类，按顺序刷题</view>
+    <view wx:if="{{dashboard}}" class="muted num">累计作答 {{dashboard.quota.used}} / {{quotaLimit}} 题 · {{tierLabel}}</view>
+  </view>
+
+  <view wx:if="{{error}}" class="error">{{error}}</view>
+
+  <view wx:if="{{quotaExhausted}}" class="banner">
+    <view class="banner-title">{{tier==='GUEST' ? '未登录只能作答 '+dashboard.quota.limit+' 道题' : '免费账号可作答 '+dashboard.quota.limit+' 道题'}}</view>
+    <view class="banner-body">{{tier==='GUEST' ? '已用完，登录后可作答 '+freeQuestions+' 道。' : '已用完，升级 PRO 不限次数（公司注册中，请到网页版 /pro 查看开通方式）。'}}</view>
+    <button wx:if="{{tier==='GUEST'}}" class="btn" bindtap="login">登录</button>
+  </view>
+
+  <view wx:if="{{dashboard}}" class="card dash">
+    <view class="kicker">打卡仪表盘</view>
+    <view class="streak"><text class="streak-n num">{{dashboard.streakDays}}</text><text class="streak-u">天连续</text></view>
+    <view class="week">
+      <view wx:for="{{dashboard.week}}" wx:key="label" class="day">
+        <view class="day-box {{item.done?'done':''}}"></view>
+        <text class="day-label">{{item.label}}</text>
+      </view>
+    </view>
+    <view class="dash-foot num">
+      <text>本周 {{dashboard.weekSolved}} / {{dashboard.weekTarget}} 题</text>
+      <text>累计 {{dashboard.totalSolved}} 题</text>
+    </view>
+  </view>
+
+  <view wx:if="{{loading && !companies.length}}" class="muted loading">正在加载题库…</view>
+  <view wx:elif="{{!loading && !companies.length && !error}}" class="empty">还没有题库</view>
+
+  <view wx:for="{{companies}}" wx:for-item="company" wx:key="id" class="company">
+    <view class="kicker">{{company.name}}</view>
+    <view wx:for="{{company.categories}}" wx:for-item="category" wx:key="id" class="cat-row">
+      <view class="cat-main">
+        <view class="cat-name">{{category.name}}</view>
+        <view class="cat-meta num">已答 {{category.answered}} / 共 {{category.total}} · 答对 {{category.correct}}</view>
+        <view class="bar"><view class="bar-fill" style="width:{{category.pct}}%"></view></view>
+      </view>
+      <button class="btn btn-sm {{category.answered>0 && category.answered<category.total ? '' : 'btn-secondary'}}" disabled="{{category.disabled}}" data-category-id="{{category.id}}" bindtap="start">{{category.label}}</button>
+    </view>
+  </view>
+
+  <view wx:if="{{dashboard}}" class="account">
+    <block wx:if="{{tier==='GUEST'}}">
+      <text class="muted">登录后作答记录会保存在同一个账号里</text>
+      <button class="btn btn-secondary btn-sm" bindtap="login">登录</button>
+    </block>
+    <block wx:else>
+      <text class="muted">{{tierLabel}}</text>
+      <button class="btn btn-ghost btn-sm" bindtap="logout">退出登录</button>
+    </block>
+  </view>
+</view>

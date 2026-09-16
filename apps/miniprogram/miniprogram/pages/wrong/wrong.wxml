@@ -1,1 +1,27 @@
-<view class="page wrong-page"><view class="wrong-hero"><view class="hero-row"><view><view class="kicker">REVIEW & GROW</view><view class="title">错题本</view></view><view class="count"><text>{{items.length}}</text><view>待复习</view></view></view><view class="muted">错题不是失误，是下一次答对的路标。</view></view><view wx:if="{{error}}" class="error">{{error}}</view><view wx:if="{{!items.length&&!loading}}" class="empty card"><view class="empty-icon">✓</view><view class="empty-title">今天没有待复习错题</view><view class="muted">保持住，你正在稳步前进。</view></view><view class="list"><view wx:for="{{items}}" wx:key="questionId" class="item card"><view class="item-top"><view class="number">{{index<9?'0':''}}{{index+1}}</view><view class="due"><view class="due-dot"></view>{{item.due}}</view></view><view class="item-title">{{item.title}}</view><view class="item-bottom"><text>错题回顾</text><button class="master" data-id="{{item.questionId}}" bindtap="master">已掌握 <text>✓</text></button></view></view></view></view>
+<view class="page">
+  <view class="brand">
+    <view class="brand-sq"></view>
+    <text class="brand-name">职寻</text>
+    <text class="brand-sub">CAMPUS</text>
+    <text class="brand-right num">待复习 {{items.length}}</text>
+  </view>
+  <view class="head">
+    <view class="kicker">错题本 · 复习队列</view>
+    <view class="h1">答错的题，按到期日排队</view>
+    <view class="muted">标记「已掌握」后会从队列移除；再次答错会重新加入。</view>
+  </view>
+
+  <view wx:if="{{error}}" class="error">{{error}}</view>
+  <view wx:if="{{loading && !items.length}}" class="empty">正在加载…</view>
+  <view wx:elif="{{!items.length}}" class="empty">暂无错题</view>
+
+  <view class="list">
+    <view wx:for="{{items}}" wx:key="questionId" class="item">
+      <view class="item-main">
+        <view class="item-top"><text class="item-no num">{{index<9?'0':''}}{{index+1}}</text><text class="tag">{{item.due}}</text></view>
+        <view class="item-title">{{item.title}}</view>
+      </view>
+      <button class="btn btn-secondary btn-sm" disabled="{{saving===item.questionId}}" data-id="{{item.questionId}}" bindtap="master">已掌握</button>
+    </view>
+  </view>
+</view>

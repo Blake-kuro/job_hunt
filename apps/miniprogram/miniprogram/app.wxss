@@ -1,1 +1,63 @@
-page{background:#f5f6f1;color:#192521;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif;font-size:28rpx}.page{min-height:100vh;padding:32rpx 32rpx calc(48rpx + env(safe-area-inset-bottom));box-sizing:border-box}.card{background:rgba(255,255,255,.94);border:1rpx solid rgba(36,76,70,.1);border-radius:28rpx;box-shadow:0 12rpx 40rpx rgba(30,55,48,.07)}.kicker{font-size:20rpx;letter-spacing:5rpx;color:#3c756a;font-weight:700}.title{margin:16rpx 0;font-size:54rpx;font-weight:750;line-height:1.18;letter-spacing:-2rpx}.muted{color:#748079;font-size:25rpx;line-height:1.75}.btn{height:96rpx;line-height:96rpx;border-radius:48rpx;background:linear-gradient(135deg,#376f65,#28574f);box-shadow:0 14rpx 30rpx rgba(40,87,79,.22);color:#fff;font-size:29rpx;font-weight:650;letter-spacing:1rpx}.btn::after{border:0}.btn[disabled]{background:#b9c4bf;box-shadow:none;color:#eef1ef}.btn-light{background:#e6efeb;box-shadow:none;color:#28574f}.error{margin:24rpx 0;padding:22rpx 24rpx;border-radius:16rpx;background:#fff0ed;color:#a13f36;font-size:24rpx}.empty{padding:120rpx 32rpx;text-align:center;color:#748079}.tag{display:inline-flex;padding:9rpx 17rpx;border-radius:20rpx;background:#e1eee9;color:#2f695e;font-size:20rpx;font-weight:650}
+/* Industry 设计系统（与 apps/web 的 tokens.css 对齐）：冷灰底、钢蓝强调、直角、细分隔线 */
+page {
+  --bg: #f2f2f3;
+  --surface: #e9e9ea;
+  --text: #1d1f20;
+  --accent: #5980a6;
+  --accent-100: #eef6ff;
+  --accent-200: #d6ebff;
+  --accent-400: #94bce3;
+  --accent-700: #416180;
+  --accent-900: #1d2d3d;
+  --n500: #98989b;
+  --n600: #7a7a7d;
+  --n700: #5d5d60;
+  --n800: #424244;
+  --divider: rgba(29, 31, 32, 0.16);
+  --hairline: rgba(29, 31, 32, 0.08);
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  font-size: 28rpx;
+  line-height: 1.55;
+}
+.page { min-height: 100vh; padding: 32rpx 32rpx calc(64rpx + env(safe-area-inset-bottom)); box-sizing: border-box; }
+
+/* 品牌行：■ 职寻 CAMPUS */
+.brand { display: flex; align-items: center; height: 56rpx; }
+.brand-sq { width: 20rpx; height: 20rpx; margin-right: 14rpx; background: var(--accent); }
+.brand-name { font-size: 34rpx; font-weight: 700; letter-spacing: -1rpx; }
+.brand-sub { margin-left: 10rpx; color: var(--accent-700); font-size: 18rpx; letter-spacing: 5rpx; }
+.brand-right { margin-left: auto; color: var(--n700); font-size: 22rpx; }
+
+.kicker { color: var(--n700); font-size: 20rpx; font-weight: 600; letter-spacing: 4rpx; text-transform: uppercase; }
+.kicker.accent { color: var(--accent-700); }
+.h1 { margin-top: 12rpx; font-size: 56rpx; font-weight: 700; line-height: 1.12; letter-spacing: -2rpx; }
+.h2 { font-size: 40rpx; font-weight: 700; line-height: 1.2; letter-spacing: -1rpx; }
+.muted { color: var(--n700); font-size: 24rpx; line-height: 1.7; }
+.num { font-variant-numeric: tabular-nums; }
+
+.card { padding: 28rpx; border: 1rpx solid var(--divider); background: var(--surface); }
+.hairline { height: 1rpx; background: var(--hairline); }
+
+/* 按钮：直角、加粗、无圆角 */
+.btn { display: flex; width: 100%; margin: 0; box-sizing: border-box; align-items: center; justify-content: center; height: 88rpx; padding: 0 32rpx; border: 2rpx solid var(--accent); border-radius: 0; background: var(--accent); color: var(--bg); font-size: 28rpx; font-weight: 600; line-height: 1; }
+.btn::after { border: 0; }
+.button-hover { opacity: 0.8; }
+.btn[disabled] { opacity: 0.45; color: var(--bg); background: var(--accent); }
+.btn-secondary { border-color: var(--divider); background: transparent; color: var(--text); }
+.btn-secondary[disabled] { background: transparent; color: var(--text); }
+.btn-sm { width: auto; height: 60rpx; padding: 0 22rpx; font-size: 24rpx; }
+.btn-ghost { border-color: transparent; background: transparent; color: var(--accent-700); }
+
+.tag { display: inline-flex; align-items: center; height: 40rpx; padding: 0 14rpx; border: 1rpx solid var(--divider); color: var(--n800); font-size: 20rpx; line-height: 1; }
+.tag-accent { border-color: var(--accent); background: var(--accent-100); color: var(--accent-700); }
+
+.error { margin: 20rpx 0; padding: 16rpx 20rpx; border-left: 4rpx solid #b91c1c; background: #fef2f2; color: #b91c1c; font-size: 24rpx; }
+.empty { padding: 96rpx 32rpx; text-align: center; color: var(--n700); font-size: 26rpx; }
+
+/* 配额 / 登录提示条（对应 web 的 AccessBanner） */
+.banner { margin-top: 24rpx; padding: 24rpx 28rpx; border: 1rpx solid var(--accent-400); background: var(--accent-100); }
+.banner-title { font-size: 28rpx; font-weight: 700; }
+.banner-body { margin-top: 6rpx; color: var(--n700); font-size: 24rpx; }
+.banner .btn { margin-top: 20rpx; }

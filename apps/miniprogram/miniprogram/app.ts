@@ -1,1 +1,1 @@
-App({ globalData: { cookie: wx.getStorageSync("sessionCookie") || "" } });
+App({});
