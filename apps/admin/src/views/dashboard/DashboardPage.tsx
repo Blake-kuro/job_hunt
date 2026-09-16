@@ -14,6 +14,7 @@ export function DashboardPage() {
         <StatCard label="已启用" value={s.enabledStudents} hint="未被停用的学生" />
         <StatCard label="游客" value={s.guests} hint="未绑定手机号的会话" />
         <StatCard label="岗位" value={s.jobs} to="/jobs" />
+        <StatCard label="公司" value={s.companies} hint="题库按公司划分" to="/questions" />
         <StatCard label="题目" value={s.questions} to="/questions" />
         <StatCard label="已发布题目" value={s.publishedQuestions} to="/questions" />
         <StatCard label="资料" value={s.materials} to="/materials" />

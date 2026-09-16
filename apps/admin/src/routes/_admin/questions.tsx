@@ -7,7 +7,10 @@ import { QuestionsPage } from "@views/questions/QuestionsPage";
 /** 与后端 listAdminQuestions 的 query 同步；只用于 validateSearch */
 const searchSchema = z.object({
   q: z.coerce.string().trim().min(1).optional(),
+  companyId: z.string().trim().min(1).optional(),
   categoryId: z.string().trim().min(1).optional(),
+  type: z.enum(["SINGLE", "MULTI", "JUDGE"]).optional(),
+  section: z.coerce.string().trim().min(1).optional(),
   published: z.boolean().optional(),
   page: z.number().int().min(1).default(1),
 });

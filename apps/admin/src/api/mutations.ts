@@ -3,6 +3,9 @@ import { client, unwrap } from "./client";
 import type {
   AdminAccessBody,
   AdminCategoryBody,
+  AdminCategoryPatch,
+  AdminCompanyBody,
+  AdminCompanyPatch,
   AdminContentBody,
   AdminJobBody,
   AdminJobPatch,
@@ -12,14 +15,6 @@ import type {
 } from "./types";
 
 type AdminResource = "summary" | "students" | "materials" | "courses" | "quiz-meta" | "questions" | "jobs";
-
-export function useCreateCompany() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (body: { name: string }) => unwrap(client.POST("/api/admin/companies", { body })),
-    onSuccess: () => invalidate(qc, "quiz-meta"),
-  });
-}
 
 /** 写操作成功后失效相关资源的列表缓存 */
 function invalidate(qc: QueryClient, ...resources: AdminResource[]) {
@@ -116,11 +111,81 @@ export function useDeleteQuestion() {
   });
 }
 
+// ---- 公司 / 分类 ----
+
+/** 公司 / 分类的增删改都会影响题目列表（companyName / categoryName）与概览计数 */
+const BANK_RESOURCES: AdminResource[] = ["quiz-meta", "questions", "summary"];
+
+export function useCreateCompany() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: AdminCompanyBody) => unwrap(client.POST("/api/admin/companies", { body })),
+    onSuccess: () => invalidate(qc, ...BANK_RESOURCES),
+  });
+}
+
+export function usePatchCompany() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, body }: { id: string; body: AdminCompanyPatch }) =>
+      unwrap(client.PATCH("/api/admin/companies/{id}", { params: { path: { id } }, body })),
+    onSuccess: () => invalidate(qc, ...BANK_RESOURCES),
+  });
+}
+
+/** 删除公司会级联删除其下分类、题目及作答 / 错题记录 */
+export function useDeleteCompany() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => unwrap(client.DELETE("/api/admin/companies/{id}", { params: { path: { id } } })),
+    onSuccess: () => invalidate(qc, ...BANK_RESOURCES, "students"),
+  });
+}
+
 export function useCreateCategory() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (body: AdminCategoryBody) => unwrap(client.POST("/api/admin/question-categories", { body })),
-    onSuccess: () => invalidate(qc, "quiz-meta"),
+    onSuccess: () => invalidate(qc, ...BANK_RESOURCES),
+  });
+}
+
+export function usePatchCategory() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, body }: { id: string; body: AdminCategoryPatch }) =>
+      unwrap(client.PATCH("/api/admin/question-categories/{id}", { params: { path: { id } }, body })),
+    onSuccess: () => invalidate(qc, ...BANK_RESOURCES),
+  });
+}
+
+/** 删除分类会级联删除其下题目及作答 / 错题记录 */
+export function useDeleteCategory() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      unwrap(client.DELETE("/api/admin/question-categories/{id}", { params: { path: { id } } })),
+    onSuccess: () => invalidate(qc, ...BANK_RESOURCES, "students"),
+  });
+}
+
+/** 把 xlsx 导入到指定分类；multipart 组装方式同 useImportJobs */
+export function useImportQuestions() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ categoryId, file }: { categoryId: string; file: File }) =>
+      unwrap(
+        client.POST("/api/admin/question-categories/{id}/import", {
+          params: { path: { id: categoryId } },
+          body: { file } as unknown as { file: string },
+          bodySerializer: (b) => {
+            const fd = new FormData();
+            fd.append("file", b.file as unknown as File);
+            return fd;
+          },
+        }),
+      ),
+    onSuccess: () => invalidate(qc, ...BANK_RESOURCES),
   });
 }
 
