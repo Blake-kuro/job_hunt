@@ -15,7 +15,7 @@ interface FormDialogProps<TFieldValues extends FieldValues> {
   onSubmit: SubmitHandler<TFieldValues>;
   submitLabel?: string;
   cancelLabel?: string;
-  /** 提交中：禁用提交按钮，Esc / 遮罩 / ✕ 不关闭 */
+  /** 提交中：禁用提交按钮与 ✕，Esc / 遮罩不关闭 */
   pending?: boolean;
   /** 顶部 role="alert" 的错误信息（通常来自 mutation） */
   error?: string | null;
@@ -46,7 +46,7 @@ export function FormDialog<TFieldValues extends FieldValues>({
       }}
     >
       <DialogContent
-        showCloseButton={!pending}
+        closeDisabled={pending}
         onEscapeKeyDown={(event) => {
           if (pending) event.preventDefault();
         }}

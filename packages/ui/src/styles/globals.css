@@ -7,3 +7,16 @@
 @import "tw-animate-css";
 @import "./tokens.css";
 @source "../";
+
+/* dark: 只由 .dark class 驱动（shadcn 约定），不跟随系统偏好——应用目前无暗色模式 */
+@custom-variant dark (&:is(.dark *));
+
+@layer base {
+  /* shadcn 约定：裸 `border` 取 --border（= divider），outline 取 ring；否则 preflight 的 currentColor 会是黑框 */
+  *,
+  ::before,
+  ::after {
+    border-color: var(--color-border);
+    outline-color: color-mix(in oklab, var(--color-ring) 50%, transparent);
+  }
+}

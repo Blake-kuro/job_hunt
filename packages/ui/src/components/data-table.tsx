@@ -54,7 +54,7 @@ export function DataTable<T>({
         </ul>
       )}
 
-      <div className={cn(renderCard && "hidden lg:block")}>
+      <div className={cn("px-4 pb-6 sm:px-8", renderCard && "hidden lg:block")}>
         <Table className={cn("table-fixed border-collapse", minWidthClassName)}>
           <TableCaption className="sr-only">{caption}</TableCaption>
           {hasWidths && (
@@ -88,7 +88,7 @@ export function DataTable<T>({
                   <TableCell
                     key={col.id}
                     className={cn(
-                      "h-[62px] px-0 pr-3.5 align-middle whitespace-normal",
+                      "h-[62px] p-0 pr-3.5 align-middle whitespace-normal",
                       col.align === "right" ? "text-right" : "text-left",
                     )}
                   >

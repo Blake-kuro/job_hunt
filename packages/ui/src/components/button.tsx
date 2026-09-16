@@ -57,7 +57,8 @@ function Button({
       className={cn(buttonVariants({ variant, size }), blueprint && "blueprint", className)}
       {...props}
     >
-      {children}
+      {/* asChild 时 Slot 只能有一个可替换子元素：children 用 Slottable 标记，角标留在外面 */}
+      <Slot.Slottable>{children}</Slot.Slottable>
       {blueprint && (
         <>
           <i className="corner tl" />
