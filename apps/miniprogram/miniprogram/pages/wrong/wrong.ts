@@ -1,0 +1,2 @@
+import { request } from "../../utils/request";
+Page({data:{items:[] as any[],loading:true,error:""},onShow(){this.load()},async load(){this.setData({loading:true});try{const r=await request<any>("/quiz/wrong-book");this.setData({items:r.items,error:""})}catch(e:any){this.setData({error:e.message})}finally{this.setData({loading:false})}},async master(e:any){try{await request(`/quiz/wrong-book/${e.currentTarget.dataset.id}`,"PUT",{mastered:true});wx.showToast({title:"已掌握",icon:"success"});this.load()}catch(e:any){this.setData({error:e.message})}}});
