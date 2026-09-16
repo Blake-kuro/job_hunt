@@ -1,0 +1,26 @@
+{
+  "name": "@job-hunt/api-client",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./client": "./src/client.ts",
+    "./types": "./src/types.ts"
+  },
+  "scripts": {
+    "gen:api": "pnpm dlx openapi-typescript@7 \"${OPENAPI_SOURCE:-../../apps/api/openapi.json}\" -o src/schema.d.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome check .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "openapi-fetch": "^0.17.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.13",
+    "@types/node": "^22",
+    "hono": "^4.13.0",
+    "typescript": "7.0.2",
+    "vitest": "^5.0.0"
+  }
+}

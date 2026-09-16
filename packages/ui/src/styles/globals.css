@@ -1,0 +1,9 @@
+/* @job-hunt/ui 全局样式：Tailwind + Industry 令牌 + shadcn 变量映射。
+   应用侧 globals.css 只需 `@import "@job-hunt/ui/styles/globals.css";` 再定义字体变量
+   （--font-barlow / --font-barlow-condensed，字体文件由各应用 index.html 加载）。
+   @source 让包内组件用到的类名被应用的 Tailwind 扫描到。
+   body / 标题 / 焦点环等 @layer base 与 .blueprint 角标规则随 tokens.css 一并引入。 */
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "./tokens.css";
+@source "../";

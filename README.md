@@ -8,6 +8,15 @@
 | `apps/api` | Hono / Prisma / PostgreSQL 后端 | 3001 |
 | `apps/admin` | React 管理后台 | 5174 |
 | `apps/miniprogram` | 微信原生小程序 | 微信开发者工具 |
+| `packages/ui` | `@job-hunt/ui`：设计令牌 + shadcn/ui 组件 + hooks | — |
+| `packages/api-client` | `@job-hunt/api-client`：OpenAPI 生成类型 + fetch 客户端 | — |
+
+## packages/
+
+两个 workspace 包都是源码包（`exports` 直指 `src/`，不构建），Vite / tsc 直接消费；只在根目录安装依赖。
+
+- `@job-hunt/ui`：`styles/tokens.css`（Industry 令牌 + shadcn 变量映射）、`styles/globals.css`、shadcn 组件（`components/button`、`badge`、`input`、`textarea`、`label`、`checkbox`、`radio-group`、`select`、`dialog`、`form`、`table`、`separator`、`alert`）、自定义组件（`kicker`、`stat-card`、`pagination`、`progress-bar`、`data-table`、`form-dialog`、`error-panel`、`segmented`）与 hooks（`hooks/use-debounced-search`、`use-debounced-value`）。应用里 `import { Button } from "@job-hunt/ui/components/button"`，样式入口 `@import "@job-hunt/ui/styles/globals.css"`。新增 shadcn 组件在 `packages/ui` 下 `pnpm dlx shadcn@latest add <name>`，生成后把 `@/lib/utils` 改成相对路径并跑 `biome check --write`。
+- `@job-hunt/api-client`：`client`（`client / unwrap / ApiError`）与 `types`（DTO 别名），`src/schema.d.ts` 由 `pnpm gen:api` 生成并提交。
 
 ## 开发
 
@@ -38,11 +47,11 @@ pnpm build
 pnpm gen:api
 ```
 
-`typecheck` 和 `test` 覆盖四个应用；`lint` 覆盖 Web、API、Admin；`build` 构建两个 Web 应用。API 使用 tsx 运行，小程序使用微信开发者工具编译；小程序页面逻辑另有 Node 回归测试，不替代开发者工具和真机验收。
+`typecheck` 和 `test` 覆盖四个应用与两个包；`lint` 覆盖 Web、API、Admin 与两个包；`build` 构建两个 Web 应用。API 使用 tsx 运行，小程序使用微信开发者工具编译；小程序页面逻辑另有 Node 回归测试，不替代开发者工具和真机验收。
 
 API 集成测试要求后端 `.env` 设置独立的 `TEST_DATABASE_URL`，数据库名必须以 `_test` 结尾，未配置时数据库测试会跳过。先对测试库执行迁移；不要使用开发或生产数据库。
 
-根目录 `pnpm gen:api` 先生成 `apps/api/openapi.json`，再更新学生端、管理端的 `src/api/schema.d.ts` 和小程序的 `miniprogram/api/schema.d.ts`。类型文件不得手改。单端可运行 `pnpm --filter <包名> gen:api`；支持 `OPENAPI_SOURCE` 覆盖输入。
+根目录 `pnpm gen:api` 先生成 `apps/api/openapi.json`，再更新 `packages/api-client/src/schema.d.ts` 和小程序的 `miniprogram/api/schema.d.ts`（学生端、管理端仍各自保留 `src/api/schema.d.ts` 与 `gen:api`，待迁移到 `@job-hunt/api-client` 后删除）。类型文件不得手改。单端可运行 `pnpm --filter <包名> gen:api`；支持 `OPENAPI_SOURCE` 覆盖输入。
 
 其他命令通过 `pnpm --filter <包名> <命令>` 执行，如 `pnpm --filter job-hunt-back db:import /absolute/path/岗位.xlsx`。仅维护根目录 workspace 与锁文件。
 
