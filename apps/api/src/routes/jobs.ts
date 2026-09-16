@@ -1,6 +1,5 @@
 import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
 import {
-  ApiErrorSchema,
   ApplicationBodySchema,
   ApplicationResultSchema,
   FavoriteResultSchema,
@@ -11,11 +10,10 @@ import {
 } from "../contract";
 import type { Env } from "../env";
 import { validationHook } from "../lib/errors";
+import { ERRORS, errorContent, jsonContent } from "../lib/route";
 import { getProgress, listJobs, setApplication, setFavorite } from "../services/jobs";
 
-const json = <S>(schema: S, description: string) => ({ description, content: { "application/json": { schema } } });
-const badRequest = json(ApiErrorSchema, "参数校验失败");
-const notFound = json(ApiErrorSchema, "岗位不存在");
+const notFound = errorContent("岗位不存在");
 
 const listJobsRoute = createRoute({
   method: "get",
@@ -23,7 +21,7 @@ const listJobsRoute = createRoute({
   tags: ["jobs"],
   operationId: "listJobs",
   request: { query: jobListQuerySchema },
-  responses: { 200: json(JobListResultSchema, "岗位列表"), 400: badRequest },
+  responses: { 200: jsonContent(JobListResultSchema, "岗位列表"), 400: ERRORS.badRequest },
 });
 
 const progressRoute = createRoute({
@@ -31,7 +29,7 @@ const progressRoute = createRoute({
   path: "/progress",
   tags: ["jobs"],
   operationId: "getJobProgress",
-  responses: { 200: json(JobProgressSchema, "我的进度") },
+  responses: { 200: jsonContent(JobProgressSchema, "我的进度") },
 });
 
 const addFavoriteRoute = createRoute({
@@ -40,7 +38,7 @@ const addFavoriteRoute = createRoute({
   tags: ["jobs"],
   operationId: "addFavorite",
   request: { params: IdParamSchema },
-  responses: { 200: json(FavoriteResultSchema, "已收藏"), 400: badRequest, 404: notFound },
+  responses: { 200: jsonContent(FavoriteResultSchema, "已收藏"), 400: ERRORS.badRequest, 404: notFound },
 });
 
 const removeFavoriteRoute = createRoute({
@@ -49,7 +47,7 @@ const removeFavoriteRoute = createRoute({
   tags: ["jobs"],
   operationId: "removeFavorite",
   request: { params: IdParamSchema },
-  responses: { 200: json(FavoriteResultSchema, "已取消收藏"), 400: badRequest, 404: notFound },
+  responses: { 200: jsonContent(FavoriteResultSchema, "已取消收藏"), 400: ERRORS.badRequest, 404: notFound },
 });
 
 const setApplicationRoute = createRoute({
@@ -61,7 +59,7 @@ const setApplicationRoute = createRoute({
     params: IdParamSchema,
     body: { required: true, content: { "application/json": { schema: ApplicationBodySchema } } },
   },
-  responses: { 200: json(ApplicationResultSchema, "投递状态"), 400: badRequest, 404: notFound },
+  responses: { 200: jsonContent(ApplicationResultSchema, "投递状态"), 400: ERRORS.badRequest, 404: notFound },
 });
 
 const clearApplicationRoute = createRoute({
@@ -70,7 +68,7 @@ const clearApplicationRoute = createRoute({
   tags: ["jobs"],
   operationId: "clearApplication",
   request: { params: IdParamSchema },
-  responses: { 200: json(ApplicationResultSchema, "已清除投递状态"), 400: badRequest, 404: notFound },
+  responses: { 200: jsonContent(ApplicationResultSchema, "已清除投递状态"), 400: ERRORS.badRequest, 404: notFound },
 });
 
 export const jobRoutes = new OpenAPIHono<Env>({ defaultHook: validationHook })

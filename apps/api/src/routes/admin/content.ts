@@ -1,34 +1,22 @@
 import { createRoute, z } from "@hono/zod-openapi";
-import {
-  AdminContentBodySchema,
-  AdminCourseSchema,
-  AdminMaterialSchema,
-  ApiErrorSchema,
-  IdResultSchema,
-} from "../../contract";
+import { AdminContentBodySchema, AdminCourseSchema, AdminMaterialSchema, IdResultSchema } from "../../contract";
 import { prisma } from "../../db";
-import { NotFoundError } from "../../lib/errors";
+import { ERRORS, jsonContent, orNotFound } from "../../lib/route";
 import { newAdminRouter } from "./guard";
-
-const err = { "application/json": { schema: ApiErrorSchema } };
 
 const listMaterials = createRoute({
   method: "get",
   path: "/materials",
   tags: ["admin"],
   operationId: "listAdminMaterials",
-  responses: {
-    200: { description: "全部资料", content: { "application/json": { schema: z.array(AdminMaterialSchema) } } },
-  },
+  responses: { 200: jsonContent(z.array(AdminMaterialSchema), "全部资料") },
 });
 const listCourses = createRoute({
   method: "get",
   path: "/courses",
   tags: ["admin"],
   operationId: "listAdminCourses",
-  responses: {
-    200: { description: "全部课程", content: { "application/json": { schema: z.array(AdminCourseSchema) } } },
-  },
+  responses: { 200: jsonContent(z.array(AdminCourseSchema), "全部课程") },
 });
 const saveContent = createRoute({
   method: "post",
@@ -36,10 +24,7 @@ const saveContent = createRoute({
   tags: ["admin"],
   operationId: "saveAdminContent",
   request: { body: { required: true, content: { "application/json": { schema: AdminContentBodySchema } } } },
-  responses: {
-    201: { description: "已保存", content: { "application/json": { schema: IdResultSchema } } },
-    404: { description: "不存在", content: err },
-  },
+  responses: { 201: jsonContent(IdResultSchema, "已保存"), 404: ERRORS.notFound },
 });
 const deleteContent = createRoute({
   method: "delete",
@@ -47,7 +32,7 @@ const deleteContent = createRoute({
   tags: ["admin"],
   operationId: "deleteAdminContent",
   request: { params: z.object({ type: z.enum(["MATERIAL", "COURSE"]), id: z.string() }) },
-  responses: { 204: { description: "已删除" }, 404: { description: "不存在", content: err } },
+  responses: { 204: { description: "已删除" }, 404: ERRORS.notFound },
 });
 
 export const contentRoutes = newAdminRouter()
@@ -94,8 +79,10 @@ export const contentRoutes = newAdminRouter()
     const b = c.req.valid("json");
     if (b.type === "MATERIAL") {
       if (b.id) {
-        const exists = await prisma.studyMaterial.findUnique({ where: { id: b.id }, select: { id: true } });
-        if (!exists) throw new NotFoundError(`资料 ${b.id} 不存在`);
+        orNotFound(
+          await prisma.studyMaterial.findUnique({ where: { id: b.id }, select: { id: true } }),
+          `资料 ${b.id} 不存在`,
+        );
       }
       const data = {
         title: b.title,
@@ -110,8 +97,7 @@ export const contentRoutes = newAdminRouter()
       return c.json({ id: saved.id }, 201);
     }
     if (b.id) {
-      const exists = await prisma.course.findUnique({ where: { id: b.id }, select: { id: true } });
-      if (!exists) throw new NotFoundError(`课程 ${b.id} 不存在`);
+      orNotFound(await prisma.course.findUnique({ where: { id: b.id }, select: { id: true } }), `课程 ${b.id} 不存在`);
     }
     const data = {
       title: b.title,
@@ -137,11 +123,9 @@ export const contentRoutes = newAdminRouter()
   .openapi(deleteContent, async (c) => {
     const { type, id } = c.req.valid("param");
     if (type === "MATERIAL") {
-      const exists = await prisma.studyMaterial.findUnique({ where: { id }, select: { id: true } });
-      if (!exists) throw new NotFoundError(`资料 ${id} 不存在`);
+      orNotFound(await prisma.studyMaterial.findUnique({ where: { id }, select: { id: true } }), `资料 ${id} 不存在`);
     } else {
-      const exists = await prisma.course.findUnique({ where: { id }, select: { id: true } });
-      if (!exists) throw new NotFoundError(`课程 ${id} 不存在`);
+      orNotFound(await prisma.course.findUnique({ where: { id }, select: { id: true } }), `课程 ${id} 不存在`);
     }
     await prisma.$transaction(async (tx) => {
       if (type === "MATERIAL") await tx.studyMaterial.delete({ where: { id } });

@@ -6,7 +6,6 @@ import {
   AdminJobListSchema,
   AdminJobPatchSchema,
   adminJobQuerySchema,
-  ApiErrorSchema,
   type CategoryId,
   IdParamSchema,
   IntIdResultSchema,
@@ -15,11 +14,11 @@ import {
 import { prisma } from "../../db";
 import type { Prisma } from "../../generated/prisma/client";
 import { dbDateToKey, keyToDate } from "../../lib/dates";
-import { AppError, NotFoundError } from "../../lib/errors";
+import { AppError } from "../../lib/errors";
 import { importWorkbook, WorkbookParseError } from "../../lib/import-jobs";
+import { ERRORS, errorContent, jsonContent, orNotFound } from "../../lib/route";
 import { newAdminRouter } from "./guard";
 
-const err = { "application/json": { schema: ApiErrorSchema } };
 const MAX_IMPORT_BYTES = 20 * 1024 * 1024;
 
 const listJobs = createRoute({
@@ -28,9 +27,7 @@ const listJobs = createRoute({
   tags: ["admin"],
   operationId: "listAdminJobs",
   request: { query: adminJobQuerySchema },
-  responses: {
-    200: { description: "岗位分页列表", content: { "application/json": { schema: AdminJobListSchema } } },
-  },
+  responses: { 200: jsonContent(AdminJobListSchema, "岗位分页列表") },
 });
 const createJob = createRoute({
   method: "post",
@@ -38,9 +35,7 @@ const createJob = createRoute({
   tags: ["admin"],
   operationId: "createAdminJob",
   request: { body: { required: true, content: { "application/json": { schema: AdminJobBodySchema } } } },
-  responses: {
-    201: { description: "已创建", content: { "application/json": { schema: IntIdResultSchema } } },
-  },
+  responses: { 201: jsonContent(IntIdResultSchema, "已创建") },
 });
 const updateJob = createRoute({
   method: "patch",
@@ -51,7 +46,7 @@ const updateJob = createRoute({
     params: IdParamSchema,
     body: { required: true, content: { "application/json": { schema: AdminJobPatchSchema } } },
   },
-  responses: { 204: { description: "已更新" }, 404: { description: "不存在", content: err } },
+  responses: { 204: { description: "已更新" }, 404: ERRORS.notFound },
 });
 const deleteJob = createRoute({
   method: "delete",
@@ -59,7 +54,7 @@ const deleteJob = createRoute({
   tags: ["admin"],
   operationId: "deleteAdminJob",
   request: { params: IdParamSchema },
-  responses: { 204: { description: "已删除" }, 404: { description: "不存在", content: err } },
+  responses: { 204: { description: "已删除" }, 404: ERRORS.notFound },
 });
 const importJobs = createRoute({
   method: "post",
@@ -81,8 +76,8 @@ const importJobs = createRoute({
     },
   },
   responses: {
-    200: { description: "导入结果", content: { "application/json": { schema: AdminImportResultSchema } } },
-    400: { description: "文件无法解析或超过 20 MB", content: err },
+    200: jsonContent(AdminImportResultSchema, "导入结果"),
+    400: errorContent("文件无法解析或超过 20 MB"),
   },
 });
 
@@ -196,15 +191,13 @@ export const jobRoutes = router
   })
   .openapi(updateJob, async (c) => {
     const { id } = c.req.valid("param");
-    const exists = await prisma.job.findUnique({ where: { id }, select: { id: true } });
-    if (!exists) throw new NotFoundError(`岗位 ${id} 不存在`);
+    orNotFound(await prisma.job.findUnique({ where: { id }, select: { id: true } }), `岗位 ${id} 不存在`);
     await prisma.job.update({ where: { id }, data: toJobData(c.req.valid("json")) });
     return c.body(null, 204);
   })
   .openapi(deleteJob, async (c) => {
     const { id } = c.req.valid("param");
-    const exists = await prisma.job.findUnique({ where: { id }, select: { id: true } });
-    if (!exists) throw new NotFoundError(`岗位 ${id} 不存在`);
+    orNotFound(await prisma.job.findUnique({ where: { id }, select: { id: true } }), `岗位 ${id} 不存在`);
     await prisma.job.delete({ where: { id } });
     return c.body(null, 204);
   })

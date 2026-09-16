@@ -3,15 +3,13 @@ import {
   AdminAccessBodySchema,
   AdminStudentListSchema,
   AdminStudentPatchSchema,
-  ApiErrorSchema,
   adminStudentQuerySchema,
 } from "../../contract";
 import { prisma } from "../../db";
 import { resolveTier } from "../../lib/access";
-import { AppError, NotFoundError } from "../../lib/errors";
+import { AppError } from "../../lib/errors";
+import { ERRORS, errorContent, jsonContent, orNotFound } from "../../lib/route";
 import { newAdminRouter } from "./guard";
-
-const err = { "application/json": { schema: ApiErrorSchema } };
 
 const listStudents = createRoute({
   method: "get",
@@ -19,12 +17,7 @@ const listStudents = createRoute({
   tags: ["admin"],
   operationId: "listAdminStudents",
   request: { query: adminStudentQuerySchema },
-  responses: {
-    200: {
-      description: "学生列表（有手机号的用户）",
-      content: { "application/json": { schema: AdminStudentListSchema } },
-    },
-  },
+  responses: { 200: jsonContent(AdminStudentListSchema, "学生列表（有手机号的用户）") },
 });
 const patchStudent = createRoute({
   method: "patch",
@@ -37,8 +30,8 @@ const patchStudent = createRoute({
   },
   responses: {
     204: { description: "已更新" },
-    403: { description: "不能修改管理员", content: err },
-    404: { description: "不存在", content: err },
+    403: errorContent("不能修改管理员"),
+    404: ERRORS.notFound,
   },
 });
 const putAccess = createRoute({
@@ -52,8 +45,8 @@ const putAccess = createRoute({
   },
   responses: {
     204: { description: "已更新" },
-    400: { description: "内容不存在", content: err },
-    404: { description: "不存在", content: err },
+    400: errorContent("内容不存在"),
+    404: ERRORS.notFound,
   },
 });
 
@@ -126,8 +119,10 @@ export const studentRoutes = newAdminRouter()
   })
   .openapi(patchStudent, async (c) => {
     const id = c.req.valid("param").id;
-    const target = await prisma.user.findUnique({ where: { id }, select: { role: true } });
-    if (!target) throw new NotFoundError(`学生 ${id} 不存在`);
+    const target = orNotFound(
+      await prisma.user.findUnique({ where: { id }, select: { role: true } }),
+      `学生 ${id} 不存在`,
+    );
     if (target.role === "ADMIN") throw new AppError(403, "FORBIDDEN", "不能修改管理员账号");
     const body = c.req.valid("json");
     await prisma.user.update({
@@ -143,8 +138,7 @@ export const studentRoutes = newAdminRouter()
   .openapi(putAccess, async (c) => {
     const userId = c.req.valid("param").id;
     const { grants } = c.req.valid("json");
-    const target = await prisma.user.findUnique({ where: { id: userId }, select: { id: true } });
-    if (!target) throw new NotFoundError(`学生 ${userId} 不存在`);
+    orNotFound(await prisma.user.findUnique({ where: { id: userId }, select: { id: true } }), `学生 ${userId} 不存在`);
     const deduped = [...new Map(grants.map((g) => [`${g.contentType}:${g.contentId}`, g])).values()];
     const titles = await contentTitles(deduped);
     for (const g of deduped) {

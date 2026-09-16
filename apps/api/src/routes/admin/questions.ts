@@ -4,16 +4,17 @@ import {
   AdminQuestionListSchema,
   AdminQuestionPatchSchema,
   adminQuestionQuerySchema,
-  ApiErrorSchema,
   IdResultSchema,
 } from "../../contract";
 import { quizOptionsSchema } from "../../contract/quiz";
 import { prisma } from "../../db";
-import { AppError, NotFoundError } from "../../lib/errors";
+import { AppError } from "../../lib/errors";
 import { validateQuestionShape } from "../../lib/grade";
+import { ERRORS, errorContent, jsonContent, orNotFound } from "../../lib/route";
+import { assertCategoryRef } from "../../services/banks";
 import { newAdminRouter } from "./guard";
 
-const err = { "application/json": { schema: ApiErrorSchema } };
+const invalidRef = errorContent("分类不存在或题目形状不合法");
 
 const listQuestions = createRoute({
   method: "get",
@@ -21,9 +22,7 @@ const listQuestions = createRoute({
   tags: ["admin"],
   operationId: "listAdminQuestions",
   request: { query: adminQuestionQuerySchema },
-  responses: {
-    200: { description: "题目分页列表", content: { "application/json": { schema: AdminQuestionListSchema } } },
-  },
+  responses: { 200: jsonContent(AdminQuestionListSchema, "题目分页列表") },
 });
 const createQuestion = createRoute({
   method: "post",
@@ -31,10 +30,7 @@ const createQuestion = createRoute({
   tags: ["admin"],
   operationId: "createAdminQuestion",
   request: { body: { required: true, content: { "application/json": { schema: AdminQuestionBodySchema } } } },
-  responses: {
-    201: { description: "已创建", content: { "application/json": { schema: IdResultSchema } } },
-    400: { description: "分类不存在或题目形状不合法", content: err },
-  },
+  responses: { 201: jsonContent(IdResultSchema, "已创建"), 400: invalidRef },
 });
 const updateQuestion = createRoute({
   method: "patch",
@@ -45,11 +41,7 @@ const updateQuestion = createRoute({
     params: z.object({ id: z.string() }),
     body: { required: true, content: { "application/json": { schema: AdminQuestionPatchSchema } } },
   },
-  responses: {
-    204: { description: "已更新" },
-    400: { description: "分类不存在或题目形状不合法", content: err },
-    404: { description: "不存在", content: err },
-  },
+  responses: { 204: { description: "已更新" }, 400: invalidRef, 404: ERRORS.notFound },
 });
 const deleteQuestion = createRoute({
   method: "delete",
@@ -57,14 +49,13 @@ const deleteQuestion = createRoute({
   tags: ["admin"],
   operationId: "deleteAdminQuestion",
   request: { params: z.object({ id: z.string() }) },
-  responses: { 204: { description: "已删除" }, 404: { description: "不存在", content: err } },
+  responses: { 204: { description: "已删除" }, 404: ERRORS.notFound },
 });
 
 /** POST / PATCH 共用：校验引用的分类存在 */
 async function assertCategoryExists(categoryId: string | undefined) {
   if (categoryId === undefined) return;
-  const exists = await prisma.questionCategory.findUnique({ where: { id: categoryId }, select: { id: true } });
-  if (!exists) throw new AppError(400, "VALIDATION", `分类 ${categoryId} 不存在`);
+  await assertCategoryRef(categoryId);
 }
 
 /** 题型 / 选项 / 答案组合不合法 → 400 */
@@ -136,11 +127,10 @@ export const questionRoutes = newAdminRouter()
   })
   .openapi(updateQuestion, async (c) => {
     const id = c.req.valid("param").id;
-    const current = await prisma.question.findUnique({
-      where: { id },
-      select: { type: true, options: true, answer: true },
-    });
-    if (!current) throw new NotFoundError(`题目 ${id} 不存在`);
+    const current = orNotFound(
+      await prisma.question.findUnique({ where: { id }, select: { type: true, options: true, answer: true } }),
+      `题目 ${id} 不存在`,
+    );
     const body = c.req.valid("json");
     await assertCategoryExists(body.categoryId);
     if (body.type !== undefined || body.options !== undefined || body.answer !== undefined) {
@@ -155,8 +145,7 @@ export const questionRoutes = newAdminRouter()
   })
   .openapi(deleteQuestion, async (c) => {
     const id = c.req.valid("param").id;
-    const exists = await prisma.question.findUnique({ where: { id }, select: { id: true } });
-    if (!exists) throw new NotFoundError(`题目 ${id} 不存在`);
+    orNotFound(await prisma.question.findUnique({ where: { id }, select: { id: true } }), `题目 ${id} 不存在`);
     await prisma.$transaction(async (tx) => {
       await tx.question.delete({ where: { id } });
       await tx.accessGrant.deleteMany({ where: { contentType: "QUESTION", contentId: id } });

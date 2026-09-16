@@ -1,6 +1,7 @@
 import { createRoute } from "@hono/zod-openapi";
 import { AdminSummarySchema } from "../../contract";
 import { prisma } from "../../db";
+import { jsonContent } from "../../lib/route";
 import { newAdminRouter } from "./guard";
 
 const getSummary = createRoute({
@@ -8,7 +9,7 @@ const getSummary = createRoute({
   path: "/summary",
   tags: ["admin"],
   operationId: "getAdminSummary",
-  responses: { 200: { description: "后台概览计数", content: { "application/json": { schema: AdminSummarySchema } } } },
+  responses: { 200: jsonContent(AdminSummarySchema, "后台概览计数") },
 });
 
 export const summaryRoutes = newAdminRouter().openapi(getSummary, async (c) => {

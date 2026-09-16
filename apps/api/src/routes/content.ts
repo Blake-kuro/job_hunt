@@ -3,15 +3,14 @@ import { StudentContentSchema } from "../contract";
 import { prisma } from "../db";
 import type { Env } from "../env";
 import { validationHook } from "../lib/errors";
+import { jsonContent } from "../lib/route";
 
 const listContent = createRoute({
   method: "get",
   path: "/",
   tags: ["content"],
   operationId: "listStudentContent",
-  responses: {
-    200: { description: "已授权的资料和课程", content: { "application/json": { schema: StudentContentSchema } } },
-  },
+  responses: { 200: jsonContent(StudentContentSchema, "已授权的资料和课程") },
 });
 
 export const contentRoutes = new OpenAPIHono<Env>({ defaultHook: validationHook }).openapi(listContent, async (c) => {
