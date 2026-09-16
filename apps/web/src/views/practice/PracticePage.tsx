@@ -1,33 +1,107 @@
-import { useState } from "react";
-import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import { getRouteApi, Link } from "@tanstack/react-router";
 import { useSetMastered, useSubmitAttempt } from "@api/mutations";
-import { quizBanksQuery, quizDashboardQuery, quizNextQuery } from "@api/queries";
+import { quizDashboardQuery, quizNextQuery } from "@api/queries";
 import { QuizQuestion } from "@features/quiz-question/QuizQuestion";
-import { CompanySets } from "@widgets/company-sets/CompanySets";
+import { Button } from "@shared/ui/Button";
+import { Kicker } from "@shared/ui/Kicker";
+import { AccessBanner } from "@widgets/access-banner/AccessBanner";
 import { Navbar } from "@widgets/navbar/Navbar";
 import { PracticeSidebar } from "@widgets/practice-sidebar/PracticeSidebar";
 
+const route = getRouteApi("/practice_/$categoryId");
+
 export function PracticePage() {
+  const { categoryId } = route.useParams();
+  const qc = useQueryClient();
   const { data: dashboard } = useSuspenseQuery(quizDashboardQuery());
-  const { data: banks } = useSuspenseQuery(quizBanksQuery());
-  const [categoryId, setCategoryId] = useState("");
+  const next = useQuery(quizNextQuery(categoryId));
+  const submit = useSubmitAttempt();
   const setMastered = useSetMastered();
-  const selected = banks.companies.some((co) => co.categories.some((c) => c.id === categoryId));
+
+  async function loadNext() {
+    try {
+      await qc.fetchQuery({ ...quizNextQuery(categoryId), staleTime: 0 });
+      submit.reset();
+    } catch {
+      // 失败时保留当前题与解析，useQuery 会展示错误并提供重试。
+    }
+  }
+
   return (
     <div className="flex min-h-full flex-col bg-bg">
       <Navbar active="practice" trailing={`连续打卡 ${dashboard.streakDays} 天`} />
-      <CompanySets items={banks.companies} selected={categoryId} onSelect={setCategoryId} />
-      <p className="px-8 pb-4 text-sm text-neutral-700">
-        累计作答 {banks.quota.used} / {banks.quota.limit ?? "不限"} 题（非每日额度）
-      </p>
-      <div className="grid grid-cols-1 border-y border-divider lg:grid-cols-[minmax(0,1fr)_300px]">
-        {selected ? (
-          <CategoryPractice key={categoryId} categoryId={categoryId} />
-        ) : (
-          <p className="p-8">请选择公司下的分类开始练习。</p>
-        )}
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_300px]">
+        <main>
+          {next.isPending ? (
+            <p className="px-4 py-8 text-sm text-neutral-700 sm:px-8 sm:py-9">正在加载题目…</p>
+          ) : next.isError ? (
+            <div role="alert" className="flex flex-col items-start gap-3 px-4 py-8 sm:px-8 sm:py-9">
+              <p className="font-heading text-xl">题目加载失败</p>
+              <p className="text-sm text-neutral-700">{next.error.message}</p>
+              <Button onClick={() => next.refetch()}>重试</Button>
+              <Link to="/practice" className="text-sm text-accent-700 hover:text-accent-900">
+                返回题库
+              </Link>
+            </div>
+          ) : (
+            <>
+              <div className="flex flex-wrap items-center gap-2 border-b border-divider px-4 py-3 text-sm sm:px-8">
+                <Link to="/practice" className="text-accent-700 hover:text-accent-900">
+                  题库
+                </Link>
+                <span className="text-neutral-600">›</span>
+                <span>
+                  {next.data.category.company} · {next.data.category.name}
+                </span>
+              </div>
+              {next.data.question ? (
+                <>
+                  {submit.error && (
+                    <p role="alert" className="px-4 pt-4 text-sm text-red-700 sm:px-8">
+                      {submit.error.message}
+                    </p>
+                  )}
+                  <QuizQuestion
+                    key={next.data.question.id}
+                    question={next.data.question}
+                    indexLabel={`第 ${next.data.index} / ${next.data.category.total} 题`}
+                    result={submit.variables?.questionId === next.data.question.id ? (submit.data ?? null) : null}
+                    submitting={submit.isPending}
+                    loadingNext={next.isFetching}
+                    onSubmit={(picked) => submit.mutate({ questionId: next.data.question?.id ?? "", picked })}
+                    onNext={loadNext}
+                  />
+                </>
+              ) : next.data.exhausted === "QUOTA" ? (
+                <div className="px-4 py-8 sm:px-8 sm:py-9">
+                  <Kicker className="mb-3 text-accent-700">作答额度已用完</Kicker>
+                  <AccessBanner kind="questions" quota={dashboard.quota} />
+                  <Link to="/practice" className="mt-4 inline-block text-sm text-accent-700 hover:text-accent-900">
+                    返回题库
+                  </Link>
+                </div>
+              ) : (
+                <div className="flex flex-col items-start gap-3 px-4 py-8 sm:px-8 sm:py-9">
+                  <Kicker className="text-accent-700">已完成</Kicker>
+                  <p className="font-heading text-2xl">本题库已全部答完</p>
+                  <p className="text-sm text-neutral-700">
+                    共 {next.data.category.total} 题，可以回到题库选择其他分类继续练习。
+                  </p>
+                  <Link to="/practice" className="text-sm text-accent-700 hover:text-accent-900">
+                    返回题库 →
+                  </Link>
+                </div>
+              )}
+            </>
+          )}
+        </main>
         <div>
-          {setMastered.error && <p role="alert">{setMastered.error.message}</p>}
+          {setMastered.error && (
+            <p role="alert" className="px-4 pt-4 text-sm text-red-700 sm:px-8 lg:px-6">
+              {setMastered.error.message}
+            </p>
+          )}
           <PracticeSidebar
             dashboard={dashboard}
             saving={setMastered.isPending}
@@ -35,56 +109,6 @@ export function PracticePage() {
           />
         </div>
       </div>
-    </div>
-  );
-}
-
-function CategoryPractice({ categoryId }: { categoryId: string }) {
-  const next = useQuery({ ...quizNextQuery(categoryId), refetchOnMount: "always" });
-  const submit = useSubmitAttempt();
-  const question = next.data?.question;
-  if (next.isPending) return <p className="p-8">正在加载题目…</p>;
-  if (next.isError)
-    return (
-      <div className="p-8" role="alert">
-        {next.error.message}
-        <button type="button" onClick={() => next.refetch()}>
-          重试
-        </button>
-      </div>
-    );
-  if (!question)
-    return (
-      <div className="p-8">
-        <h2 className="text-xl">{next.data.exhausted === "QUOTA" ? "累计作答额度已用完" : "该分类已全部答完"}</h2>
-        <p className="mt-3">
-          {next.data.exhausted === "QUOTA"
-            ? "请登录提升额度，或联系管理员开通权限；额度不会每天重置。"
-            : "可以选择其他分类继续练习。"}
-        </p>
-      </div>
-    );
-  return (
-    <div>
-      {submit.error && (
-        <p role="alert" className="p-4 text-red-700">
-          {submit.error.message}
-        </p>
-      )}
-      <QuizQuestion
-        key={question.id}
-        question={question}
-        date={new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Shanghai" })}
-        indexLabel={`${next.data.category.company} · ${next.data.index} / ${next.data.category.total}`}
-        result={submit.variables?.questionId === question.id ? (submit.data ?? null) : null}
-        submitting={submit.isPending}
-        loadingNext={next.isFetching}
-        onSubmit={(picked) => submit.mutate({ questionId: question.id, picked })}
-        onNext={async () => {
-          const result = await next.refetch();
-          if (!result.isError) submit.reset();
-        }}
-      />
     </div>
   );
 }

@@ -3,11 +3,11 @@ import { Button } from "@shared/ui/Button";
 import { Tag } from "@shared/ui/Tag";
 import { Kicker } from "@shared/ui/Kicker";
 import { cn } from "@shared/lib/cn";
-import type { QuizAnswerResult, QuizOption, QuizOptionLetter, QuizQuestionPublic } from "@entities/quiz";
+import type { QuestionType, QuizAnswerResult, QuizOption, QuizOptionLetter, QuizQuestionPublic } from "@entities/quiz";
+import { togglePick } from "./pick";
 
 interface QuizQuestionProps {
   question: QuizQuestionPublic;
-  date: string;
   indexLabel: string;
   result: QuizAnswerResult | null;
   submitting: boolean;
@@ -45,6 +45,8 @@ const badgeClass: Record<OptionState, string> = {
   wrong: "border-neutral-400 text-neutral-600",
 };
 
+const typeLabel: Record<QuestionType, string> = { SINGLE: "单选题", MULTI: "多选题", JUDGE: "判断题" };
+
 const markText: Record<OptionState, string> = {
   idle: "",
   picked: "已选",
@@ -54,7 +56,6 @@ const markText: Record<OptionState, string> = {
 
 export function QuizQuestion({
   question,
-  date,
   indexLabel,
   result,
   submitting,
@@ -64,17 +65,18 @@ export function QuizQuestion({
 }: QuizQuestionProps) {
   const [picked, setPicked] = useState<QuizOptionLetter[]>([]);
   const revealed = result !== null;
+  const multi = question.type === "MULTI";
 
   return (
     <div className="px-4 py-8 sm:px-8 sm:py-9">
       <div className="flex flex-wrap items-center gap-2.5">
-        <Kicker className="text-accent-700">今日一题 · {date.slice(5).replace("-", " / ")}</Kicker>
+        <Kicker className="text-accent-700">{indexLabel}</Kicker>
+        <Tag variant={multi ? "accent" : "neutral"}>{typeLabel[question.type]}</Tag>
+        {question.section && <Tag variant="outline">{question.section}</Tag>}
         <Tag>{question.category}</Tag>
-        <Tag>{question.type === "MULTI" ? "多选题" : question.type === "JUDGE" ? "判断题" : "单选题"}</Tag>
         <Tag>{question.difficulty}</Tag>
-        <Tag variant="outline">{question.source}</Tag>
-        <span className="text-xs tabular-nums text-neutral-700">{indexLabel}</span>
       </div>
+      {multi && !revealed && <p className="mt-2 text-xs text-neutral-700">多选题：可选择多个选项，再次点击取消。</p>}
 
       <h2 className="mt-3 max-w-[820px] text-[22px] leading-snug sm:text-[26px] lg:text-[30px]">{question.prompt}</h2>
 
@@ -87,15 +89,7 @@ export function QuizQuestion({
               type="button"
               aria-pressed={picked.includes(option.letter)}
               disabled={revealed || submitting || loadingNext}
-              onClick={() =>
-                setPicked((old) =>
-                  question.type !== "MULTI"
-                    ? [option.letter]
-                    : old.includes(option.letter)
-                      ? old.filter((l) => l !== option.letter)
-                      : [...old, option.letter].sort(),
-                )
-              }
+              onClick={() => setPicked((old) => togglePick(question.type, old, option.letter))}
               className={cn(
                 "grid cursor-pointer grid-cols-[26px_minmax(0,1fr)] items-center gap-x-3.5 gap-y-2 border px-4 py-3 text-left transition-colors sm:grid-cols-[26px_minmax(0,1fr)_auto]",
                 rowClass[state],
