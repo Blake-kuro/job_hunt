@@ -2,24 +2,27 @@ import { describe, expect, it } from "vitest";
 import { accessMessage } from "./access-message";
 
 describe("accessMessage", () => {
-  it("游客达到上限 → 提示登录", () => {
-    const m = accessMessage({ tier: "GUEST", visible: 20, total: 137 }, "jobs");
+  it("岗位：游客达到上限 → 提示登录", () => {
+    const m = accessMessage({ kind: "jobs", access: { tier: "GUEST", visible: 20, total: 137 } });
     expect(m).toEqual({
       title: "未登录只能查看前 20 条岗位",
       body: "登录后可查看前 100 条，共 137 条。",
       action: { label: "登录", to: "/login" },
     });
   });
-  it("免费用户达到上限 → 提示升级", () => {
-    const m = accessMessage({ tier: "FREE", visible: 200, total: 350 }, "questions");
+  it("刷题：游客配额用尽 → 提示登录", () => {
+    const m = accessMessage({ kind: "questions", quota: { tier: "GUEST", used: 20, limit: 20 } });
     expect(m).toEqual({
-      title: "免费账号可练习前 200 道题",
-      body: "升级 PRO 解锁全部 350 道。",
-      action: { label: "了解 PRO", to: "/pro" },
+      title: "未登录只能作答 20 道题",
+      body: "已用完 20 道，登录后可作答 200 道。",
+      action: { label: "登录", to: "/login" },
     });
   });
-  it("未达上限或 PRO → null", () => {
-    expect(accessMessage({ tier: "GUEST", visible: 20, total: 12 }, "jobs")).toBeNull();
-    expect(accessMessage({ tier: "PRO", visible: null, total: 999 }, "jobs")).toBeNull();
+  it("刷题：免费用户未用尽 → null", () => {
+    expect(accessMessage({ kind: "questions", quota: { tier: "FREE", used: 199, limit: 200 } })).toBeNull();
+  });
+  it("PRO → null", () => {
+    expect(accessMessage({ kind: "questions", quota: { tier: "PRO", used: 999, limit: null } })).toBeNull();
+    expect(accessMessage({ kind: "jobs", access: { tier: "PRO", visible: null, total: 999 } })).toBeNull();
   });
 });

@@ -1,13 +1,8 @@
 import { Link } from "@tanstack/react-router";
-import type { Access } from "@api/types";
 import { cn } from "@shared/lib/cn";
-import { type AccessKind, accessMessage } from "./access-message";
+import { type AccessInput, accessMessage } from "./access-message";
 
-interface AccessBannerProps {
-  access: Access;
-  kind: AccessKind;
-  className?: string;
-}
+type AccessBannerProps = AccessInput & { className?: string };
 
 /**
  * `Button`（src/shared/ui/Button.tsx）不支持 `asChild`，无法把它的根元素换成 `Link`。
@@ -22,8 +17,8 @@ const primaryLgBlueprintClass = cn(
   "blueprint",
 );
 
-export function AccessBanner({ access, kind, className }: AccessBannerProps) {
-  const m = accessMessage(access, kind);
+export function AccessBanner({ className, ...input }: AccessBannerProps) {
+  const m = accessMessage(input);
   if (!m) return null;
   return (
     <div

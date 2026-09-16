@@ -1,11 +1,8 @@
 {
   "version": "0.0.1",
   "configurations": [
-    {
-      "name": "job-hunt-front-dev",
-      "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["dev:web"],
-      "port": 5173
-    }
+    { "name": "web", "runtimeExecutable": "pnpm", "runtimeArgs": ["dev:web"], "port": 5173 },
+    { "name": "admin", "runtimeExecutable": "pnpm", "runtimeArgs": ["dev:admin"], "port": 5174 },
+    { "name": "api", "runtimeExecutable": "pnpm", "runtimeArgs": ["dev:api"], "port": 3001 }
   ]
 }

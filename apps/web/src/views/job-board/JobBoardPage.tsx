@@ -170,7 +170,7 @@ export function JobBoardPage() {
         </div>
       </div>
 
-      {result.page >= totalPages && <AccessBanner access={result.access} kind="jobs" className="mx-4 mb-10 sm:mx-8" />}
+      {result.page >= totalPages && <AccessBanner kind="jobs" access={result.access} className="mx-4 mb-10 sm:mx-8" />}
     </div>
   );
 }
