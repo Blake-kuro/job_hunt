@@ -13,8 +13,6 @@ export const errorContent = (description: string) => jsonContent(ApiErrorSchema,
 /** 常见错误响应的预制片段，文案与各路由现有 description 一致时直接复用 */
 export const ERRORS = {
   badRequest: errorContent("参数校验失败"),
-  unauthorized: errorContent("未登录"),
-  forbidden: errorContent("没有权限"),
   notFound: errorContent("不存在"),
 } as const;
 
