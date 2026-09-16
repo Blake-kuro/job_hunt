@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import type { AdminQuestion } from "@api/types";
-import { emptyQuestionForm, fromQuestion, type QuestionFormState, setType, toQuestionBody } from "./question-form";
+import {
+  emptyQuestionForm,
+  fromQuestion,
+  minOptions,
+  type QuestionFormState,
+  setType,
+  toQuestionBody,
+} from "./question-form";
 
 const filled: QuestionFormState = {
   ...emptyQuestionForm,
@@ -53,6 +60,9 @@ describe("题目表单", () => {
       error: "多选题至少选两个正确答案",
     });
     expect(toQuestionBody({ ...filled, type: "MULTI", options: ["1", "2"], answer: ["A", "B"] }).ok).toBe(false);
+    expect(minOptions("MULTI")).toBe(3);
+    expect(minOptions("SINGLE")).toBe(2);
+    expect(minOptions("JUDGE")).toBe(2);
     expect(toQuestionBody({ ...filled, type: "MULTI", answer: ["C", "A", "C"] })).toMatchObject({
       ok: true,
       body: { type: "MULTI", answer: "AC" },

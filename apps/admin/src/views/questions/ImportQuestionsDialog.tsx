@@ -1,6 +1,5 @@
-import { useRef, useState } from "react";
+import { useRef } from "react";
 import { useImportQuestions } from "@api/mutations";
-import type { AdminQuestionImportResult } from "@api/types";
 import { Button } from "@shared/ui/Button";
 import { Dialog } from "@shared/ui/Dialog";
 
@@ -24,31 +23,29 @@ const COLUMNS: { name: string; note: string }[] = [
   { name: "答案", note: "字母，如 B 或 ABC；判断题 A = 正确、B = 错误" },
 ];
 
-/** 把 xlsx 导入到某个分类：选择文件即上传，完成后原地展示结果 */
+/**
+ * 把 xlsx 导入到某个分类：选择文件即上传，完成后原地展示结果。
+ * 结果 / 错误直接读 mutation 状态，关闭时 reset，避免上传中关闭后旧结果串到下一个分类；
+ * 上传进行中不允许关闭（✕ / Esc / 遮罩 / 取消都不响应）。
+ */
 export function ImportQuestionsDialog({ target, onClose }: ImportQuestionsDialogProps) {
   const importQuestions = useImportQuestions();
   const fileRef = useRef<HTMLInputElement>(null);
-  const [result, setResult] = useState<AdminQuestionImportResult | null>(null);
+  const pending = importQuestions.isPending;
+  const result = importQuestions.data ?? null;
 
   function close() {
+    if (pending) return;
     importQuestions.reset();
-    setResult(null);
     onClose();
   }
 
-  async function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+  function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     e.target.value = ""; // 允许再次选同一个文件
     if (!file || !target) return;
-    setResult(null);
-    try {
-      setResult(await importQuestions.mutateAsync({ categoryId: target.categoryId, file }));
-    } catch {
-      // 错误由 importQuestions.error 展示
-    }
+    importQuestions.mutate({ categoryId: target.categoryId, file });
   }
-
-  const pending = importQuestions.isPending;
 
   return (
     <Dialog
@@ -57,7 +54,7 @@ export function ImportQuestionsDialog({ target, onClose }: ImportQuestionsDialog
       onClose={close}
       footer={
         <>
-          <Button type="button" onClick={close}>
+          <Button type="button" disabled={pending} onClick={close}>
             {result ? "关闭" : "取消"}
           </Button>
           <Button variant="primary" type="button" disabled={pending} onClick={() => fileRef.current?.click()}>

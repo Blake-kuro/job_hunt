@@ -20,7 +20,7 @@ import {
   fromQuestion,
   LETTERS,
   MAX_OPTIONS,
-  MIN_OPTIONS,
+  minOptions,
   type QuestionFormState,
   setType,
   toQuestionBody,
@@ -121,7 +121,7 @@ function QuestionForm({ question, defaultCategoryId, meta, serverError, onSubmit
   /** 删掉一行后字母重新排：被删行的答案去掉，其后的答案往前挪一位 */
   function removeOption(index: number) {
     setState((s) => {
-      if (s.options.length <= MIN_OPTIONS) return s;
+      if (s.options.length <= minOptions(s.type)) return s;
       const answer = s.answer
         .map((l) => LETTERS.indexOf(l))
         .filter((i) => i !== index)
@@ -249,7 +249,7 @@ function QuestionForm({ question, defaultCategoryId, meta, serverError, onSubmit
                   type="button"
                   size="sm"
                   aria-label={`删除选项 ${letter}`}
-                  disabled={state.options.length <= MIN_OPTIONS}
+                  disabled={state.options.length <= minOptions(state.type)}
                   onClick={() => removeOption(i)}
                 >
                   删除

@@ -3,6 +3,8 @@ import type { AdminQuestion, AdminQuestionBody, Difficulty, QuestionType, QuizOp
 export const LETTERS: readonly QuizOptionLetter[] = ["A", "B", "C", "D", "E", "F"];
 export const MIN_OPTIONS = 2;
 export const MAX_OPTIONS = 6;
+/** 各题型的选项下限：多选题至少 3 个，其余 2 个（表单删除按钮与校验共用） */
+export const minOptions = (type: QuestionType) => (type === "MULTI" ? 3 : MIN_OPTIONS);
 /** 判断题的固定选项，与后端 validateQuestionShape 保持一致 */
 export const JUDGE_OPTIONS: readonly string[] = ["正确", "错误"];
 
@@ -77,7 +79,7 @@ export function toQuestionBody(
   if (texts.length < MIN_OPTIONS) return fail("至少两个选项");
   if (texts.length > MAX_OPTIONS) return fail("最多六个选项");
   if (texts.some((t) => !t)) return fail("选项不能为空");
-  if (s.type === "MULTI" && texts.length < 3) return fail("多选题至少三个选项");
+  if (texts.length < minOptions(s.type)) return fail("多选题至少三个选项");
   const valid = LETTERS.slice(0, texts.length);
   const answer = [...new Set(s.answer)].sort();
   if (answer.some((l) => !valid.includes(l))) return fail("请选择正确答案");
