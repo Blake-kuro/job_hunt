@@ -52,7 +52,7 @@ interface LessonRowProps {
 }
 
 function LessonRow({ courseId, lesson, index, canUp, canDown, busy, onMove, onEdit, onDelete }: LessonRowProps) {
-  const { state, upload } = useLessonUpload(lesson, courseId);
+  const { state, upload, retrySave } = useLessonUpload(lesson, courseId);
   const refresh = useRefreshLessonVideo();
   const uploading = state.status === "signing" || state.status === "uploading" || state.status === "saving";
   return (
@@ -74,6 +74,11 @@ function LessonRow({ courseId, lesson, index, canUp, canDown, busy, onMove, onEd
           编辑
         </Button>
         <UploadButton state={state} hasVideo={lesson.videoStatus !== "NONE"} disabled={busy} onFile={upload} />
+        {state.status === "error" && state.fileId !== undefined && (
+          <Button size="sm" variant="primary" disabled={busy} onClick={retrySave}>
+            重试保存
+          </Button>
+        )}
         {lesson.videoStatus === "PROCESSING" && !uploading && (
           <Button size="sm" disabled={refresh.isPending} onClick={() => refresh.mutate({ id: lesson.id, courseId })}>
             {refresh.isPending ? "刷新中…" : "刷新状态"}
@@ -85,7 +90,7 @@ function LessonRow({ courseId, lesson, index, canUp, canDown, busy, onMove, onEd
       </span>
       {(state.status === "error" || refresh.error) && (
         <span role="alert" className="basis-full pl-9 text-xs text-red-700">
-          {state.status === "error" ? `上传失败：${state.message}` : `刷新失败：${refresh.error?.message}`}
+          {state.status === "error" ? state.message : `刷新失败：${refresh.error?.message}`}
         </span>
       )}
     </li>

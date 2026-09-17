@@ -1,5 +1,6 @@
 /**
- * 单个课时的上传状态机：idle → signing → uploading(progress) → saving → done | error(message)。
+ * 单个课时的上传状态机：idle → signing → uploading(progress) → saving → done | error(message, fileId?)。
+ * 视频已传到 VOD 但保存课时失败时，error 里带着 fileId，`retry` 只重做保存（saving），不重传。
  * 纯 reducer，不含副作用；非法转移原样返回当前状态（如 idle 时收到 progress）。
  */
 export type UploadState =
@@ -8,7 +9,7 @@ export type UploadState =
   | { status: "uploading"; progress: number }
   | { status: "saving" }
   | { status: "done" }
-  | { status: "error"; message: string };
+  | { status: "error"; message: string; fileId?: string };
 
 export type UploadEvent =
   | { type: "start" }
@@ -17,7 +18,10 @@ export type UploadEvent =
   | { type: "progress"; percent: number }
   | { type: "uploaded" }
   | { type: "saved" }
-  | { type: "fail"; message: string }
+  /** fileId：VOD 已上传成功、只是保存课时失败时带上，供「重试保存」 */
+  | { type: "fail"; message: string; fileId?: string }
+  /** 只重做保存：仅当 error 里有 fileId */
+  | { type: "retry" }
   | { type: "reset" };
 
 export const initialUploadState: UploadState = { status: "idle" };
@@ -40,7 +44,12 @@ export function reduce(state: UploadState, event: UploadEvent): UploadState {
     case "saved":
       return state.status === "saving" ? { status: "done" } : state;
     case "fail":
-      return state.status === "idle" ? state : { status: "error", message: event.message };
+      if (state.status === "idle") return state;
+      return event.fileId === undefined
+        ? { status: "error", message: event.message }
+        : { status: "error", message: event.message, fileId: event.fileId };
+    case "retry":
+      return state.status === "error" && state.fileId !== undefined ? { status: "saving" } : state;
     case "reset":
       return initialUploadState;
   }

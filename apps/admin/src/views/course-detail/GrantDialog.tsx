@@ -47,18 +47,21 @@ export function GrantDialog({ courseId, open, onClose }: GrantDialogProps) {
     onClose();
   }
 
-  async function resolveUserIds(phones: string[]): Promise<{ ids: string[]; missing: string[] }> {
+  /** 手机号 → userId；找不到 / 非学生 / 已停用的号码分别列出（后端 400 文案只有 id，管理员看不出是谁） */
+  async function resolveUserIds(phones: string[]): Promise<{ ids: string[]; missing: string[]; blocked: string[] }> {
     const ids: string[] = [];
     const missing: string[] = [];
+    const blocked: string[] = [];
     // 管理端一次开通的量小，逐个 q= 查询即可；接口是 contains 匹配，这里再做精确比对
     const results = await Promise.all(phones.map((phone) => qc.fetchQuery(studentsQuery({ q: phone, pageSize: 20 }))));
     results.forEach((r, i) => {
       const phone = phones[i] as string;
       const hit = r.items.find((s) => s.phone === phone);
-      if (hit) ids.push(hit.id);
-      else missing.push(phone);
+      if (!hit) missing.push(phone);
+      else if (hit.role !== "STUDENT" || !hit.enabled) blocked.push(phone);
+      else ids.push(hit.id);
     });
-    return { ids, missing };
+    return { ids, missing, blocked };
   }
 
   return (
@@ -74,8 +77,12 @@ export function GrantDialog({ courseId, open, onClose }: GrantDialogProps) {
         let ids: string[];
         try {
           const r = await resolveUserIds(phones);
-          if (r.missing.length > 0) {
-            setLookupError(`以下手机号没有对应的学生（需先注册登录）：${r.missing.join("、")}`);
+          const problems = [
+            r.missing.length > 0 && `没有对应的学生（需先注册登录）：${r.missing.join("、")}`,
+            r.blocked.length > 0 && `已停用 / 非学生账号：${r.blocked.join("、")}`,
+          ].filter((x): x is string => typeof x === "string");
+          if (problems.length > 0) {
+            setLookupError(`以下手机号无法开通，本次未提交。${problems.join("；")}`);
             return;
           }
           ids = r.ids;

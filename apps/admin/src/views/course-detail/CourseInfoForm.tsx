@@ -3,7 +3,7 @@ import type { AdminCourseDetail } from "@job-hunt/api-client/types";
 import { Alert, AlertDescription } from "@job-hunt/ui/components/alert";
 import { Button } from "@job-hunt/ui/components/button";
 import { Form } from "@job-hunt/ui/components/form";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { usePatchCourse } from "@api/mutations";
 import { CourseFields } from "@views/courses/CourseFields";
@@ -18,9 +18,13 @@ export function CourseInfoForm({ course }: CourseInfoFormProps) {
   const patch = usePatchCourse();
   const form = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: fromEntity(course) });
 
-  // 服务端数据变化（保存成功 / 重新拉取）时同步表单，避免留着旧值
+  // 只在换了课程、或表单没有未保存的改动时同步服务端数据：
+  // 课时 / 上传 / 开通触发的详情重取不能清掉正在编辑的内容
+  const lastId = useRef(course.id);
   useEffect(() => {
-    form.reset(fromEntity(course));
+    const changedCourse = lastId.current !== course.id;
+    lastId.current = course.id;
+    if (changedCourse || !form.formState.isDirty) form.reset(fromEntity(course));
   }, [course, form]);
 
   return (
@@ -28,7 +32,13 @@ export function CourseInfoForm({ course }: CourseInfoFormProps) {
       <form
         noValidate
         className="mt-4 flex flex-col gap-4"
-        onSubmit={form.handleSubmit((values) => patch.mutate({ id: course.id, body: toBody(values) }))}
+        onSubmit={form.handleSubmit((values) =>
+          patch.mutate(
+            { id: course.id, body: toBody(values) },
+            // 成功后以提交值为新基线（不再 dirty），随后重取的详情会经上面的 effect 同步回服务端归一化后的值
+            { onSuccess: () => form.reset(values) },
+          ),
+        )}
       >
         {patch.error && (
           <Alert variant="destructive">

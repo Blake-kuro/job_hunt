@@ -13,9 +13,12 @@ interface MediaProgress {
   percent: number;
 }
 
+const errorMessage = (e: unknown) => (e instanceof Error ? e.message : String(e));
+
 /**
  * 上传流程：取签名 → （真实）`new TcVod({ getSignature })` 直传，监听 media_progress → done 拿 fileId
  * → PATCH 课时 videoFileId（后端置 PROCESSING）→ 立即刷新一次状态（mock 下直接 READY；真实环境多半仍 PROCESSING，需稍后手动刷新）。
+ * 视频已到 VOD 但保存失败时 fileId 留在 error 状态里，`retrySave` 只重做保存，不重传。
  */
 export function useLessonUpload(lesson: AdminLesson, courseId: string) {
   const [state, dispatch] = useReducer(reduce, initialUploadState);
@@ -23,12 +26,23 @@ export function useLessonUpload(lesson: AdminLesson, courseId: string) {
   const patch = usePatchLesson();
   const refresh = useRefreshLessonVideo();
 
+  /** 保存阶段：PATCH videoFileId + 刷新一次；失败把 fileId 带进 error */
+  async function save(fileId: string) {
+    try {
+      await patch.mutateAsync({ id: lesson.id, courseId, body: { videoFileId: fileId } });
+      await refresh.mutateAsync({ id: lesson.id, courseId });
+      dispatch({ type: "saved" });
+    } catch (e) {
+      dispatch({ type: "fail", message: `视频已上传（${fileId}），保存课时失败：${errorMessage(e)}`, fileId });
+    }
+  }
+
   async function upload(file: File) {
     dispatch({ type: "start" });
+    let fileId: string;
     try {
       const { signature } = await sign.mutateAsync();
       dispatch({ type: "signed" });
-      let fileId: string;
       if (signature === MOCK_SIGNATURE) {
         // mock 环境：后端不会真去腾讯云，随便一个 fileId 即可；fetchMediaInfo 会返回 READY / 600 秒
         fileId = `mock-${Date.now()}`;
@@ -42,16 +56,22 @@ export function useLessonUpload(lesson: AdminLesson, courseId: string) {
         const result = (await uploader.done()) as { fileId: string };
         fileId = result.fileId;
       }
-      dispatch({ type: "uploaded" });
-      await patch.mutateAsync({ id: lesson.id, courseId, body: { videoFileId: fileId } });
-      await refresh.mutateAsync({ id: lesson.id, courseId });
-      dispatch({ type: "saved" });
     } catch (e) {
-      dispatch({ type: "fail", message: e instanceof Error ? e.message : String(e) });
+      dispatch({ type: "fail", message: `上传失败：${errorMessage(e)}` });
+      return;
     }
+    dispatch({ type: "uploaded" });
+    await save(fileId);
   }
 
-  return { state, upload, reset: () => dispatch({ type: "reset" }) };
+  /** 只重做保存（仅 error 且带 fileId 时有效） */
+  async function retrySave() {
+    if (state.status !== "error" || state.fileId === undefined) return;
+    dispatch({ type: "retry" });
+    await save(state.fileId);
+  }
+
+  return { state, upload, retrySave, reset: () => dispatch({ type: "reset" }) };
 }
 
 interface UploadButtonProps {

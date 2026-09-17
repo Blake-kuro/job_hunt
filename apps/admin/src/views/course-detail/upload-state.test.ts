@@ -48,6 +48,25 @@ describe("upload-state", () => {
     expect(reduce({ status: "error", message: "x" }, { type: "reset" })).toEqual(initialUploadState);
   });
 
+  it("保存失败带 fileId：error 保留 fileId，retry 回到 saving；无 fileId 的 error 不能 retry", () => {
+    const failed = reduce({ status: "saving" }, { type: "fail", message: "保存失败", fileId: "f1" });
+    expect(failed).toEqual({ status: "error", message: "保存失败", fileId: "f1" });
+    expect(reduce(failed, { type: "retry" })).toEqual({ status: "saving" });
+    expect(run([{ type: "retry" }, { type: "saved" }], failed)).toEqual({ status: "done" });
+    const plain: UploadState = { status: "error", message: "网络错误" };
+    expect(reduce(plain, { type: "retry" })).toBe(plain);
+    expect(reduce(initialUploadState, { type: "retry" })).toBe(initialUploadState);
+    expect(reduce({ status: "uploading", progress: 1 }, { type: "retry" })).toEqual({
+      status: "uploading",
+      progress: 1,
+    });
+    // 上传阶段的失败不带 fileId
+    expect(reduce({ status: "uploading", progress: 50 }, { type: "fail", message: "x" })).toEqual({
+      status: "error",
+      message: "x",
+    });
+  });
+
   it("isBusy 只在 signing / uploading / saving 为真", () => {
     expect(isBusy({ status: "signing" })).toBe(true);
     expect(isBusy({ status: "uploading", progress: 0 })).toBe(true);
