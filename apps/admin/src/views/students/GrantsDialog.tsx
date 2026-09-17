@@ -9,7 +9,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { usePutStudentAccess } from "@api/mutations";
-import { coursesQuery, materialsQuery } from "@api/queries";
+import { adminCoursesQuery, materialsQuery } from "@api/queries";
 import { defaultValues, emptyRow, type FormValues, fromEntity, schema, toBody } from "./grants-schema";
 
 const typeLabel: Record<ContentType, string> = { MATERIAL: "资料", QUESTION: "题目", COURSE: "课程" };
@@ -25,7 +25,8 @@ interface GrantsDialogProps {
 export function GrantsDialog({ student, onClose }: GrantsDialogProps) {
   const put = usePutStudentAccess();
   const materials = useQuery(materialsQuery());
-  const courses = useQuery(coursesQuery());
+  // 下拉只需课程 id / 标题：取前 100 门（管理端课程量小）
+  const courses = useQuery(adminCoursesQuery({ pageSize: 100 }));
 
   const form = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues });
   const { fields, append, remove } = useFieldArray({ control: form.control, name: "grants" });
@@ -72,7 +73,11 @@ export function GrantsDialog({ student, onClose }: GrantsDialogProps) {
           {fields.map((field, i) => {
             const row = rows[i] ?? field;
             const options =
-              row.contentType === "MATERIAL" ? materials.data : row.contentType === "COURSE" ? courses.data : undefined;
+              row.contentType === "MATERIAL"
+                ? materials.data
+                : row.contentType === "COURSE"
+                  ? courses.data?.items
+                  : undefined;
             const known = options?.some((o) => o.id === row.contentId) ?? false;
             return (
               <div key={field.id} className={`${rowGrid} items-start`}>

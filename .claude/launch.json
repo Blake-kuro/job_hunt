@@ -1,8 +1,56 @@
 {
   "version": "0.0.1",
   "configurations": [
-    { "name": "web", "runtimeExecutable": "pnpm", "runtimeArgs": ["dev:web"], "port": 5173 },
-    { "name": "admin", "runtimeExecutable": "pnpm", "runtimeArgs": ["dev:admin"], "port": 5174 },
-    { "name": "api", "runtimeExecutable": "pnpm", "runtimeArgs": ["dev:api"], "port": 3001 }
+    {
+      "name": "web",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "dev:web"
+      ],
+      "port": 5173
+    },
+    {
+      "name": "admin",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "dev:admin"
+      ],
+      "port": 5174
+    },
+    {
+      "name": "api",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "dev:api"
+      ],
+      "port": 3001
+    },
+    {
+      "name": "api-mock",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": [
+        "-c",
+        "cd /Users/black/Desktop/job_hunt/apps/api && source ~/.nvm/nvm.sh && nvm use 22 >/dev/null && VOD_MOCK=1 PORT=3013 pnpm dev"
+      ],
+      "port": 3013
+    },
+    {
+      "name": "web-mock",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": [
+        "-c",
+        "cd /Users/black/Desktop/job_hunt/apps/web && source ~/.nvm/nvm.sh && nvm use 22 >/dev/null && VITE_API_PROXY=http://localhost:3013 pnpm dev --port 5175 --strictPort"
+      ],
+      "port": 5175
+    },
+    {
+      "name": "admin-mock",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": [
+        "-c",
+        "cd /Users/black/Desktop/job_hunt/apps/admin && source ~/.nvm/nvm.sh && nvm use 22 >/dev/null && VITE_API_PROXY=http://localhost:3013 pnpm dev --port 5177 --strictPort"
+      ],
+      "port": 5177
+    }
   ]
 }

@@ -61,6 +61,7 @@
           "CODE_INVALID",
           "RATE_LIMITED",
           "NOT_FOUND",
+          "CONFLICT",
           "INTERNAL"
         ]
       },
@@ -177,6 +178,105 @@
           "code"
         ]
       },
+      "VodCallbackResult": {
+        "type": "object",
+        "properties": {
+          "handled": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "handled"
+        ]
+      },
+      "VodCallbackBody": {
+        "type": "object",
+        "properties": {
+          "EventType": {
+            "type": "string"
+          },
+          "ProcedureStateChangeEvent": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "FileId": {
+                "type": "string"
+              },
+              "Status": {
+                "type": "string"
+              },
+              "ErrCode": {
+                "type": "integer"
+              },
+              "Message": {
+                "type": "string"
+              },
+              "MetaData": {
+                "type": [
+                  "object",
+                  "null"
+                ],
+                "properties": {
+                  "Duration": {
+                    "type": "number"
+                  }
+                }
+              },
+              "MediaProcessResultSet": {
+                "type": [
+                  "array",
+                  "null"
+                ],
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "Type": {
+                      "type": "string"
+                    },
+                    "CoverBySnapshotTask": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "Status": {
+                          "type": "string"
+                        },
+                        "ErrCode": {
+                          "type": "integer"
+                        },
+                        "Output": {
+                          "type": [
+                            "object",
+                            "null"
+                          ],
+                          "properties": {
+                            "CoverUrl": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "required": [
+                    "Type"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "FileId",
+              "Status"
+            ]
+          }
+        },
+        "required": [
+          "EventType"
+        ]
+      },
       "AdminSummary": {
         "type": "object",
         "properties": {
@@ -209,6 +309,12 @@
           },
           "courses": {
             "type": "integer"
+          },
+          "readyLessons": {
+            "type": "integer"
+          },
+          "courseGrants": {
+            "type": "integer"
           }
         },
         "required": [
@@ -221,7 +327,9 @@
           "questions",
           "publishedQuestions",
           "materials",
-          "courses"
+          "courses",
+          "readyLessons",
+          "courseGrants"
         ]
       },
       "AdminStudentList": {
@@ -469,81 +577,6 @@
           "updatedAt"
         ]
       },
-      "AdminCourse": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "title": {
-            "type": "string"
-          },
-          "description": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "coverUrl": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "published": {
-            "type": "boolean"
-          },
-          "updatedAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "lessons": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/AdminCourseLesson"
-            }
-          }
-        },
-        "required": [
-          "id",
-          "title",
-          "description",
-          "coverUrl",
-          "published",
-          "updatedAt",
-          "lessons"
-        ]
-      },
-      "AdminCourseLesson": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "title": {
-            "type": "string"
-          },
-          "videoUrl": {
-            "type": "string"
-          },
-          "durationMinutes": {
-            "type": [
-              "integer",
-              "null"
-            ]
-          },
-          "sortOrder": {
-            "type": "integer"
-          }
-        },
-        "required": [
-          "id",
-          "title",
-          "videoUrl",
-          "durationMinutes",
-          "sortOrder"
-        ]
-      },
       "IdResult": {
         "type": "object",
         "properties": {
@@ -555,32 +588,9 @@
           "id"
         ]
       },
-      "AdminContentBody": {
-        "oneOf": [
-          {
-            "$ref": "#/components/schemas/AdminMaterialBody"
-          },
-          {
-            "$ref": "#/components/schemas/AdminCourseBody"
-          }
-        ],
-        "discriminator": {
-          "propertyName": "type",
-          "mapping": {
-            "MATERIAL": "#/components/schemas/AdminMaterialBody",
-            "COURSE": "#/components/schemas/AdminCourseBody"
-          }
-        }
-      },
       "AdminMaterialBody": {
         "type": "object",
         "properties": {
-          "type": {
-            "type": "string",
-            "enum": [
-              "MATERIAL"
-            ]
-          },
           "id": {
             "type": "string"
           },
@@ -606,33 +616,314 @@
           }
         },
         "required": [
-          "type",
           "title",
           "url",
           "published"
         ]
       },
-      "AdminCourseBody": {
+      "AdminCourseList": {
         "type": "object",
         "properties": {
-          "type": {
-            "type": "string",
-            "enum": [
-              "COURSE"
-            ]
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminCourse"
+            }
           },
+          "total": {
+            "type": "integer"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "pageSize": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "page",
+          "pageSize"
+        ]
+      },
+      "AdminCourse": {
+        "type": "object",
+        "properties": {
           "id": {
             "type": "string"
           },
           "title": {
+            "type": "string"
+          },
+          "summary": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "coverUrl": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "teacher": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "priceCents": {
+            "type": "integer"
+          },
+          "published": {
+            "type": "boolean"
+          },
+          "sortOrder": {
+            "type": "integer"
+          },
+          "lessonCount": {
+            "type": "integer"
+          },
+          "readyCount": {
+            "type": "integer"
+          },
+          "grantCount": {
+            "type": "integer"
+          },
+          "createdAt": {
             "type": "string",
-            "minLength": 1
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "summary",
+          "coverUrl",
+          "teacher",
+          "priceCents",
+          "published",
+          "sortOrder",
+          "lessonCount",
+          "readyCount",
+          "grantCount",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "AdminCourseDetail": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "summary": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "coverUrl": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "teacher": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "priceCents": {
+            "type": "integer"
+          },
+          "published": {
+            "type": "boolean"
+          },
+          "sortOrder": {
+            "type": "integer"
+          },
+          "lessonCount": {
+            "type": "integer"
+          },
+          "readyCount": {
+            "type": "integer"
+          },
+          "grantCount": {
+            "type": "integer"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
           },
           "description": {
             "type": [
               "string",
               "null"
             ]
+          },
+          "chapters": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminChapter"
+            }
+          },
+          "unchaptered": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminLesson"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "summary",
+          "coverUrl",
+          "teacher",
+          "priceCents",
+          "published",
+          "sortOrder",
+          "lessonCount",
+          "readyCount",
+          "grantCount",
+          "createdAt",
+          "updatedAt",
+          "description",
+          "chapters",
+          "unchaptered"
+        ]
+      },
+      "AdminChapter": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "sortOrder": {
+            "type": "integer"
+          },
+          "lessons": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminLesson"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "sortOrder",
+          "lessons"
+        ]
+      },
+      "AdminLesson": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "chapterId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "sortOrder": {
+            "type": "integer"
+          },
+          "freePreview": {
+            "type": "boolean"
+          },
+          "videoFileId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "videoStatus": {
+            "$ref": "#/components/schemas/VideoStatus"
+          },
+          "durationSeconds": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "chapterId",
+          "title",
+          "sortOrder",
+          "freePreview",
+          "videoFileId",
+          "videoStatus",
+          "durationSeconds"
+        ]
+      },
+      "VideoStatus": {
+        "type": "string",
+        "enum": [
+          "NONE",
+          "UPLOADING",
+          "PROCESSING",
+          "READY",
+          "FAILED"
+        ]
+      },
+      "AdminCourseBody": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "summary": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 500
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 5000
+          },
+          "teacher": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 100
+          },
+          "priceCents": {
+            "type": "integer",
+            "minimum": 0
           },
           "coverUrl": {
             "type": [
@@ -644,39 +935,288 @@
           "published": {
             "type": "boolean"
           },
-          "lessons": {
+          "sortOrder": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "title",
+          "priceCents",
+          "published"
+        ]
+      },
+      "AdminCoursePatch": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "summary": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 500
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 5000
+          },
+          "teacher": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 100
+          },
+          "priceCents": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "coverUrl": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri"
+          },
+          "published": {
+            "type": "boolean"
+          },
+          "sortOrder": {
+            "type": "integer"
+          }
+        }
+      },
+      "AdminChapterBody": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "title"
+        ]
+      },
+      "AdminChapterPatch": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "sortOrder": {
+            "type": "integer"
+          }
+        }
+      },
+      "AdminLessonBody": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "chapterId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "freePreview": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "title"
+        ]
+      },
+      "AdminLessonPatch": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "chapterId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "sortOrder": {
+            "type": "integer"
+          },
+          "freePreview": {
+            "type": "boolean"
+          },
+          "videoFileId": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "AdminLessonOrderBody": {
+        "type": "object",
+        "properties": {
+          "chapters": {
             "type": "array",
             "items": {
               "type": "object",
               "properties": {
-                "title": {
-                  "type": "string",
-                  "minLength": 1
+                "id": {
+                  "type": "string"
                 },
-                "videoUrl": {
-                  "type": "string",
-                  "format": "uri"
-                },
-                "durationMinutes": {
-                  "type": [
-                    "integer",
-                    "null"
-                  ],
-                  "exclusiveMinimum": 0
+                "lessonIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
                 }
               },
               "required": [
-                "title",
-                "videoUrl"
+                "id",
+                "lessonIds"
               ]
+            }
+          },
+          "unchaptered": {
+            "type": "array",
+            "items": {
+              "type": "string"
             }
           }
         },
         "required": [
-          "type",
-          "title",
-          "published",
-          "lessons"
+          "chapters",
+          "unchaptered"
+        ]
+      },
+      "UploadSignature": {
+        "type": "object",
+        "properties": {
+          "signature": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "signature",
+          "expiresAt"
+        ]
+      },
+      "AdminCourseStudentList": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminCourseStudent"
+            }
+          },
+          "total": {
+            "type": "integer"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "pageSize": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "page",
+          "pageSize"
+        ]
+      },
+      "AdminCourseStudent": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "phone": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "grantedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expiresAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "progressPercent": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "lastActiveAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "userId",
+          "name",
+          "phone",
+          "grantedAt",
+          "expiresAt",
+          "progressPercent",
+          "lastActiveAt"
+        ]
+      },
+      "AdminCourseGrantBody": {
+        "type": "object",
+        "properties": {
+          "userIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "minItems": 1,
+            "maxItems": 500
+          },
+          "expiresAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "userIds"
         ]
       },
       "AdminQuizMeta": {
@@ -1553,77 +2093,408 @@
                 "resourceUrl"
               ]
             }
-          },
-          "courses": {
+          }
+        },
+        "required": [
+          "materials"
+        ]
+      },
+      "CourseCatalog": {
+        "type": "object",
+        "properties": {
+          "items": {
             "type": "array",
             "items": {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "type": "string"
-                },
-                "title": {
-                  "type": "string"
-                },
-                "description": {
-                  "type": [
-                    "string",
-                    "null"
-                  ]
-                },
-                "coverUrl": {
-                  "type": [
-                    "string",
-                    "null"
-                  ]
-                },
-                "lessons": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "id": {
-                        "type": "string"
-                      },
-                      "title": {
-                        "type": "string"
-                      },
-                      "videoUrl": {
-                        "type": "string"
-                      },
-                      "durationMinutes": {
-                        "type": [
-                          "number",
-                          "null"
-                        ]
-                      },
-                      "sortOrder": {
-                        "type": "number"
-                      }
-                    },
-                    "required": [
-                      "id",
-                      "title",
-                      "videoUrl",
-                      "durationMinutes",
-                      "sortOrder"
-                    ]
-                  }
-                }
-              },
-              "required": [
-                "id",
-                "title",
-                "description",
-                "coverUrl",
-                "lessons"
-              ]
+              "$ref": "#/components/schemas/CourseCard"
             }
           }
         },
         "required": [
-          "materials",
-          "courses"
+          "items"
+        ]
+      },
+      "CourseCard": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "summary": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "coverUrl": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "teacher": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "priceCents": {
+            "type": "integer"
+          },
+          "lessonCount": {
+            "type": "integer"
+          },
+          "durationSeconds": {
+            "type": "integer"
+          },
+          "freePreviewCount": {
+            "type": "integer"
+          },
+          "access": {
+            "$ref": "#/components/schemas/CourseAccess"
+          },
+          "progressPercent": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "summary",
+          "coverUrl",
+          "teacher",
+          "priceCents",
+          "lessonCount",
+          "durationSeconds",
+          "freePreviewCount",
+          "access",
+          "progressPercent"
+        ]
+      },
+      "CourseAccess": {
+        "type": "string",
+        "enum": [
+          "GRANTED",
+          "PREVIEW",
+          "LOCKED"
+        ]
+      },
+      "CourseDetail": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "summary": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "coverUrl": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "teacher": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "priceCents": {
+            "type": "integer"
+          },
+          "lessonCount": {
+            "type": "integer"
+          },
+          "durationSeconds": {
+            "type": "integer"
+          },
+          "freePreviewCount": {
+            "type": "integer"
+          },
+          "access": {
+            "$ref": "#/components/schemas/CourseAccess"
+          },
+          "progressPercent": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "chapters": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CourseChapter"
+            }
+          },
+          "unchaptered": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CourseLesson"
+            }
+          },
+          "lastLessonId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "summary",
+          "coverUrl",
+          "teacher",
+          "priceCents",
+          "lessonCount",
+          "durationSeconds",
+          "freePreviewCount",
+          "access",
+          "progressPercent",
+          "description",
+          "chapters",
+          "unchaptered",
+          "lastLessonId"
+        ]
+      },
+      "CourseChapter": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "lessons": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CourseLesson"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "lessons"
+        ]
+      },
+      "CourseLesson": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "durationSeconds": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "freePreview": {
+            "type": "boolean"
+          },
+          "videoStatus": {
+            "$ref": "#/components/schemas/VideoStatus"
+          },
+          "playable": {
+            "type": "boolean"
+          },
+          "progress": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LessonProgress"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "durationSeconds",
+          "freePreview",
+          "videoStatus",
+          "playable",
+          "progress"
+        ]
+      },
+      "LessonProgress": {
+        "type": "object",
+        "properties": {
+          "positionSeconds": {
+            "type": "integer"
+          },
+          "completed": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "positionSeconds",
+          "completed"
+        ]
+      },
+      "PlayInfo": {
+        "type": "object",
+        "properties": {
+          "appId": {
+            "type": "string"
+          },
+          "fileId": {
+            "type": "string"
+          },
+          "psign": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "positionSeconds": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "appId",
+          "fileId",
+          "psign",
+          "expiresAt",
+          "positionSeconds"
+        ]
+      },
+      "LessonProgressBody": {
+        "type": "object",
+        "properties": {
+          "positionSeconds": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 604800
+          },
+          "completed": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "positionSeconds"
+        ]
+      },
+      "MyCourses": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MyCourse"
+            }
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "MyCourse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "summary": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "coverUrl": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "teacher": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "priceCents": {
+            "type": "integer"
+          },
+          "lessonCount": {
+            "type": "integer"
+          },
+          "durationSeconds": {
+            "type": "integer"
+          },
+          "freePreviewCount": {
+            "type": "integer"
+          },
+          "access": {
+            "$ref": "#/components/schemas/CourseAccess"
+          },
+          "progressPercent": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "lastLessonId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "lastLessonTitle": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "summary",
+          "coverUrl",
+          "teacher",
+          "priceCents",
+          "lessonCount",
+          "durationSeconds",
+          "freePreviewCount",
+          "access",
+          "progressPercent",
+          "lastLessonId",
+          "lastLessonTitle",
+          "updatedAt"
         ]
       },
       "JobListResult": {
@@ -2354,6 +3225,57 @@
         }
       }
     },
+    "/api/vod/callback": {
+      "post": {
+        "tags": [
+          "vod"
+        ],
+        "operationId": "vodCallback",
+        "description": "腾讯云 VOD 事件通知（无需登录，`?token=` 须等于 VOD_CALLBACK_TOKEN）；只处理 ProcedureStateChanged",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "token",
+            "in": "query"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VodCallbackBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "已接收",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VodCallbackResult"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "token 无效",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/summary": {
       "get": {
         "tags": [
@@ -2575,29 +3497,6 @@
         }
       }
     },
-    "/api/admin/courses": {
-      "get": {
-        "tags": [
-          "admin"
-        ],
-        "operationId": "listAdminCourses",
-        "responses": {
-          "200": {
-            "description": "全部课程",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/AdminCourse"
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/admin/content": {
       "post": {
         "tags": [
@@ -2609,7 +3508,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/AdminContentBody"
+                "$ref": "#/components/schemas/AdminMaterialBody"
               }
             }
           }
@@ -2621,6 +3520,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/IdResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
                 }
               }
             }
@@ -2649,8 +3558,7 @@
             "schema": {
               "type": "string",
               "enum": [
-                "MATERIAL",
-                "COURSE"
+                "MATERIAL"
               ]
             },
             "required": true,
@@ -2672,6 +3580,796 @@
           },
           "404": {
             "description": "不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/courses": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "operationId": "listAdminCourses",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required": false,
+            "name": "q",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            },
+            "required": false,
+            "name": "published",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            },
+            "required": false,
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            },
+            "required": false,
+            "name": "pageSize",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "课程分页列表（含课时 / 就绪 / 授权计数）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminCourseList"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "operationId": "createAdminCourse",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminCourseBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "已创建",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IdResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/courses/{id}": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "operationId": "getAdminCourse",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "课程详情（含章 / 课时全量）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminCourseDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "admin"
+        ],
+        "operationId": "updateAdminCourse",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminCoursePatch"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "已更新"
+          },
+          "400": {
+            "description": "参数校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "admin"
+        ],
+        "operationId": "deleteAdminCourse",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "已删除（级联章 / 课时 / 进度，并清理授权）"
+          },
+          "404": {
+            "description": "不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/courses/{id}/chapters": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "operationId": "createAdminChapter",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminChapterBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "已创建（排在最后）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IdResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/chapters/{id}": {
+      "patch": {
+        "tags": [
+          "admin"
+        ],
+        "operationId": "updateAdminChapter",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminChapterPatch"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "已更新"
+          },
+          "400": {
+            "description": "参数校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "admin"
+        ],
+        "operationId": "deleteAdminChapter",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "已删除（课时回到无章）"
+          },
+          "404": {
+            "description": "不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/courses/{id}/lessons": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "operationId": "createAdminLesson",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminLessonBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "已创建（排在最后）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IdResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数校验失败或章不属于该课程",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/lessons/{id}": {
+      "patch": {
+        "tags": [
+          "admin"
+        ],
+        "operationId": "updateAdminLesson",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminLessonPatch"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "已更新（写 videoFileId 时状态置 PROCESSING）"
+          },
+          "400": {
+            "description": "参数校验失败或章不属于该课程",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "admin"
+        ],
+        "operationId": "deleteAdminLesson",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "已删除（级联进度）"
+          },
+          "404": {
+            "description": "不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/courses/{id}/lessons/order": {
+      "put": {
+        "tags": [
+          "admin"
+        ],
+        "operationId": "reorderAdminLessons",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminLessonOrderBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "已写入章顺序与课时归属 / 顺序"
+          },
+          "400": {
+            "description": "课时未覆盖全部 / 重复 / 不属于该课程，或章不属于该课程",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/lessons/{id}/video/refresh": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "operationId": "refreshAdminLessonVideo",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "已按 VOD 媒体信息回填状态 / 时长",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminLesson"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "该课时还没有上传视频",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/vod/upload-signature": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "operationId": "createVodUploadSignature",
+        "responses": {
+          "200": {
+            "description": "VOD 客户端直传签名（1 小时）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadSignature"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/courses/{id}/students": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "operationId": "listAdminCourseStudents",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            },
+            "required": false,
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            },
+            "required": false,
+            "name": "pageSize",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "已开通学员（含进度）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminCourseStudentList"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/courses/{id}/grants": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "operationId": "grantAdminCourse",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminCourseGrantBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "已开通（幂等；已有授权只更新到期）"
+          },
+          "400": {
+            "description": "参数校验失败或学生不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/courses/{id}/grants/{userId}": {
+      "delete": {
+        "tags": [
+          "admin"
+        ],
+        "operationId": "revokeAdminCourseGrant",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "userId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "已移除"
+          },
+          "404": {
+            "description": "课程或授权不存在",
             "content": {
               "application/json": {
                 "schema": {
@@ -3469,11 +5167,210 @@
         "operationId": "listStudentContent",
         "responses": {
           "200": {
-            "description": "已授权的资料和课程",
+            "description": "已授权的资料（网课见 /courses）",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/StudentContent"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/courses": {
+      "get": {
+        "tags": [
+          "courses"
+        ],
+        "operationId": "listCourses",
+        "responses": {
+          "200": {
+            "description": "已发布课程目录，含当前用户权限与进度",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CourseCatalog"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/courses/{id}": {
+      "get": {
+        "tags": [
+          "courses"
+        ],
+        "operationId": "getCourse",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "课程详情（章 / 课时 / 进度）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CourseDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/courses/{id}/lessons/{lessonId}/play": {
+      "get": {
+        "tags": [
+          "courses"
+        ],
+        "operationId": "getLessonPlayInfo",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "lessonId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "播放签名与续播位置",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlayInfo"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "该课时需要开通课程后观看",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "视频处理中",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/courses/{id}/lessons/{lessonId}/progress": {
+      "put": {
+        "tags": [
+          "courses"
+        ],
+        "operationId": "saveLessonProgress",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "lessonId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LessonProgressBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "已记录"
+          },
+          "400": {
+            "description": "参数校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "该课时不可播放",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
                 }
               }
             }
@@ -3494,6 +5391,26 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/me/courses": {
+      "get": {
+        "tags": [
+          "me"
+        ],
+        "operationId": "listMyCourses",
+        "responses": {
+          "200": {
+            "description": "有授权或有学习进度的课程，按最近学习排序",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyCourses"
                 }
               }
             }

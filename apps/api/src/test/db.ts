@@ -12,7 +12,7 @@ export async function resetDb() {
     throw new Error("拒绝清空非测试数据库");
   }
   await prisma.$executeRawUnsafe(
-    'TRUNCATE "CourseLesson","Course","StudyMaterial","AccessGrant","SmsVerification","Session","AuthIdentity","Attempt","WrongBookEntry","Question","QuestionCategory","Company","Application","Favorite","Job","User" RESTART IDENTITY CASCADE',
+    'TRUNCATE "LessonProgress","CourseLesson","CourseChapter","Course","StudyMaterial","AccessGrant","SmsVerification","Session","AuthIdentity","Attempt","WrongBookEntry","Question","QuestionCategory","Company","Application","Favorite","Job","User" RESTART IDENTITY CASCADE',
   );
 }
 

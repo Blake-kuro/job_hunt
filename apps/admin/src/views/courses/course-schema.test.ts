@@ -1,106 +1,83 @@
-import type { AdminCourseLesson } from "@job-hunt/api-client/types";
+import type { AdminCourseDetail } from "@job-hunt/api-client/types";
 import { describe, expect, it } from "vitest";
-import {
-  defaultValues,
-  type FormValues,
-  fromEntity,
-  fromLessons,
-  type LessonRow,
-  schema,
-  toBody,
-  toLessons,
-} from "./course-schema";
+import { centsToYuan, defaultValues, type FormValues, fromEntity, schema, toBody, yuanToCents } from "./course-schema";
 
-const rows: LessonRow[] = [
-  { title: "第一课", videoUrl: "https://v.example.com/1.mp4", durationMinutes: "10" },
-  { title: "第二课", videoUrl: "https://v.example.com/2.mp4", durationMinutes: "" },
-  { title: "第三课", videoUrl: "https://v.example.com/3.mp4", durationMinutes: "30" },
-];
-
-const valid: FormValues = { ...defaultValues, title: "课程", lessons: rows };
-
-/** 校验失败时返回 [路径, 文案] 列表，成功时返回 [] */
-function issues(values: FormValues): [string, string][] {
+function messages(values: FormValues): string[] {
   const r = schema.safeParse(values);
-  return r.success ? [] : r.error.issues.map((i) => [i.path.join("."), i.message]);
+  return r.success ? [] : r.error.issues.map((i) => i.message);
 }
 
+const valid: FormValues = { ...defaultValues, title: "面试通关", price: "199.9" };
+
 describe("course-schema", () => {
-  it("标题必填；封面链接可空，非空需以 http:// 或 https:// 开头", () => {
-    expect(issues({ ...valid, title: " " })).toEqual([["title", "请填写标题"]]);
-    expect(issues({ ...valid, coverUrl: "ftp://x" })).toEqual([["coverUrl", "封面链接需以 http:// 或 https:// 开头"]]);
-    expect(issues({ ...valid, coverUrl: "" })).toEqual([]);
-    // 空白串先 trim 再判空：通过校验且 toBody 发 null，与旧 CourseForm 一致
-    expect(issues({ ...valid, coverUrl: "   " })).toEqual([]);
-    expect(toBody(schema.parse({ ...valid, coverUrl: "   " }))).toMatchObject({ coverUrl: null });
-    expect(issues({ ...valid, coverUrl: "https://img.example.com/c.png" })).toEqual([]);
+  it("标题必填；价格为非负两位小数；封面须 http(s)；排序为整数", () => {
+    expect(messages({ ...valid, title: " " })).toEqual(["请填写标题"]);
+    expect(messages({ ...valid, price: "-1" })).toEqual(["价格为非负数字（元），最多两位小数"]);
+    expect(messages({ ...valid, price: "1.999" })).toEqual(["价格为非负数字（元），最多两位小数"]);
+    expect(messages({ ...valid, price: "" })).toEqual(["价格为非负数字（元），最多两位小数"]);
+    expect(messages({ ...valid, coverUrl: "ftp://x" })).toEqual(["封面链接需以 http:// 或 https:// 开头"]);
+    expect(messages({ ...valid, sortOrder: "1.5" })).toEqual(["排序为整数"]);
+    expect(messages(valid)).toEqual([]);
+    expect(messages({ ...valid, price: "0", coverUrl: "", sortOrder: "-2" })).toEqual([]);
   });
 
-  it("课时标题 / 视频链接 trim 后为空时报「第 n 课时缺少标题或视频链接」，挂在该行字段上", () => {
-    expect(issues({ ...valid, lessons: [rows[0], { ...rows[1], title: "  " }] })).toEqual([
-      ["lessons.1.title", "第 2 课时缺少标题或视频链接"],
-    ]);
-    expect(issues({ ...valid, lessons: [{ ...rows[0], videoUrl: "" }] })).toEqual([
-      ["lessons.0.videoUrl", "第 1 课时缺少标题或视频链接"],
-    ]);
-    expect(issues({ ...valid, lessons: [rows[0], { ...rows[1], videoUrl: "ftp://x" }] })).toEqual([
-      ["lessons.1.videoUrl", "第 2 课时视频链接需以 http:// 或 https:// 开头"],
-    ]);
+  it("元 ↔ 分换算无浮点误差", () => {
+    expect(yuanToCents("199.9")).toBe(19990);
+    expect(yuanToCents("0.29")).toBe(29);
+    expect(yuanToCents("1.15")).toBe(115);
+    expect(centsToYuan(19990)).toBe("199.9");
+    expect(centsToYuan(20000)).toBe("200");
+    expect(centsToYuan(5)).toBe("0.05");
+    expect(centsToYuan(0)).toBe("0");
   });
 
-  it("多行同时出错时逐行报告", () => {
-    expect(issues({ ...valid, lessons: [{ ...rows[0], title: "" }, rows[1], { ...rows[2], videoUrl: "x" }] })).toEqual([
-      ["lessons.0.title", "第 1 课时缺少标题或视频链接"],
-      ["lessons.2.videoUrl", "第 3 课时视频链接需以 http:// 或 https:// 开头"],
-    ]);
-  });
-
-  it("toLessons trim 文本，时长空串 → null、非空 → 数字；fromLessons 反向转换", () => {
-    expect(
-      toLessons([{ title: " 第一课 ", videoUrl: " https://v.example.com/1.mp4 ", durationMinutes: "10" }, rows[1]]),
-    ).toEqual([
-      { title: "第一课", videoUrl: "https://v.example.com/1.mp4", durationMinutes: 10 },
-      { title: "第二课", videoUrl: "https://v.example.com/2.mp4", durationMinutes: null },
-    ]);
-    const lessons: AdminCourseLesson[] = [
-      { id: "l1", title: "第一课", videoUrl: "https://v.example.com/1.mp4", durationMinutes: 10, sortOrder: 0 },
-      { id: "l2", title: "第二课", videoUrl: "https://v.example.com/2.mp4", durationMinutes: null, sortOrder: 1 },
-    ];
-    expect(fromLessons(lessons)).toEqual([
-      { title: "第一课", videoUrl: "https://v.example.com/1.mp4", durationMinutes: "10" },
-      { title: "第二课", videoUrl: "https://v.example.com/2.mp4", durationMinutes: "" },
-    ]);
-    expect(toLessons([])).toEqual([]);
-  });
-
-  it("toBody：描述 / 封面空 → null，带 id 即更新，课时按当前顺序发送；fromEntity 往返", () => {
-    expect(toBody({ ...valid, description: " ", coverUrl: "" })).toEqual({
-      type: "COURSE",
-      id: undefined,
-      title: "课程",
+  it("toBody：可选文本空 → null，价格转分，排序留空不发", () => {
+    expect(toBody({ ...valid, summary: " ", teacher: " 王老师 ", price: "12.5" })).toEqual({
+      title: "面试通关",
+      summary: null,
       description: null,
+      teacher: "王老师",
+      priceCents: 1250,
       coverUrl: null,
       published: false,
-      lessons: toLessons(rows),
     });
-    const values = fromEntity({
+    expect(toBody({ ...valid, sortOrder: "3", coverUrl: "https://x/y.png", published: true })).toMatchObject({
+      sortOrder: 3,
+      coverUrl: "https://x/y.png",
+      published: true,
+    });
+  });
+
+  it("fromEntity：null → 空串，分 → 元，列表项无 description 时为空串", () => {
+    const detail: AdminCourseDetail = {
       id: "c1",
-      title: "课程",
-      description: null,
+      title: "T",
+      summary: null,
+      description: "详",
       coverUrl: null,
+      teacher: "师",
+      priceCents: 9900,
       published: true,
-      updatedAt: "2026-09-01T00:00:00.000Z",
-      lessons: [
-        { id: "l1", title: "第一课", videoUrl: "https://v.example.com/1.mp4", durationMinutes: 10, sortOrder: 0 },
-      ],
-    });
-    expect(values).toEqual({
-      title: "课程",
-      description: "",
+      sortOrder: 2,
+      lessonCount: 0,
+      readyCount: 0,
+      grantCount: 0,
+      createdAt: "",
+      updatedAt: "",
+      chapters: [],
+      unchaptered: [],
+    };
+    expect(fromEntity(detail)).toEqual({
+      title: "T",
+      summary: "",
+      description: "详",
+      teacher: "师",
+      price: "99",
       coverUrl: "",
+      sortOrder: "2",
       published: true,
-      lessons: [{ title: "第一课", videoUrl: "https://v.example.com/1.mp4", durationMinutes: "10" }],
     });
-    expect(toBody(values, "c1")).toMatchObject({ id: "c1", published: true, lessons: [{ durationMinutes: 10 }] });
+    const { description: _d, chapters: _c, unchaptered: _u, ...listItem } = detail;
+    expect(fromEntity(listItem).description).toBe("");
   });
 });

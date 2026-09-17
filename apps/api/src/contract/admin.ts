@@ -1,5 +1,6 @@
 import { z } from "@hono/zod-openapi";
 import { PlanSchema, TierSchema } from "./access";
+import { VideoStatusSchema } from "./course";
 import { CategoryIdSchema, jobListQuerySchema } from "./job";
 import { AnswerLettersSchema, QuestionTypeSchema, QuizOptionSchema, quizOptionsSchema } from "./quiz";
 
@@ -36,6 +37,10 @@ export const AdminSummarySchema = z
     publishedQuestions: z.number().int(),
     materials: z.number().int(),
     courses: z.number().int(),
+    /** `videoStatus === "READY"` 的课时数 */
+    readyLessons: z.number().int(),
+    /** `AccessGrant{COURSE}` 行数 */
+    courseGrants: z.number().int(),
   })
   .openapi("AdminSummary");
 
@@ -91,7 +96,7 @@ export const AdminAccessBodySchema = z
   })
   .openapi("AdminAccessBody");
 
-// ── 资料 / 课程 ──
+// ── 资料 ──
 export const AdminMaterialSchema = z
   .object({
     id: z.string(),
@@ -103,34 +108,9 @@ export const AdminMaterialSchema = z
     updatedAt: z.string().datetime(),
   })
   .openapi("AdminMaterial");
-export const AdminCourseLessonSchema = z
+/** `POST /content` 只收资料（课程走 `/courses`）；带 `id` 为更新 */
+export const AdminMaterialBodySchema = z
   .object({
-    id: z.string(),
-    title: z.string(),
-    videoUrl: z.string(),
-    durationMinutes: z.number().int().nullable(),
-    sortOrder: z.number().int(),
-  })
-  .openapi("AdminCourseLesson");
-export const AdminCourseSchema = z
-  .object({
-    id: z.string(),
-    title: z.string(),
-    description: z.string().nullable(),
-    coverUrl: z.string().nullable(),
-    published: z.boolean(),
-    updatedAt: z.string().datetime(),
-    lessons: z.array(AdminCourseLessonSchema),
-  })
-  .openapi("AdminCourse");
-const AdminCourseLessonBodySchema = z.object({
-  title: z.string().min(1),
-  videoUrl: z.string().url(),
-  durationMinutes: z.number().int().positive().nullable().optional(),
-});
-const AdminMaterialBodySchema = z
-  .object({
-    type: z.literal("MATERIAL"),
     id: z.string().optional(),
     title: z.string().min(1),
     description: z.string().nullable().optional(),
@@ -139,20 +119,148 @@ const AdminMaterialBodySchema = z
     published: z.boolean(),
   })
   .openapi("AdminMaterialBody");
-const AdminCourseBodySchema = z
+
+// ── 课程 / 章 / 课时 ──
+export const adminCourseQuerySchema = z.object({
+  q: z.string().trim().min(1).optional(),
+  published: BoolQuery,
+  ...pageQuery,
+});
+const adminCourseShape = {
+  id: z.string(),
+  title: z.string(),
+  summary: z.string().nullable(),
+  coverUrl: z.string().nullable(),
+  teacher: z.string().nullable(),
+  /** 标价，分；0 = 免费课 */
+  priceCents: z.number().int(),
+  published: z.boolean(),
+  sortOrder: z.number().int(),
+  lessonCount: z.number().int(),
+  /** `videoStatus === "READY"` 的课时数 */
+  readyCount: z.number().int(),
+  /** `AccessGrant{COURSE}` 行数（含已过期） */
+  grantCount: z.number().int(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+};
+export const AdminCourseSchema = z.object(adminCourseShape).openapi("AdminCourse");
+export type AdminCourse = z.infer<typeof AdminCourseSchema>;
+export const AdminCourseListSchema = paged(AdminCourseSchema, "AdminCourseList");
+export const AdminLessonSchema = z
   .object({
-    type: z.literal("COURSE"),
-    id: z.string().optional(),
-    title: z.string().min(1),
-    description: z.string().nullable().optional(),
+    id: z.string(),
+    chapterId: z.string().nullable(),
+    title: z.string(),
+    sortOrder: z.number().int(),
+    freePreview: z.boolean(),
+    videoFileId: z.string().nullable(),
+    videoStatus: VideoStatusSchema,
+    durationSeconds: z.number().int().nullable(),
+  })
+  .openapi("AdminLesson");
+export type AdminLesson = z.infer<typeof AdminLessonSchema>;
+export const AdminChapterSchema = z
+  .object({ id: z.string(), title: z.string(), sortOrder: z.number().int(), lessons: z.array(AdminLessonSchema) })
+  .openapi("AdminChapter");
+export const AdminCourseDetailSchema = z
+  .object({
+    ...adminCourseShape,
+    description: z.string().nullable(),
+    chapters: z.array(AdminChapterSchema),
+    /** 不属于任何章的课时 */
+    unchaptered: z.array(AdminLessonSchema),
+  })
+  .openapi("AdminCourseDetail");
+export type AdminCourseDetail = z.infer<typeof AdminCourseDetailSchema>;
+const CourseTitle = z.string().trim().min(1).max(200);
+/** 可空短文本：trim 后空串归一为 null */
+const optionalText = (max: number) =>
+  z
+    .string()
+    .trim()
+    .max(max)
+    .transform((v) => v || null)
+    .nullable()
+    .optional();
+export const AdminCourseBodySchema = z
+  .object({
+    title: CourseTitle,
+    summary: optionalText(500),
+    description: optionalText(5000),
+    teacher: optionalText(100),
+    priceCents: z.number().int().min(0),
     coverUrl: z.string().url().nullable().optional(),
     published: z.boolean(),
-    lessons: z.array(AdminCourseLessonBodySchema),
+    sortOrder: z.number().int().optional(),
   })
   .openapi("AdminCourseBody");
-export const AdminContentBodySchema = z
-  .discriminatedUnion("type", [AdminMaterialBodySchema, AdminCourseBodySchema])
-  .openapi("AdminContentBody");
+export type AdminCourseBody = z.infer<typeof AdminCourseBodySchema>;
+export const AdminCoursePatchSchema = AdminCourseBodySchema.partial().openapi("AdminCoursePatch");
+export type AdminCoursePatch = z.infer<typeof AdminCoursePatchSchema>;
+export const AdminChapterBodySchema = z.object({ title: CourseTitle }).openapi("AdminChapterBody");
+export const AdminChapterPatchSchema = z
+  .object({ title: CourseTitle.optional(), sortOrder: z.number().int().optional() })
+  .openapi("AdminChapterPatch");
+export type AdminChapterPatch = z.infer<typeof AdminChapterPatchSchema>;
+export const AdminLessonBodySchema = z
+  .object({
+    title: CourseTitle,
+    /** 所属章；不传 / null 为无章 */
+    chapterId: z.string().nullable().optional(),
+    freePreview: z.boolean().optional(),
+  })
+  .openapi("AdminLessonBody");
+export type AdminLessonBody = z.infer<typeof AdminLessonBodySchema>;
+export const AdminLessonPatchSchema = z
+  .object({
+    title: CourseTitle.optional(),
+    chapterId: z.string().nullable().optional(),
+    sortOrder: z.number().int().optional(),
+    freePreview: z.boolean().optional(),
+    /** 直传完成后回写的 VOD FileId；写入即置 `videoStatus = PROCESSING` */
+    videoFileId: z.string().min(1).optional(),
+  })
+  .openapi("AdminLessonPatch");
+export type AdminLessonPatch = z.infer<typeof AdminLessonPatchSchema>;
+/** 一次性写整门课的章顺序与课时归属 / 顺序；必须覆盖该课全部课时 */
+export const AdminLessonOrderBodySchema = z
+  .object({
+    chapters: z.array(z.object({ id: z.string(), lessonIds: z.array(z.string()) })),
+    unchaptered: z.array(z.string()),
+  })
+  .openapi("AdminLessonOrderBody");
+export type AdminLessonOrderBody = z.infer<typeof AdminLessonOrderBodySchema>;
+export const UploadSignatureSchema = z
+  .object({
+    /** 腾讯云 VOD 客户端上传签名（mock 下为 "mock-upload"） */
+    signature: z.string(),
+    expiresAt: z.string().datetime(),
+  })
+  .openapi("UploadSignature");
+
+// ── 按课授权 ──
+export const adminCourseStudentQuerySchema = z.object(pageQuery);
+export const AdminCourseStudentSchema = z
+  .object({
+    userId: z.string(),
+    name: z.string(),
+    phone: z.string().nullable(),
+    grantedAt: z.string().datetime(),
+    expiresAt: NullableDateTime,
+    /** 已完成课时占比 0–100；没有任何进度时为 null */
+    progressPercent: z.number().int().nullable(),
+    /** 最近一次写进度的时间；没有进度时为 null */
+    lastActiveAt: NullableDateTime,
+  })
+  .openapi("AdminCourseStudent");
+export type AdminCourseStudent = z.infer<typeof AdminCourseStudentSchema>;
+export const AdminCourseStudentListSchema = paged(AdminCourseStudentSchema, "AdminCourseStudentList");
+/** 批量开通，幂等：已有的授权只更新 `expiresAt`（传了才更新） */
+export const AdminCourseGrantBodySchema = z
+  .object({ userIds: z.array(z.string().min(1)).min(1).max(500), expiresAt: NullableDateTime.optional() })
+  .openapi("AdminCourseGrantBody");
+export type AdminCourseGrantBody = z.infer<typeof AdminCourseGrantBodySchema>;
 
 // ── 题库 ──
 export const AdminQuizMetaSchema = z

@@ -22,6 +22,7 @@ const CODES = [
   "CODE_INVALID",
   "RATE_LIMITED",
   "NOT_FOUND",
+  "CONFLICT",
   "INTERNAL",
 ] as const satisfies readonly ApiErrorCode[];
 // 穷尽性检查：ApiErrorCode 里有而 CODES 漏掉的成员会让 Missing 非 never，下面的赋值随即报错

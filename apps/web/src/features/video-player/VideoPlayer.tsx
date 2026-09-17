@@ -1,0 +1,209 @@
+import { useEffect, useId, useRef, useState } from "react";
+import type { PlayInfo } from "@entities/course";
+import { Alert, AlertDescription, AlertTitle } from "@job-hunt/ui/components/alert";
+import { Button } from "@job-hunt/ui/components/button";
+import { loadTcPlayer } from "./load-tcplayer";
+import type { ProgressKind } from "./progress";
+import type { TCPlayerFactory, TCPlayerInstance } from "./tcplayer";
+
+export type { ProgressKind };
+
+export interface VideoPlayerProps {
+  playInfo: PlayInfo;
+  /** 起播位置（秒） */
+  startAt: number;
+  /** 每次 timeupdate / pause 都会调用（不节流，节流由页面做）；duration 未知时为 null。首次 seek 到 startAt 之前不触发。 */
+  onProgress: (position: number, info: { kind: ProgressKind; duration: number | null }) => void;
+  onEnded: () => void;
+  /** 播放器报错（多为签名过期 / 防盗链失效）：页面应重取签名并以当前位置重建播放器 */
+  onExpired: () => void;
+}
+
+/** 验收用：只有后端 VOD_MOCK 签名（`psign === "mock-play"`）才播本地 public/sample.mp4（不入库）；脚本加载失败不再退回示例视频 */
+const MOCK_PSIGN = "mock-play";
+const MOCK_SRC = "/sample.mp4";
+
+/** TCPlayer v5 的 Web 播放 License；缺失时只警告并仍尝试初始化（播放器自己会报 License 错误） */
+const LICENSE_URL = import.meta.env.VITE_TCPLAYER_LICENSE_URL;
+
+type LoaderState = { status: "loading" } | { status: "ready"; TCPlayer: TCPlayerFactory } | { status: "failed" };
+
+/** 非 mock 时按需加载 TCPlayer 脚本；失败后可 `retry()` 重新加载 */
+function useTcPlayer(enabled: boolean): LoaderState & { retry: () => void } {
+  const [state, setState] = useState<LoaderState>({ status: "loading" });
+  const [attempt, setAttempt] = useState(0);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: attempt 只用于触发重试
+  useEffect(() => {
+    if (!enabled) return;
+    let cancelled = false;
+    setState({ status: "loading" });
+    loadTcPlayer().then((TCPlayer) => {
+      if (cancelled) return;
+      setState(TCPlayer ? { status: "ready", TCPlayer } : { status: "failed" });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [enabled, attempt]);
+  return { ...state, retry: () => setAttempt((n) => n + 1) };
+}
+
+function safeDuration(value: number): number | null {
+  return Number.isFinite(value) && value > 0 ? value : null;
+}
+
+/**
+ * tcplayer 封装：以 useRef 持有实例，卸载时 dispose。
+ * 只在 fileId 变化时重建（签名静默续期不打断播放）；签名失效导致的播放错误经 onExpired 交给页面重建。
+ */
+export function VideoPlayer({ playInfo, startAt, onProgress, onEnded, onExpired }: VideoPlayerProps) {
+  const mock = playInfo.psign === MOCK_PSIGN;
+  const loader = useTcPlayer(!mock);
+  const TCPlayer = loader.status === "ready" ? loader.TCPlayer : null;
+  const elementId = `tcplayer-${useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const playerRef = useRef<TCPlayerInstance | null>(null);
+  const callbacks = useRef({ onProgress, onEnded, onExpired });
+  callbacks.current = { onProgress, onEnded, onExpired };
+  const info = useRef(playInfo);
+  info.current = playInfo;
+  const startAtRef = useRef(startAt);
+  // 续播：seek 到 startAt 之前的 timeupdate（位置还是 0）不上报，避免覆盖服务端进度
+  const seekedRef = useRef(startAt <= 0);
+  const { fileId } = playInfo;
+
+  // 真实播放器：<video> 由这里手动创建 —— tcplayer 会用自己的容器包住并在 dispose 时移除它，
+  // 若交给 React 渲染，卸载时 React 会因节点已不在而报错
+  useEffect(() => {
+    const container = containerRef.current;
+    if (mock || !TCPlayer || !container) return;
+    if (!LICENSE_URL) {
+      console.warn("缺少 VITE_TCPLAYER_LICENSE_URL：TCPlayer v5 需要 Web 播放 License，未配置时播放器可能初始化失败");
+    }
+    const video = document.createElement("video");
+    video.id = elementId;
+    video.preload = "auto";
+    video.setAttribute("playsinline", "");
+    video.setAttribute("webkit-playsinline", "");
+    video.className = "size-full";
+    container.replaceChildren(video);
+    const player = TCPlayer(elementId, {
+      fileID: fileId,
+      appID: info.current.appId,
+      psign: info.current.psign,
+      ...(LICENSE_URL && { licenseUrl: LICENSE_URL }),
+      autoplay: true,
+      language: "zh-cn",
+    });
+    playerRef.current = player;
+    const start = startAtRef.current;
+    player.ready(() => {
+      if (start > 0) player.currentTime(start);
+      seekedRef.current = true;
+    });
+    player.on("timeupdate", () => {
+      if (!seekedRef.current) return;
+      callbacks.current.onProgress(player.currentTime(), {
+        kind: "timeupdate",
+        duration: safeDuration(player.duration()),
+      });
+    });
+    player.on("pause", () => {
+      if (!seekedRef.current) return;
+      callbacks.current.onProgress(player.currentTime(), { kind: "pause", duration: safeDuration(player.duration()) });
+    });
+    player.on("ended", () => callbacks.current.onEnded());
+    player.on("error", () => callbacks.current.onExpired());
+    return () => {
+      playerRef.current = null;
+      try {
+        player.dispose();
+      } catch {
+        // 播放器已被销毁（例如 DOM 先被移除）时忽略
+      }
+      container.replaceChildren();
+    };
+  }, [mock, TCPlayer, elementId, fileId]);
+
+  // mock：原生 <video>，事件与真实分支一致
+  useEffect(() => {
+    if (!mock) return;
+    const video = videoRef.current;
+    if (!video) return;
+    const start = startAtRef.current;
+    const seek = () => {
+      if (start > 0 && start < video.duration) video.currentTime = start;
+      seekedRef.current = true;
+    };
+    if (video.readyState >= 1) seek();
+    const onMeta = () => seek();
+    const onTime = () => {
+      if (!seekedRef.current) return;
+      callbacks.current.onProgress(video.currentTime, { kind: "timeupdate", duration: safeDuration(video.duration) });
+    };
+    const onPause = () => {
+      // ended 也会触发 pause；结束由 onEnded 处理
+      if (video.ended) return;
+      callbacks.current.onProgress(video.currentTime, { kind: "pause", duration: safeDuration(video.duration) });
+    };
+    const onEnd = () => callbacks.current.onEnded();
+    const onError = () => callbacks.current.onExpired();
+    video.addEventListener("loadedmetadata", onMeta);
+    video.addEventListener("timeupdate", onTime);
+    video.addEventListener("pause", onPause);
+    video.addEventListener("ended", onEnd);
+    video.addEventListener("error", onError);
+    return () => {
+      video.removeEventListener("loadedmetadata", onMeta);
+      video.removeEventListener("timeupdate", onTime);
+      video.removeEventListener("pause", onPause);
+      video.removeEventListener("ended", onEnd);
+      video.removeEventListener("error", onError);
+    };
+  }, [mock]);
+
+  if (mock) {
+    return (
+      <div className="aspect-video w-full bg-neutral-900">
+        {/* 验收用：public/sample.mp4 不入库（见 .gitignore） */}
+        <video
+          ref={videoRef}
+          controls
+          playsInline
+          src={MOCK_SRC}
+          className="size-full"
+          aria-label="课程视频（本地示例）"
+        >
+          <track kind="captions" />
+        </video>
+      </div>
+    );
+  }
+
+  if (loader.status === "failed") {
+    return (
+      <div className="flex aspect-video w-full items-center justify-center bg-neutral-900 px-6">
+        <Alert variant="destructive" className="max-w-[420px]">
+          <AlertTitle>播放器加载失败，请检查网络后重试</AlertTitle>
+          <AlertDescription>
+            <p>播放器脚本未能从 CDN 加载。</p>
+            <Button size="sm" onClick={loader.retry}>
+              重试
+            </Button>
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
+  return (
+    <div ref={containerRef} className="aspect-video w-full bg-neutral-900">
+      {loader.status === "loading" && (
+        <div role="status" className="flex size-full items-center justify-center text-sm text-neutral-300">
+          播放器加载中…
+        </div>
+      )}
+    </div>
+  );
+}

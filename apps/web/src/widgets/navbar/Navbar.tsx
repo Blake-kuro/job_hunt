@@ -6,7 +6,7 @@ import { meQuery } from "@api/queries";
 import { cn } from "@job-hunt/ui/lib/utils";
 
 interface NavbarProps {
-  active: "jobs" | "practice";
+  active: "jobs" | "practice" | "courses";
   /** 右侧的状态文字，窄屏隐藏 */
   trailing?: ReactNode;
 }
@@ -14,6 +14,7 @@ interface NavbarProps {
 const links = [
   { to: "/", label: "岗位信息", key: "jobs" },
   { to: "/practice", label: "刷题", key: "practice" },
+  { to: "/courses", label: "网课", key: "courses" },
 ] as const;
 
 export function Navbar({ active, trailing }: NavbarProps) {
@@ -81,6 +82,12 @@ export function Navbar({ active, trailing }: NavbarProps) {
               className="mt-1 block w-full cursor-pointer px-2 py-2 text-left text-xs text-neutral-700 hover:bg-surface"
             >
               {user.tier === "PRO" ? "我的 PRO" : "升级 PRO"}
+            </Link>
+            <Link
+              to="/me/courses"
+              className="block w-full cursor-pointer px-2 py-2 text-left text-xs text-neutral-700 hover:bg-surface"
+            >
+              我的课程
             </Link>
             <button
               type="button"

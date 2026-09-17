@@ -22,7 +22,6 @@ describe("material-schema", () => {
     expect(
       toBody({ ...valid, title: " 简历模板 ", description: " ", category: "  ", url: " https://example.com " }),
     ).toEqual({
-      type: "MATERIAL",
       id: undefined,
       title: "简历模板",
       description: null,

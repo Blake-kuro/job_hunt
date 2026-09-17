@@ -52,6 +52,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/vod/callback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description 腾讯云 VOD 事件通知（无需登录，`?token=` 须等于 VOD_CALLBACK_TOKEN）；只处理 ProcedureStateChanged */
+        post: operations["vodCallback"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/summary": {
         parameters: {
             query?: never;
@@ -132,22 +149,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/courses": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["listAdminCourses"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/admin/content": {
         parameters: {
             query?: never;
@@ -175,6 +176,198 @@ export interface paths {
         put?: never;
         post?: never;
         delete: operations["deleteAdminContent"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/courses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listAdminCourses"];
+        put?: never;
+        post: operations["createAdminCourse"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/courses/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getAdminCourse"];
+        put?: never;
+        post?: never;
+        delete: operations["deleteAdminCourse"];
+        options?: never;
+        head?: never;
+        patch: operations["updateAdminCourse"];
+        trace?: never;
+    };
+    "/api/admin/courses/{id}/chapters": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["createAdminChapter"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/chapters/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["deleteAdminChapter"];
+        options?: never;
+        head?: never;
+        patch: operations["updateAdminChapter"];
+        trace?: never;
+    };
+    "/api/admin/courses/{id}/lessons": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["createAdminLesson"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/lessons/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["deleteAdminLesson"];
+        options?: never;
+        head?: never;
+        patch: operations["updateAdminLesson"];
+        trace?: never;
+    };
+    "/api/admin/courses/{id}/lessons/order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["reorderAdminLessons"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/lessons/{id}/video/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["refreshAdminLessonVideo"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/vod/upload-signature": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["createVodUploadSignature"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/courses/{id}/students": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listAdminCourseStudents"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/courses/{id}/grants": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["grantAdminCourse"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/courses/{id}/grants/{userId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["revokeAdminCourseGrant"];
         options?: never;
         head?: never;
         patch?: never;
@@ -372,6 +565,70 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/courses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listCourses"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/courses/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getCourse"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/courses/{id}/lessons/{lessonId}/play": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getLessonPlayInfo"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/courses/{id}/lessons/{lessonId}/progress": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["saveLessonProgress"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/me": {
         parameters: {
             query?: never;
@@ -380,6 +637,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["getMe"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me/courses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listMyCourses"];
         put?: never;
         post?: never;
         delete?: never;
@@ -565,7 +838,7 @@ export interface components {
             };
         };
         /** @enum {string} */
-        ApiErrorCode: "VALIDATION" | "UNAUTHORIZED" | "FORBIDDEN" | "CODE_INVALID" | "RATE_LIMITED" | "NOT_FOUND" | "INTERNAL";
+        ApiErrorCode: "VALIDATION" | "UNAUTHORIZED" | "FORBIDDEN" | "CODE_INVALID" | "RATE_LIMITED" | "NOT_FOUND" | "CONFLICT" | "INTERNAL";
         SendSmsBody: {
             /** @example 13800138000 */
             phone: string;
@@ -594,6 +867,31 @@ export interface components {
             phone: string;
             code: string;
         };
+        VodCallbackResult: {
+            handled: boolean;
+        };
+        VodCallbackBody: {
+            EventType: string;
+            ProcedureStateChangeEvent?: {
+                FileId: string;
+                Status: string;
+                ErrCode?: number;
+                Message?: string;
+                MetaData?: {
+                    Duration?: number;
+                } | null;
+                MediaProcessResultSet?: {
+                    Type: string;
+                    CoverBySnapshotTask?: {
+                        Status?: string;
+                        ErrCode?: number;
+                        Output?: {
+                            CoverUrl?: string;
+                        } | null;
+                    } | null;
+                }[] | null;
+            } | null;
+        };
         AdminSummary: {
             students: number;
             enabledStudents: number;
@@ -605,6 +903,8 @@ export interface components {
             publishedQuestions: number;
             materials: number;
             courses: number;
+            readyLessons: number;
+            courseGrants: number;
         };
         AdminStudentList: {
             items: components["schemas"]["AdminStudent"][];
@@ -667,33 +967,10 @@ export interface components {
             /** Format: date-time */
             updatedAt: string;
         };
-        AdminCourse: {
-            id: string;
-            title: string;
-            description: string | null;
-            coverUrl: string | null;
-            published: boolean;
-            /** Format: date-time */
-            updatedAt: string;
-            lessons: components["schemas"]["AdminCourseLesson"][];
-        };
-        AdminCourseLesson: {
-            id: string;
-            title: string;
-            videoUrl: string;
-            durationMinutes: number | null;
-            sortOrder: number;
-        };
         IdResult: {
             id: string;
         };
-        AdminContentBody: components["schemas"]["AdminMaterialBody"] | components["schemas"]["AdminCourseBody"];
         AdminMaterialBody: {
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
-            type: "MATERIAL";
             id?: string;
             title: string;
             description?: string | null;
@@ -702,24 +979,142 @@ export interface components {
             url: string;
             published: boolean;
         };
-        AdminCourseBody: {
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
-            type: "COURSE";
-            id?: string;
+        AdminCourseList: {
+            items: components["schemas"]["AdminCourse"][];
+            total: number;
+            page: number;
+            pageSize: number;
+        };
+        AdminCourse: {
+            id: string;
             title: string;
+            summary: string | null;
+            coverUrl: string | null;
+            teacher: string | null;
+            priceCents: number;
+            published: boolean;
+            sortOrder: number;
+            lessonCount: number;
+            readyCount: number;
+            grantCount: number;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        AdminCourseDetail: {
+            id: string;
+            title: string;
+            summary: string | null;
+            coverUrl: string | null;
+            teacher: string | null;
+            priceCents: number;
+            published: boolean;
+            sortOrder: number;
+            lessonCount: number;
+            readyCount: number;
+            grantCount: number;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+            description: string | null;
+            chapters: components["schemas"]["AdminChapter"][];
+            unchaptered: components["schemas"]["AdminLesson"][];
+        };
+        AdminChapter: {
+            id: string;
+            title: string;
+            sortOrder: number;
+            lessons: components["schemas"]["AdminLesson"][];
+        };
+        AdminLesson: {
+            id: string;
+            chapterId: string | null;
+            title: string;
+            sortOrder: number;
+            freePreview: boolean;
+            videoFileId: string | null;
+            videoStatus: components["schemas"]["VideoStatus"];
+            durationSeconds: number | null;
+        };
+        /** @enum {string} */
+        VideoStatus: "NONE" | "UPLOADING" | "PROCESSING" | "READY" | "FAILED";
+        AdminCourseBody: {
+            title: string;
+            summary?: string | null;
             description?: string | null;
+            teacher?: string | null;
+            priceCents: number;
             /** Format: uri */
             coverUrl?: string | null;
             published: boolean;
-            lessons: {
-                title: string;
-                /** Format: uri */
-                videoUrl: string;
-                durationMinutes?: number | null;
+            sortOrder?: number;
+        };
+        AdminCoursePatch: {
+            title?: string;
+            summary?: string | null;
+            description?: string | null;
+            teacher?: string | null;
+            priceCents?: number;
+            /** Format: uri */
+            coverUrl?: string | null;
+            published?: boolean;
+            sortOrder?: number;
+        };
+        AdminChapterBody: {
+            title: string;
+        };
+        AdminChapterPatch: {
+            title?: string;
+            sortOrder?: number;
+        };
+        AdminLessonBody: {
+            title: string;
+            chapterId?: string | null;
+            freePreview?: boolean;
+        };
+        AdminLessonPatch: {
+            title?: string;
+            chapterId?: string | null;
+            sortOrder?: number;
+            freePreview?: boolean;
+            videoFileId?: string;
+        };
+        AdminLessonOrderBody: {
+            chapters: {
+                id: string;
+                lessonIds: string[];
             }[];
+            unchaptered: string[];
+        };
+        UploadSignature: {
+            signature: string;
+            /** Format: date-time */
+            expiresAt: string;
+        };
+        AdminCourseStudentList: {
+            items: components["schemas"]["AdminCourseStudent"][];
+            total: number;
+            page: number;
+            pageSize: number;
+        };
+        AdminCourseStudent: {
+            userId: string;
+            name: string;
+            phone: string | null;
+            /** Format: date-time */
+            grantedAt: string;
+            /** Format: date-time */
+            expiresAt: string | null;
+            progressPercent: number | null;
+            /** Format: date-time */
+            lastActiveAt: string | null;
+        };
+        AdminCourseGrantBody: {
+            userIds: string[];
+            /** Format: date-time */
+            expiresAt?: string | null;
         };
         AdminQuizMeta: {
             companies: {
@@ -908,19 +1303,91 @@ export interface components {
                 category: string;
                 resourceUrl: string;
             }[];
-            courses: {
-                id: string;
-                title: string;
-                description: string | null;
-                coverUrl: string | null;
-                lessons: {
-                    id: string;
-                    title: string;
-                    videoUrl: string;
-                    durationMinutes: number | null;
-                    sortOrder: number;
-                }[];
-            }[];
+        };
+        CourseCatalog: {
+            items: components["schemas"]["CourseCard"][];
+        };
+        CourseCard: {
+            id: string;
+            title: string;
+            summary: string | null;
+            coverUrl: string | null;
+            teacher: string | null;
+            priceCents: number;
+            lessonCount: number;
+            durationSeconds: number;
+            freePreviewCount: number;
+            access: components["schemas"]["CourseAccess"];
+            progressPercent: number | null;
+        };
+        /** @enum {string} */
+        CourseAccess: "GRANTED" | "PREVIEW" | "LOCKED";
+        CourseDetail: {
+            id: string;
+            title: string;
+            summary: string | null;
+            coverUrl: string | null;
+            teacher: string | null;
+            priceCents: number;
+            lessonCount: number;
+            durationSeconds: number;
+            freePreviewCount: number;
+            access: components["schemas"]["CourseAccess"];
+            progressPercent: number | null;
+            description: string | null;
+            chapters: components["schemas"]["CourseChapter"][];
+            unchaptered: components["schemas"]["CourseLesson"][];
+            lastLessonId: string | null;
+        };
+        CourseChapter: {
+            id: string;
+            title: string;
+            lessons: components["schemas"]["CourseLesson"][];
+        };
+        CourseLesson: {
+            id: string;
+            title: string;
+            durationSeconds: number | null;
+            freePreview: boolean;
+            videoStatus: components["schemas"]["VideoStatus"];
+            playable: boolean;
+            progress: components["schemas"]["LessonProgress"] | null;
+        };
+        LessonProgress: {
+            positionSeconds: number;
+            completed: boolean;
+        };
+        PlayInfo: {
+            appId: string;
+            fileId: string;
+            psign: string;
+            /** Format: date-time */
+            expiresAt: string;
+            positionSeconds: number;
+        };
+        LessonProgressBody: {
+            positionSeconds: number;
+            completed?: boolean;
+        };
+        MyCourses: {
+            items: components["schemas"]["MyCourse"][];
+        };
+        MyCourse: {
+            id: string;
+            title: string;
+            summary: string | null;
+            coverUrl: string | null;
+            teacher: string | null;
+            priceCents: number;
+            lessonCount: number;
+            durationSeconds: number;
+            freePreviewCount: number;
+            access: components["schemas"]["CourseAccess"];
+            progressPercent: number | null;
+            lastLessonId: string | null;
+            lastLessonTitle: string | null;
+            /** Format: date-time */
+            updatedAt: string;
         };
         JobListResult: {
             items: components["schemas"]["JobListItem"][];
@@ -1156,6 +1623,41 @@ export interface operations {
             };
         };
     };
+    vodCallback: {
+        parameters: {
+            query?: {
+                token?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VodCallbackBody"];
+            };
+        };
+        responses: {
+            /** @description 已接收 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VodCallbackResult"];
+                };
+            };
+            /** @description token 无效 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
     getAdminSummary: {
         parameters: {
             query?: never;
@@ -1306,26 +1808,6 @@ export interface operations {
             };
         };
     };
-    listAdminCourses: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 全部课程 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AdminCourse"][];
-                };
-            };
-        };
-    };
     saveAdminContent: {
         parameters: {
             query?: never;
@@ -1335,7 +1817,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["AdminContentBody"];
+                "application/json": components["schemas"]["AdminMaterialBody"];
             };
         };
         responses: {
@@ -1346,6 +1828,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["IdResult"];
+                };
+            };
+            /** @description 参数校验失败 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
                 };
             };
             /** @description 不存在 */
@@ -1364,7 +1855,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                type: "MATERIAL" | "COURSE";
+                type: "MATERIAL";
                 id: string;
             };
             cookie?: never;
@@ -1379,6 +1870,604 @@ export interface operations {
                 content?: never;
             };
             /** @description 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    listAdminCourses: {
+        parameters: {
+            query?: {
+                q?: string;
+                published?: "true" | "false";
+                page?: number;
+                pageSize?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 课程分页列表（含课时 / 就绪 / 授权计数） */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminCourseList"];
+                };
+            };
+        };
+    };
+    createAdminCourse: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminCourseBody"];
+            };
+        };
+        responses: {
+            /** @description 已创建 */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IdResult"];
+                };
+            };
+            /** @description 参数校验失败 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    getAdminCourse: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 课程详情（含章 / 课时全量） */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminCourseDetail"];
+                };
+            };
+            /** @description 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    deleteAdminCourse: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 已删除（级联章 / 课时 / 进度，并清理授权） */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    updateAdminCourse: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminCoursePatch"];
+            };
+        };
+        responses: {
+            /** @description 已更新 */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 参数校验失败 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    createAdminChapter: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminChapterBody"];
+            };
+        };
+        responses: {
+            /** @description 已创建（排在最后） */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IdResult"];
+                };
+            };
+            /** @description 参数校验失败 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    deleteAdminChapter: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 已删除（课时回到无章） */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    updateAdminChapter: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminChapterPatch"];
+            };
+        };
+        responses: {
+            /** @description 已更新 */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 参数校验失败 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    createAdminLesson: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminLessonBody"];
+            };
+        };
+        responses: {
+            /** @description 已创建（排在最后） */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IdResult"];
+                };
+            };
+            /** @description 参数校验失败或章不属于该课程 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    deleteAdminLesson: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 已删除（级联进度） */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    updateAdminLesson: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminLessonPatch"];
+            };
+        };
+        responses: {
+            /** @description 已更新（写 videoFileId 时状态置 PROCESSING） */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 参数校验失败或章不属于该课程 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    reorderAdminLessons: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminLessonOrderBody"];
+            };
+        };
+        responses: {
+            /** @description 已写入章顺序与课时归属 / 顺序 */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 课时未覆盖全部 / 重复 / 不属于该课程，或章不属于该课程 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    refreshAdminLessonVideo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 已按 VOD 媒体信息回填状态 / 时长 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminLesson"];
+                };
+            };
+            /** @description 该课时还没有上传视频 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    createVodUploadSignature: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description VOD 客户端直传签名（1 小时） */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UploadSignature"];
+                };
+            };
+        };
+    };
+    listAdminCourseStudents: {
+        parameters: {
+            query?: {
+                page?: number;
+                pageSize?: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 已开通学员（含进度） */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminCourseStudentList"];
+                };
+            };
+            /** @description 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    grantAdminCourse: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminCourseGrantBody"];
+            };
+        };
+        responses: {
+            /** @description 已开通（幂等；已有授权只更新到期） */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 参数校验失败或学生不存在 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    revokeAdminCourseGrant: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                userId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 已移除 */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 课程或授权不存在 */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -1953,13 +3042,166 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description 已授权的资料和课程 */
+            /** @description 已授权的资料（网课见 /courses） */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": components["schemas"]["StudentContent"];
+                };
+            };
+        };
+    };
+    listCourses: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 已发布课程目录，含当前用户权限与进度 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CourseCatalog"];
+                };
+            };
+        };
+    };
+    getCourse: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 课程详情（章 / 课时 / 进度） */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CourseDetail"];
+                };
+            };
+            /** @description 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    getLessonPlayInfo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                lessonId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 播放签名与续播位置 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlayInfo"];
+                };
+            };
+            /** @description 该课时需要开通课程后观看 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description 视频处理中 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    saveLessonProgress: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                lessonId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LessonProgressBody"];
+            };
+        };
+        responses: {
+            /** @description 已记录 */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 参数校验失败 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description 该课时不可播放 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
                 };
             };
         };
@@ -1980,6 +3222,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["User"];
+                };
+            };
+        };
+    };
+    listMyCourses: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 有授权或有学习进度的课程，按最近学习排序 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyCourses"];
                 };
             };
         };

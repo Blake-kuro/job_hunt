@@ -11,6 +11,8 @@ import { quizRoutes } from "./routes/quiz";
 import { authRoutes } from "./routes/auth";
 import { adminRoutes } from "./routes/admin";
 import { contentRoutes } from "./routes/content";
+import { courseRoutes } from "./routes/courses";
+import { vodCallbackRoutes } from "./routes/vod-callback";
 
 export const OPENAPI_INFO = {
   openapi: "3.1.0",
@@ -30,9 +32,12 @@ function corsOrigins(): string[] {
 // 在类型层面“消失”。分成独立语句、不重新赋值给 `api`/`app`，保持它们的静态类型为 OpenAPIHono。
 const api = new OpenAPIHono<Env>({ defaultHook: validationHook });
 api.route("/auth", authRoutes);
+// VOD 事件回调由腾讯云服务端发起，没有 cookie，放在 requestUser 之前（靠 ?token= 校验）
+api.route("/vod", vodCallbackRoutes);
 api.use(requestUser);
 api.route("/admin", adminRoutes);
 api.route("/content", contentRoutes);
+api.route("/courses", courseRoutes);
 api.route("/me", meRoutes);
 api.route("/jobs", jobRoutes);
 api.route("/quiz", quizRoutes);

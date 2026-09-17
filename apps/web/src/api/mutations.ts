@@ -5,6 +5,7 @@ import type {
   ApplicationStatus,
   JobListQuery,
   JobListResult,
+  LessonProgressBody,
   QuizDashboard,
   QuizOptionLetter,
 } from "@job-hunt/api-client/types";
@@ -112,5 +113,21 @@ export function useSetMastered() {
       if (ctx?.prev) qc.setQueryData(key, ctx.prev);
     },
     onSettled: () => qc.invalidateQueries({ queryKey: key }),
+  });
+}
+
+/**
+ * 上报课时进度：节流由播放页做；成功后不失效任何 query（播放中频繁上报），
+ * 离开播放页时由页面失效 `courses` / `my-courses`。
+ */
+export function useSaveProgress() {
+  return useMutation({
+    mutationFn: ({ courseId, lessonId, body }: { courseId: string; lessonId: string; body: LessonProgressBody }) =>
+      unwrap(
+        client.PUT("/api/courses/{id}/lessons/{lessonId}/progress", {
+          params: { path: { id: courseId, lessonId } },
+          body,
+        }),
+      ),
   });
 }
