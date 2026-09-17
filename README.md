@@ -33,6 +33,8 @@ pnpm dev
 
 可分别使用 `pnpm dev:web`、`pnpm dev:api`、`pnpm dev:admin`。前端代理配置放在各自目录的 `.env.local`，`VITE_API_PROXY` 默认指向 `http://localhost:3001`。管理员手机号在后端 `.env` 的 `ADMIN_PHONE_NUMBERS` 配置。
 
+网课视频走腾讯云 VOD：本地没有凭据时在 `apps/api/.env` 打开 `VOD_MOCK=1`（`.env.example` 里是注释掉的示例），播放页会播 `apps/web/public/sample.mp4`；上线前置步骤（含申请 TCPlayer 播放器 License → `apps/web` 的 `VITE_TCPLAYER_LICENSE_URL`）与真实联调待确认清单见 `apps/api/README.md`「网课 / VOD」。
+
 微信开发者工具导入 `apps/miniprogram`（不是仓库根目录）。目前使用测试 AppID，正式发布前需要替换 AppID、配置 HTTPS 合法域名；开发工具编译和真机验收独立于 Web 构建。
 
 ## 验证与接口类型

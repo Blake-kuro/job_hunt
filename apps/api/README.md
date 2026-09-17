@@ -109,7 +109,7 @@ pnpm dev                      # http://localhost:3001
 
 | 变量 | 说明 |
 |---|---|
-| `VOD_MOCK` | `1` 走 mock：上传签名 `mock-upload`、播放签名 `mock-play`、媒体信息直接 READY / 600 秒；非生产环境缺少 `VOD_SECRET_ID` 时也自动 mock。**生产环境（`NODE_ENV=production`）缺配置直接抛错，不会隐式 mock，回调也不接受 `mock-callback`。** 测试固定 mock |
+| `VOD_MOCK` | `1` 走 mock：上传签名 `mock-upload`、播放签名 `mock-play`、媒体信息直接 READY / 600 秒；非生产环境缺少 `VOD_SECRET_ID` 时也自动 mock。**生产环境（`NODE_ENV=production`）缺配置直接抛错，不会隐式 mock；显式 `VOD_MOCK=1` 也会抛错拒绝启动签名，回调也不接受 `mock-callback`。** `.env.example` 里默认是注释掉的，本地无凭据时手动打开。测试固定 mock |
 | `VOD_SECRET_ID` / `VOD_SECRET_KEY` | 子账号 API 密钥（只授 VOD 权限），用于上传签名与 `DescribeMediaInfos` |
 | `VOD_APP_ID` / `VOD_SUB_APP_ID` | VOD 应用 id；子应用可选 |
 | `VOD_PLAY_KEY` | 超级播放器签名密钥（控制台「超级播放器」里生成） |
@@ -127,9 +127,22 @@ pnpm dev                      # http://localhost:3001
 4. 绑定加速域名并备案 → `VOD_PLAY_DOMAIN`
 5. 事件通知：回调模式，地址 `https://<api 域名>/api/vod/callback?token=<VOD_CALLBACK_TOKEN>`
 6. 建子账号并只授 VOD 权限，生成 API 密钥 → `VOD_SECRET_ID` / `VOD_SECRET_KEY`
-7. 生产环境去掉 `VOD_MOCK`
+7. 申请播放器 License：腾讯云控制台「云点播 → 播放器 SDK → License 管理」申请 Web 播放 License（绑定学生端域名），把 License URL 填到 `apps/web` 的 `VITE_TCPLAYER_LICENSE_URL`（TCPlayer v5 不传 `licenseUrl` 会初始化失败、不出画面）
+8. 生产环境确认没有 `VOD_MOCK`（`NODE_ENV=production` 且 `VOD_MOCK=1` 会直接抛错）
 
-`pnpm db:seed` 会种一门免费示例课 `course-sample-free`（2 章 3 课时，`videoFileId` 为 `mock-1/2/3`），只在 `VOD_MOCK=1` 下可播。
+`pnpm db:seed` **只在 `VOD_MOCK=1` 时**种一门免费示例课 `course-sample-free`（2 章 3 课时，`videoFileId` 为 `mock-1/2/3`，`published: true`），否则跳过并打印一行说明——真实 VOD 下这门课无法播放，不应出现在生产目录里。用户 / 题库 seed 不受影响，全部 `upsert` 幂等。
+
+### 真实联调待确认清单
+
+以下实现按腾讯云文档编写，**尚未用真实凭据验证**，第一次真实联调时逐条确认：
+
+1. **上传签名与子应用**：配置了 `VOD_SUB_APP_ID` 时，上传签名的 query 需要带 `vodSubAppId`；当前 `buildUploadSignature` 没有加这个参数，子应用场景下上传可能落到主应用。`fetchMediaInfo` 已按 `SubAppId` 查询。
+2. **`VOD_APP_ID` 与 `VOD_SUB_APP_ID` 的关系**：播放签名 payload 的 `appId` 与前端 `TCPlayer({ appID })` 目前都用 `VOD_APP_ID`；如果视频存在子应用里，需确认两者应填主应用 id 还是子应用 id。
+3. **回调 body 形状**：`POST /api/vod/callback` 按 `EventType === "ProcedureStateChanged"`、`ProcedureStateChangeEvent.FileId / Status`、封面从 `MediaProcessResultSet[].CoverBySnapshotTask.Output.CoverUrl` 取；时长从 `MetaData.Duration`。真实回调字段以控制台「事件通知」实际推送为准，若形状不符只会把课时留在 `PROCESSING`，可用管理端「刷新状态」兜底。
+4. **`mediaInfoToStatus` 的 READY 判定**：`DescribeMediaInfos` 有非原片（`Definition !== 0`）的转码输出或自适应码流才算 READY；若任务流只做加密 HLS 而不产生 `TranscodeSet`，需要改判定。查不到 fileId 时当前返回 `FAILED`（刚上传完立即刷新可能误判，见评审建议）。
+5. **HLS 标准加密 + `psign`**：TCPlayer 拿 `fileID + appID + psign` 播加密 HLS 的实际表现（key 请求、防盗链）未验证。
+6. **管理端浏览器直传**：`apps/admin` 的 `vod-js-sdk-v6` 真实分支（`getSignature` 返回后端 `mock-upload` 以外的签名）未在浏览器里跑过，只验证过 mock 分支。
+7. **预留未使用**：`VOD_PLAY_DOMAIN` 与 `Course.coverFileId` 目前代码里没有任何引用——前者留给自定义播放域名（需要时传给 TCPlayer），后者留给课程封面走 VOD；接入前可以忽略。
 
 ## 迁移说明
 
