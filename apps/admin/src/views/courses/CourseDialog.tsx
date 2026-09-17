@@ -58,7 +58,6 @@ export function CourseDialog({ mode, course, open, onClose }: CourseDialogProps)
         close();
       }}
       pending={save.isPending}
-      submitLabel={save.isPending ? "保存中…" : "保存"}
       error={save.error && `保存失败：${save.error.message}`}
     >
       <div className="grid grid-cols-1 gap-x-5 gap-y-4 sm:grid-cols-2">
@@ -66,12 +65,12 @@ export function CourseDialog({ mode, course, open, onClose }: CourseDialogProps)
           control={form.control}
           name="title"
           render={({ field }) => (
-            <FormItem className="gap-1.5">
-              <FormLabel className="text-xs text-neutral-800">标题</FormLabel>
+            <FormItem>
+              <FormLabel>标题</FormLabel>
               <FormControl>
                 <Input {...field} />
               </FormControl>
-              <FormMessage className="text-xs" />
+              <FormMessage />
             </FormItem>
           )}
         />
@@ -79,15 +78,13 @@ export function CourseDialog({ mode, course, open, onClose }: CourseDialogProps)
           control={form.control}
           name="coverUrl"
           render={({ field }) => (
-            <FormItem className="gap-1.5">
-              <FormLabel className="text-xs text-neutral-800">封面 URL</FormLabel>
+            <FormItem>
+              <FormLabel>封面 URL</FormLabel>
               <FormControl>
                 <Input inputMode="url" placeholder="https://" {...field} />
               </FormControl>
-              <FormDescription className="text-xs text-neutral-600">
-                可选；需以 http:// 或 https:// 开头
-              </FormDescription>
-              <FormMessage className="text-xs" />
+              <FormDescription>可选；需以 http:// 或 https:// 开头</FormDescription>
+              <FormMessage />
             </FormItem>
           )}
         />
@@ -95,13 +92,13 @@ export function CourseDialog({ mode, course, open, onClose }: CourseDialogProps)
           control={form.control}
           name="description"
           render={({ field }) => (
-            <FormItem className="gap-1.5 sm:col-span-2">
-              <FormLabel className="text-xs text-neutral-800">描述</FormLabel>
+            <FormItem className="sm:col-span-2">
+              <FormLabel>描述</FormLabel>
               <FormControl>
                 <Textarea rows={3} {...field} />
               </FormControl>
-              <FormDescription className="text-xs text-neutral-600">可选；学生端课程页显示</FormDescription>
-              <FormMessage className="text-xs" />
+              <FormDescription>可选；学生端课程页显示</FormDescription>
+              <FormMessage />
             </FormItem>
           )}
         />
@@ -124,11 +121,11 @@ export function CourseDialog({ mode, course, open, onClose }: CourseDialogProps)
                 control={form.control}
                 name={`lessons.${i}.title`}
                 render={({ field }) => (
-                  <FormItem className="gap-1.5">
+                  <FormItem>
                     <FormControl>
                       <Input aria-label={`第 ${i + 1} 课时标题`} placeholder="课时标题" {...field} />
                     </FormControl>
-                    <FormMessage className="text-xs" />
+                    <FormMessage />
                   </FormItem>
                 )}
               />
@@ -136,7 +133,7 @@ export function CourseDialog({ mode, course, open, onClose }: CourseDialogProps)
                 control={form.control}
                 name={`lessons.${i}.videoUrl`}
                 render={({ field }) => (
-                  <FormItem className="gap-1.5">
+                  <FormItem>
                     <FormControl>
                       <Input
                         aria-label={`第 ${i + 1} 课时视频 URL`}
@@ -145,7 +142,7 @@ export function CourseDialog({ mode, course, open, onClose }: CourseDialogProps)
                         {...field}
                       />
                     </FormControl>
-                    <FormMessage className="text-xs" />
+                    <FormMessage />
                   </FormItem>
                 )}
               />
@@ -153,11 +150,11 @@ export function CourseDialog({ mode, course, open, onClose }: CourseDialogProps)
                 control={form.control}
                 name={`lessons.${i}.durationMinutes`}
                 render={({ field }) => (
-                  <FormItem className="gap-1.5">
+                  <FormItem>
                     <FormControl>
                       <Input aria-label={`第 ${i + 1} 课时时长`} type="number" min={1} step={1} {...field} />
                     </FormControl>
-                    <FormMessage className="text-xs" />
+                    <FormMessage />
                   </FormItem>
                 )}
               />
@@ -205,7 +202,7 @@ export function CourseDialog({ mode, course, open, onClose }: CourseDialogProps)
               <FormControl>
                 <Checkbox checked={field.value} onCheckedChange={(v) => field.onChange(v === true)} />
               </FormControl>
-              <FormLabel className="cursor-pointer text-sm font-normal">已发布（学生端可见）</FormLabel>
+              <FormLabel className="cursor-pointer text-sm font-normal text-text">已发布（学生端可见）</FormLabel>
             </FormItem>
           )}
         />

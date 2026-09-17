@@ -182,14 +182,15 @@ export function StudentsPage() {
         </p>
       )}
 
-      {/* DataTable 自带 px-4 sm:px-8 内边距，用负外边距抵消以对齐上方筛选栏；单元格不换行、超宽时横向滚动（与原手写表一致） */}
-      <div className="mt-6 -mx-4 sm:-mx-8 [&_td]:whitespace-nowrap">
+      <div className="mt-6 pb-6">
         <DataTable
           columns={columns}
           rows={data.items}
           rowKey={(s) => s.id}
           caption="学生列表"
-          minWidthClassName="table-auto"
+          layout="auto"
+          nowrap
+          flush
           emptyMessage="没有符合条件的学生"
         />
       </div>

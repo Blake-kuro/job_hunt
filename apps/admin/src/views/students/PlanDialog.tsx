@@ -53,15 +53,14 @@ export function PlanDialog({ student, onClose }: PlanDialogProps) {
         close();
       }}
       pending={patch.isPending}
-      submitLabel={patch.isPending ? "保存中…" : "保存"}
       error={patch.error && `保存失败：${patch.error.message}`}
     >
       <FormField
         control={form.control}
         name="plan"
         render={({ field }) => (
-          <FormItem className="gap-1.5">
-            <FormLabel className="text-xs text-neutral-800">档位</FormLabel>
+          <FormItem>
+            <FormLabel>档位</FormLabel>
             <FormControl>
               <RadioGroup className="flex gap-6" value={field.value} onValueChange={field.onChange}>
                 {(["FREE", "PRO"] as const).map((p) => (
@@ -74,7 +73,7 @@ export function PlanDialog({ student, onClose }: PlanDialogProps) {
                 ))}
               </RadioGroup>
             </FormControl>
-            <FormMessage className="text-xs" />
+            <FormMessage />
           </FormItem>
         )}
       />
@@ -84,13 +83,13 @@ export function PlanDialog({ student, onClose }: PlanDialogProps) {
           control={form.control}
           name="proExpiresAt"
           render={({ field }) => (
-            <FormItem className="gap-1.5">
-              <FormLabel className="text-xs text-neutral-800">PRO 到期日期</FormLabel>
+            <FormItem>
+              <FormLabel>PRO 到期日期</FormLabel>
               <FormControl>
                 <Input type="date" {...field} />
               </FormControl>
-              <FormDescription className="text-xs text-neutral-600">留空表示永久有效</FormDescription>
-              <FormMessage className="text-xs" />
+              <FormDescription>留空表示永久有效</FormDescription>
+              <FormMessage />
             </FormItem>
           )}
         />

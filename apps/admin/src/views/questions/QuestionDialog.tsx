@@ -16,16 +16,18 @@ import {
   FormLabel,
   FormMessage,
 } from "@job-hunt/ui/components/form";
+import { FieldError } from "@job-hunt/ui/components/field-error";
 import { FormDialog } from "@job-hunt/ui/components/form-dialog";
 import { Input } from "@job-hunt/ui/components/input";
 import { Label } from "@job-hunt/ui/components/label";
 import { RadioGroup, RadioGroupItem } from "@job-hunt/ui/components/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@job-hunt/ui/components/select";
 import { Textarea } from "@job-hunt/ui/components/textarea";
-import { type ReactNode, useEffect } from "react";
+import { useEffect } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { useCreateQuestion, usePatchQuestion } from "@api/mutations";
 import {
+  applyType,
   DIFFICULTY_LABEL,
   defaultValues,
   type FormValues,
@@ -33,7 +35,7 @@ import {
   LETTERS,
   MAX_OPTIONS,
   minOptions,
-  optionsForType,
+  removeOption,
   schema,
   toBody,
   TYPE_LABEL,
@@ -62,7 +64,7 @@ export function QuestionDialog({ mode, question, defaultCategoryId, meta, open, 
   const answer = form.watch("answer");
   const isJudge = type === "JUDGE";
   const isMulti = type === "MULTI";
-  const { errors, isSubmitted } = form.formState;
+  const { isSubmitted } = form.formState;
 
   useEffect(() => {
     if (open) form.reset(question ? fromEntity(question) : { ...defaultValues, categoryId: defaultCategoryId ?? "" });
@@ -78,23 +80,22 @@ export function QuestionDialog({ mode, question, defaultCategoryId, meta, open, 
     form.setValue("answer", next, { shouldValidate: isSubmitted });
   }
 
-  /** 切换题型：进出判断题时重置选项；任何切换都清空答案（答案语义随题型变） */
+  /** 切换题型：applyType 决定选项 / 答案；选项经 useFieldArray.replace 写回以刷新行 id */
   function changeType(next: QuestionType) {
-    const options = optionsForType(type, next, form.getValues("options"));
-    form.setValue("type", next);
-    if (options) replace(options);
-    setAnswer([]);
+    const current = form.getValues();
+    const updated = applyType(current, next);
+    if (updated === current) return;
+    form.setValue("type", updated.type);
+    if (updated.options !== current.options) replace(updated.options);
+    setAnswer(updated.answer);
   }
 
-  /** 删掉一行后字母重新排：被删行的答案去掉，其后的答案往前挪一位 */
-  function removeOption(index: number) {
-    if (fields.length <= minOptions(type)) return;
-    setAnswer(
-      answer
-        .map((l) => LETTERS.indexOf(l))
-        .filter((i) => i !== index)
-        .map((i) => LETTERS[i > index ? i - 1 : i]),
-    );
+  /** 删一行：removeOption 算出前移后的答案，再经 useFieldArray.remove 删行 */
+  function removeRow(index: number) {
+    const current = form.getValues();
+    const updated = removeOption(current, index);
+    if (updated === current) return;
+    setAnswer(updated.answer);
     remove(index);
   }
 
@@ -124,7 +125,7 @@ export function QuestionDialog({ mode, question, defaultCategoryId, meta, open, 
           control={form.control}
           name={`options.${i}.text`}
           render={({ field }) => (
-            <FormItem className="min-w-0 flex-1 gap-1.5">
+            <FormItem className="min-w-0 flex-1">
               <FormControl>
                 <Input
                   aria-label={`选项 ${letter}`}
@@ -133,7 +134,7 @@ export function QuestionDialog({ mode, question, defaultCategoryId, meta, open, 
                   {...field}
                 />
               </FormControl>
-              <FormMessage className="text-xs" />
+              <FormMessage />
             </FormItem>
           )}
         />
@@ -144,7 +145,7 @@ export function QuestionDialog({ mode, question, defaultCategoryId, meta, open, 
             className="min-h-9"
             aria-label={`删除选项 ${letter}`}
             disabled={fields.length <= minOptions(type)}
-            onClick={() => removeOption(i)}
+            onClick={() => removeRow(i)}
           >
             删除
           </Button>
@@ -175,7 +176,6 @@ export function QuestionDialog({ mode, question, defaultCategoryId, meta, open, 
         close();
       }}
       pending={pending}
-      submitLabel={pending ? "保存中…" : "保存"}
       error={serverError && `保存失败：${serverError}`}
     >
       <div className="grid grid-cols-1 gap-x-5 gap-y-4 sm:grid-cols-2">
@@ -183,8 +183,8 @@ export function QuestionDialog({ mode, question, defaultCategoryId, meta, open, 
           control={form.control}
           name="categoryId"
           render={({ field }) => (
-            <FormItem className="gap-1.5">
-              <FormLabel className="text-xs text-neutral-800">分类</FormLabel>
+            <FormItem>
+              <FormLabel>分类</FormLabel>
               <Select value={field.value} onValueChange={field.onChange}>
                 <FormControl>
                   <SelectTrigger className="w-full">
@@ -201,7 +201,7 @@ export function QuestionDialog({ mode, question, defaultCategoryId, meta, open, 
                   )}
                 </SelectContent>
               </Select>
-              <FormMessage className="text-xs" />
+              <FormMessage />
             </FormItem>
           )}
         />
@@ -209,8 +209,8 @@ export function QuestionDialog({ mode, question, defaultCategoryId, meta, open, 
           control={form.control}
           name="type"
           render={({ field }) => (
-            <FormItem className="gap-1.5">
-              <FormLabel className="text-xs text-neutral-800">题型</FormLabel>
+            <FormItem>
+              <FormLabel>题型</FormLabel>
               <Select value={field.value} onValueChange={(v) => changeType(v as QuestionType)}>
                 <FormControl>
                   <SelectTrigger className="w-full">
@@ -225,7 +225,7 @@ export function QuestionDialog({ mode, question, defaultCategoryId, meta, open, 
                   ))}
                 </SelectContent>
               </Select>
-              <FormMessage className="text-xs" />
+              <FormMessage />
             </FormItem>
           )}
         />
@@ -234,13 +234,13 @@ export function QuestionDialog({ mode, question, defaultCategoryId, meta, open, 
           control={form.control}
           name="section"
           render={({ field }) => (
-            <FormItem className="gap-1.5">
-              <FormLabel className="text-xs text-neutral-800">所属部分</FormLabel>
+            <FormItem>
+              <FormLabel>所属部分</FormLabel>
               <FormControl>
                 <Input maxLength={50} {...field} />
               </FormControl>
-              <FormDescription className="text-xs text-neutral-600">可选，如「形势政策」「企业文化」</FormDescription>
-              <FormMessage className="text-xs" />
+              <FormDescription>可选，如「形势政策」「企业文化」</FormDescription>
+              <FormMessage />
             </FormItem>
           )}
         />
@@ -248,13 +248,13 @@ export function QuestionDialog({ mode, question, defaultCategoryId, meta, open, 
           control={form.control}
           name="sortOrder"
           render={({ field }) => (
-            <FormItem className="gap-1.5">
-              <FormLabel className="text-xs text-neutral-800">序号</FormLabel>
+            <FormItem>
+              <FormLabel>序号</FormLabel>
               <FormControl>
                 <Input type="number" step="1" inputMode="numeric" {...field} />
               </FormControl>
-              <FormDescription className="text-xs text-neutral-600">分类内的顺序，留空由系统排在最后</FormDescription>
-              <FormMessage className="text-xs" />
+              <FormDescription>分类内的顺序，留空由系统排在最后</FormDescription>
+              <FormMessage />
             </FormItem>
           )}
         />
@@ -263,12 +263,12 @@ export function QuestionDialog({ mode, question, defaultCategoryId, meta, open, 
           control={form.control}
           name="prompt"
           render={({ field }) => (
-            <FormItem className="gap-1.5 sm:col-span-2">
-              <FormLabel className="text-xs text-neutral-800">题干</FormLabel>
+            <FormItem className="sm:col-span-2">
+              <FormLabel>题干</FormLabel>
               <FormControl>
                 <Textarea rows={3} {...field} />
               </FormControl>
-              <FormMessage className="text-xs" />
+              <FormMessage />
             </FormItem>
           )}
         />
@@ -295,7 +295,8 @@ export function QuestionDialog({ mode, question, defaultCategoryId, meta, open, 
               {optionRows}
             </RadioGroup>
           )}
-          <ArrayMessage>{errors.options?.message ?? errors.answer?.message}</ArrayMessage>
+          <FieldError<FormValues> name="options" />
+          <FieldError<FormValues> name="answer" />
           {!isJudge && (
             <div>
               <Button
@@ -314,13 +315,13 @@ export function QuestionDialog({ mode, question, defaultCategoryId, meta, open, 
           control={form.control}
           name="explanation"
           render={({ field }) => (
-            <FormItem className="gap-1.5 sm:col-span-2">
-              <FormLabel className="text-xs text-neutral-800">解析</FormLabel>
+            <FormItem className="sm:col-span-2">
+              <FormLabel>解析</FormLabel>
               <FormControl>
                 <Textarea rows={3} {...field} />
               </FormControl>
-              <FormDescription className="text-xs text-neutral-600">每行一条，可留空</FormDescription>
-              <FormMessage className="text-xs" />
+              <FormDescription>每行一条，可留空</FormDescription>
+              <FormMessage />
             </FormItem>
           )}
         />
@@ -329,8 +330,8 @@ export function QuestionDialog({ mode, question, defaultCategoryId, meta, open, 
           control={form.control}
           name="difficulty"
           render={({ field }) => (
-            <FormItem className="gap-1.5">
-              <FormLabel className="text-xs text-neutral-800">难度</FormLabel>
+            <FormItem>
+              <FormLabel>难度</FormLabel>
               <Select value={field.value} onValueChange={field.onChange}>
                 <FormControl>
                   <SelectTrigger className="w-full">
@@ -345,7 +346,7 @@ export function QuestionDialog({ mode, question, defaultCategoryId, meta, open, 
                   ))}
                 </SelectContent>
               </Select>
-              <FormMessage className="text-xs" />
+              <FormMessage />
             </FormItem>
           )}
         />
@@ -353,15 +354,13 @@ export function QuestionDialog({ mode, question, defaultCategoryId, meta, open, 
           control={form.control}
           name="source"
           render={({ field }) => (
-            <FormItem className="gap-1.5">
-              <FormLabel className="text-xs text-neutral-800">来源</FormLabel>
+            <FormItem>
+              <FormLabel>来源</FormLabel>
               <FormControl>
                 <Input {...field} />
               </FormControl>
-              <FormDescription className="text-xs text-neutral-600">
-                如「中国华电 · 公共与行业知识」「自编」
-              </FormDescription>
-              <FormMessage className="text-xs" />
+              <FormDescription>如「中国华电 · 公共与行业知识」「自编」</FormDescription>
+              <FormMessage />
             </FormItem>
           )}
         />
@@ -374,21 +373,11 @@ export function QuestionDialog({ mode, question, defaultCategoryId, meta, open, 
               <FormControl>
                 <Checkbox checked={field.value} onCheckedChange={(v) => field.onChange(v === true)} />
               </FormControl>
-              <FormLabel className="cursor-pointer text-sm font-normal">已发布（学生端可见）</FormLabel>
+              <FormLabel className="cursor-pointer text-sm font-normal text-text">已发布（学生端可见）</FormLabel>
             </FormItem>
           )}
         />
       </div>
     </FormDialog>
-  );
-}
-
-/** 选项 / 答案是数组级校验（superRefine 挂在 options / answer 根上），不经 FormField，手动渲染文案 */
-function ArrayMessage({ children }: { children: ReactNode }) {
-  if (!children) return null;
-  return (
-    <p role="alert" className="text-xs text-destructive">
-      {children}
-    </p>
   );
 }

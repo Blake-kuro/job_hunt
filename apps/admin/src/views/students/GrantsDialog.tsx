@@ -57,7 +57,6 @@ export function GrantsDialog({ student, onClose }: GrantsDialogProps) {
         close();
       }}
       pending={put.isPending}
-      submitLabel={put.isPending ? "保存中…" : "保存"}
       error={put.error && `保存失败：${put.error.message}`}
     >
       <p className="text-xs text-neutral-600">保存会整体替换该学生的授权；到期日留空表示永久有效。</p>
@@ -81,7 +80,7 @@ export function GrantsDialog({ student, onClose }: GrantsDialogProps) {
                   control={form.control}
                   name={`grants.${i}.contentType`}
                   render={({ field: f }) => (
-                    <FormItem className="gap-1.5">
+                    <FormItem>
                       <Select
                         value={f.value}
                         onValueChange={(v) => {
@@ -104,7 +103,7 @@ export function GrantsDialog({ student, onClose }: GrantsDialogProps) {
                           ))}
                         </SelectContent>
                       </Select>
-                      <FormMessage className="text-xs" />
+                      <FormMessage />
                     </FormItem>
                   )}
                 />
@@ -113,7 +112,7 @@ export function GrantsDialog({ student, onClose }: GrantsDialogProps) {
                   control={form.control}
                   name={`grants.${i}.contentId`}
                   render={({ field: f }) => (
-                    <FormItem className="min-w-0 gap-1.5">
+                    <FormItem className="min-w-0">
                       {row.contentType === "QUESTION" ? (
                         <>
                           <FormControl>
@@ -148,7 +147,7 @@ export function GrantsDialog({ student, onClose }: GrantsDialogProps) {
                           </SelectContent>
                         </Select>
                       )}
-                      <FormMessage className="text-xs" />
+                      <FormMessage />
                     </FormItem>
                   )}
                 />
@@ -157,11 +156,11 @@ export function GrantsDialog({ student, onClose }: GrantsDialogProps) {
                   control={form.control}
                   name={`grants.${i}.expiresAt`}
                   render={({ field: f }) => (
-                    <FormItem className="gap-1.5">
+                    <FormItem>
                       <FormControl>
                         <Input aria-label={`第 ${i + 1} 行到期日期`} type="date" {...f} />
                       </FormControl>
-                      <FormMessage className="text-xs" />
+                      <FormMessage />
                     </FormItem>
                   )}
                 />

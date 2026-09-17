@@ -114,14 +114,15 @@ export function MaterialsPage() {
         </p>
       )}
 
-      {/* DataTable 自带 px-4 sm:px-8 内边距，用负外边距抵消以对齐上方工具栏；单元格不换行、超宽时横向滚动（与原手写表一致） */}
-      <div className="mt-6 -mx-4 sm:-mx-8 [&_td]:whitespace-nowrap">
+      <div className="mt-6 pb-6">
         <DataTable
           columns={columns}
           rows={data}
           rowKey={(m) => m.id}
           caption="资料列表"
-          minWidthClassName="table-auto"
+          layout="auto"
+          nowrap
+          flush
           emptyMessage="还没有资料"
         />
       </div>

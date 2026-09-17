@@ -53,19 +53,18 @@ export function MaterialDialog({ mode, material, open, onClose }: MaterialDialog
         close();
       }}
       pending={save.isPending}
-      submitLabel={save.isPending ? "保存中…" : "保存"}
       error={save.error && `保存失败：${save.error.message}`}
     >
       <FormField
         control={form.control}
         name="title"
         render={({ field }) => (
-          <FormItem className="gap-1.5">
-            <FormLabel className="text-xs text-neutral-800">标题</FormLabel>
+          <FormItem>
+            <FormLabel>标题</FormLabel>
             <FormControl>
               <Input {...field} />
             </FormControl>
-            <FormMessage className="text-xs" />
+            <FormMessage />
           </FormItem>
         )}
       />
@@ -73,13 +72,13 @@ export function MaterialDialog({ mode, material, open, onClose }: MaterialDialog
         control={form.control}
         name="description"
         render={({ field }) => (
-          <FormItem className="gap-1.5">
-            <FormLabel className="text-xs text-neutral-800">描述</FormLabel>
+          <FormItem>
+            <FormLabel>描述</FormLabel>
             <FormControl>
               <Textarea rows={3} {...field} />
             </FormControl>
-            <FormDescription className="text-xs text-neutral-600">可选；学生端列表里显示</FormDescription>
-            <FormMessage className="text-xs" />
+            <FormDescription>可选；学生端列表里显示</FormDescription>
+            <FormMessage />
           </FormItem>
         )}
       />
@@ -87,13 +86,13 @@ export function MaterialDialog({ mode, material, open, onClose }: MaterialDialog
         control={form.control}
         name="category"
         render={({ field }) => (
-          <FormItem className="gap-1.5">
-            <FormLabel className="text-xs text-neutral-800">分类</FormLabel>
+          <FormItem>
+            <FormLabel>分类</FormLabel>
             <FormControl>
               <Input {...field} />
             </FormControl>
-            <FormDescription className="text-xs text-neutral-600">如「简历」「面经」；留空为「未分类」</FormDescription>
-            <FormMessage className="text-xs" />
+            <FormDescription>如「简历」「面经」；留空为「未分类」</FormDescription>
+            <FormMessage />
           </FormItem>
         )}
       />
@@ -101,15 +100,13 @@ export function MaterialDialog({ mode, material, open, onClose }: MaterialDialog
         control={form.control}
         name="url"
         render={({ field }) => (
-          <FormItem className="gap-1.5">
-            <FormLabel className="text-xs text-neutral-800">链接</FormLabel>
+          <FormItem>
+            <FormLabel>链接</FormLabel>
             <FormControl>
               <Input inputMode="url" placeholder="https://" {...field} />
             </FormControl>
-            <FormDescription className="text-xs text-neutral-600">
-              学生点击后打开的地址，需以 http:// 或 https:// 开头
-            </FormDescription>
-            <FormMessage className="text-xs" />
+            <FormDescription>学生点击后打开的地址，需以 http:// 或 https:// 开头</FormDescription>
+            <FormMessage />
           </FormItem>
         )}
       />
@@ -121,7 +118,7 @@ export function MaterialDialog({ mode, material, open, onClose }: MaterialDialog
             <FormControl>
               <Checkbox checked={field.value} onCheckedChange={(v) => field.onChange(v === true)} />
             </FormControl>
-            <FormLabel className="cursor-pointer text-sm font-normal">已发布（学生端可见）</FormLabel>
+            <FormLabel className="cursor-pointer text-sm font-normal text-text">已发布（学生端可见）</FormLabel>
           </FormItem>
         )}
       />

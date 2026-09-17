@@ -56,7 +56,6 @@ export function NameDialog({
         onClose();
       }}
       pending={pending}
-      submitLabel={pending ? "保存中…" : "保存"}
       error={error && `保存失败：${error}`}
     >
       {children}
@@ -64,12 +63,12 @@ export function NameDialog({
         control={form.control}
         name="name"
         render={({ field }) => (
-          <FormItem className="gap-1.5">
-            <FormLabel className="text-xs text-neutral-800">{label}</FormLabel>
+          <FormItem>
+            <FormLabel>{label}</FormLabel>
             <FormControl>
               <Input autoFocus maxLength={50} placeholder={placeholder} {...field} />
             </FormControl>
-            <FormMessage className="text-xs" />
+            <FormMessage />
           </FormItem>
         )}
       />

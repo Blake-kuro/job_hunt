@@ -83,7 +83,6 @@ export function JobDialog({ mode, job, open, onClose }: JobDialogProps) {
         close();
       }}
       pending={pending}
-      submitLabel={pending ? "保存中…" : "保存"}
       error={serverError && `保存失败：${serverError}`}
     >
       <div className="grid grid-cols-1 gap-x-5 gap-y-4 sm:grid-cols-2">
@@ -91,8 +90,8 @@ export function JobDialog({ mode, job, open, onClose }: JobDialogProps) {
           control={form.control}
           name="categoryId"
           render={({ field }) => (
-            <FormItem className="gap-1.5">
-              <FormLabel className="text-xs text-neutral-800">分类</FormLabel>
+            <FormItem>
+              <FormLabel>分类</FormLabel>
               <Select value={field.value} onValueChange={field.onChange}>
                 <FormControl>
                   <SelectTrigger className="w-full">
@@ -107,7 +106,7 @@ export function JobDialog({ mode, job, open, onClose }: JobDialogProps) {
                   ))}
                 </SelectContent>
               </Select>
-              <FormMessage className="text-xs" />
+              <FormMessage />
             </FormItem>
           )}
         />
@@ -117,8 +116,8 @@ export function JobDialog({ mode, job, open, onClose }: JobDialogProps) {
             control={form.control}
             name={f.key}
             render={({ field }) => (
-              <FormItem className="gap-1.5">
-                <FormLabel className="text-xs text-neutral-800">{f.label}</FormLabel>
+              <FormItem>
+                <FormLabel>{f.label}</FormLabel>
                 <FormControl>
                   <Input
                     type={f.type === "date" ? "date" : "text"}
@@ -126,8 +125,8 @@ export function JobDialog({ mode, job, open, onClose }: JobDialogProps) {
                     {...field}
                   />
                 </FormControl>
-                {f.hint && <FormDescription className="text-xs text-neutral-600">{f.hint}</FormDescription>}
-                <FormMessage className="text-xs" />
+                {f.hint && <FormDescription>{f.hint}</FormDescription>}
+                <FormMessage />
               </FormItem>
             )}
           />
