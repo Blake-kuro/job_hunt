@@ -2,9 +2,9 @@ import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { getRouteApi, useNavigate, useRouter } from "@tanstack/react-router";
 import { useLogout, useSendLoginSms, useVerifyLoginSms } from "@api/mutations";
-import { Button } from "@shared/ui/Button";
-import { Input } from "@shared/ui/Input";
-import { Kicker } from "@shared/ui/Kicker";
+import { Button } from "@job-hunt/ui/components/button";
+import { Input } from "@job-hunt/ui/components/input";
+import { Kicker } from "@job-hunt/ui/components/kicker";
 
 const route = getRouteApi("/login");
 const phonePattern = /^1[3-9]\d{9}$/;

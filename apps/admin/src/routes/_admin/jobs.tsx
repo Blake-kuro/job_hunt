@@ -1,7 +1,7 @@
 import { createFileRoute, stripSearchParams } from "@tanstack/react-router";
 import { z } from "zod";
 import { jobsQuery } from "@api/queries";
-import { ErrorPanel } from "@shared/ui/ErrorPanel";
+import { RouterErrorPanel } from "../-error";
 import { JobsPage } from "@views/jobs/JobsPage";
 
 /** 与后端 listAdminJobs 的 query 同步；只用于 validateSearch */
@@ -19,5 +19,5 @@ export const Route = createFileRoute("/_admin/jobs")({
   loaderDeps: ({ search }) => search,
   loader: ({ context: { queryClient }, deps }) => queryClient.ensureQueryData(jobsQuery(deps)),
   component: JobsPage,
-  errorComponent: ErrorPanel,
+  errorComponent: RouterErrorPanel,
 });

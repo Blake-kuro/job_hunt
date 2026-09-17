@@ -1,5 +1,4 @@
-@import "tailwindcss";
-@import "./tokens.css";
+@import "@job-hunt/ui/styles/globals.css";
 
 :root {
   --font-barlow: "Barlow";

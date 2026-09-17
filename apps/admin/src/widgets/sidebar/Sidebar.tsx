@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useLogout } from "@api/mutations";
-import type { User } from "@api/types";
+import type { User } from "@job-hunt/api-client/types";
 
 interface SidebarProps {
   me: User;

@@ -14,7 +14,6 @@ export default defineConfig(({ mode }) => {
     plugins: [tanstackRouter({ target: "react", autoCodeSplitting: true }), react(), tailwindcss()],
     resolve: {
       alias: {
-        "@shared": src("shared"),
         "@entities": src("entities"),
         "@features": src("features"),
         "@widgets": src("widgets"),

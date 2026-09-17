@@ -1,5 +1,5 @@
 import { type QueryClient, useMutation, useQueryClient } from "@tanstack/react-query";
-import { client, unwrap } from "./client";
+import { client, unwrap } from "@job-hunt/api-client/client";
 import type {
   AdminAccessBody,
   AdminCategoryBody,
@@ -12,7 +12,7 @@ import type {
   AdminQuestionBody,
   AdminQuestionPatch,
   AdminStudentPatch,
-} from "./types";
+} from "@job-hunt/api-client/types";
 
 type AdminResource = "summary" | "students" | "materials" | "courses" | "quiz-meta" | "questions" | "jobs";
 

@@ -1,14 +1,16 @@
-import { useEffect, useState } from "react";
+import type { AdminStudent, Plan } from "@job-hunt/api-client/types";
+import { Badge } from "@job-hunt/ui/components/badge";
+import { Button } from "@job-hunt/ui/components/button";
+import { type Column, DataTable } from "@job-hunt/ui/components/data-table";
+import { Input } from "@job-hunt/ui/components/input";
+import { Pagination } from "@job-hunt/ui/components/pagination";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@job-hunt/ui/components/select";
+import { useDebouncedSearch } from "@job-hunt/ui/hooks/use-debounced-search";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { getRouteApi } from "@tanstack/react-router";
+import { useCallback, useState } from "react";
 import { usePatchStudent } from "@api/mutations";
 import { studentsQuery } from "@api/queries";
-import type { AdminStudent, Plan } from "@api/types";
-import { Button } from "@shared/ui/Button";
-import { Input } from "@shared/ui/Input";
-import { Pagination } from "@shared/ui/Pagination";
-import { Select } from "@shared/ui/Select";
-import { Tag } from "@shared/ui/Tag";
 import { GrantsDialog } from "./GrantsDialog";
 import { PlanDialog } from "./PlanDialog";
 
@@ -16,8 +18,88 @@ const route = getRouteApi("/_admin/students");
 
 const tierLabel: Record<AdminStudent["tier"], string> = { GUEST: "游客", FREE: "免费", PRO: "PRO" };
 
-const th = "px-3 py-2 text-left text-[11px] font-medium uppercase tracking-[0.08em] text-neutral-700";
-const td = "px-3 py-2.5 align-top whitespace-nowrap";
+/** Radix Select 的项不能是空串：筛选里的「全部」用这个哨兵值 */
+const ALL = "all";
+
+interface RowActions {
+  togglingId?: string;
+  onToggleEnabled: (s: AdminStudent) => void;
+  onPlan: (s: AdminStudent) => void;
+  onGrants: (s: AdminStudent) => void;
+}
+
+const buildColumns = (a: RowActions): Column<AdminStudent>[] => [
+  {
+    id: "student",
+    header: "学生",
+    cell: (s) => (
+      <>
+        <div className="font-medium">{s.name}</div>
+        <div className="text-xs text-neutral-600 tabular-nums">{s.phone ?? "—"}</div>
+      </>
+    ),
+  },
+  {
+    id: "role",
+    header: "角色",
+    cell: (s) =>
+      s.role === "ADMIN" ? <Badge className="bg-accent text-bg">管理员</Badge> : <Badge variant="neutral">学生</Badge>,
+  },
+  {
+    id: "tier",
+    header: "档位",
+    cell: (s) => (
+      <>
+        <div>{tierLabel[s.tier]}</div>
+        {s.tier === "PRO" && s.proExpiresAt && (
+          <div className="text-xs text-neutral-600 tabular-nums">到 {s.proExpiresAt.slice(0, 10)}</div>
+        )}
+      </>
+    ),
+  },
+  {
+    id: "enabled",
+    header: "状态",
+    cell: (s) => <Badge variant={s.enabled ? "accent" : "outline"}>{s.enabled ? "启用" : "停用"}</Badge>,
+  },
+  {
+    id: "stats",
+    header: "数据",
+    cell: (s) => (
+      <span className="text-neutral-700 tabular-nums">
+        收藏 {s.stats.favorites} · 投递 {s.stats.applications} · 作答 {s.stats.attempts}
+      </span>
+    ),
+  },
+  {
+    id: "createdAt",
+    header: "注册时间",
+    cell: (s) => (
+      <span className="text-neutral-700 tabular-nums">{new Date(s.createdAt).toLocaleDateString("zh-CN")}</span>
+    ),
+  },
+  {
+    id: "actions",
+    header: "操作",
+    cell: (s) => {
+      const isAdmin = s.role === "ADMIN";
+      const busy = a.togglingId === s.id;
+      return (
+        <div className="flex gap-1.5">
+          <Button size="sm" disabled={isAdmin || busy} onClick={() => a.onToggleEnabled(s)}>
+            {s.enabled ? "停用" : "启用"}
+          </Button>
+          <Button size="sm" disabled={isAdmin} onClick={() => a.onPlan(s)}>
+            档位
+          </Button>
+          <Button size="sm" disabled={isAdmin} onClick={() => a.onGrants(s)}>
+            授权 ({s.grants.length})
+          </Button>
+        </div>
+      );
+    },
+  },
+];
 
 export function StudentsPage() {
   const search = route.useSearch();
@@ -28,24 +110,23 @@ export function StudentsPage() {
   const [grantsTarget, setGrantsTarget] = useState<AdminStudent | null>(null);
 
   // 搜索框本地缓冲 + 300ms 防抖，避免每个字符都改 URL
-  const query = search.q ?? "";
-  const [draft, setDraft] = useState(query);
-  const [prevQuery, setPrevQuery] = useState(query);
-  if (query !== prevQuery) {
-    setPrevQuery(query);
-    setDraft(query);
-  }
-  useEffect(() => {
-    const normalized = draft.trim();
-    if (normalized === query) return;
-    const t = setTimeout(() => navigate({ search: (s) => ({ ...s, q: normalized || undefined, page: 1 }) }), 300);
-    return () => clearTimeout(t);
-  }, [draft, query, navigate]);
+  const commitQuery = useCallback(
+    (q: string) => navigate({ search: (s) => ({ ...s, q: q || undefined, page: 1 }) }),
+    [navigate],
+  );
+  const [draft, setDraft] = useDebouncedSearch(search.q ?? "", commitQuery);
 
   function toggleEnabled(s: AdminStudent) {
     patch.mutate({ id: s.id, body: { enabled: !s.enabled } });
   }
   const togglingId = patch.isPending ? patch.variables?.id : undefined;
+
+  const columns = buildColumns({
+    togglingId,
+    onToggleEnabled: toggleEnabled,
+    onPlan: setPlanTarget,
+    onGrants: setGrantsTarget,
+  });
 
   return (
     <>
@@ -62,30 +143,36 @@ export function StudentsPage() {
           onChange={(e) => setDraft(e.target.value)}
         />
         <Select
-          aria-label="档位"
-          className="min-h-9 sm:w-[140px]"
-          value={search.plan ?? ""}
-          onChange={(e) => {
-            const plan = (e.target.value || undefined) as Plan | undefined;
+          value={search.plan ?? ALL}
+          onValueChange={(v) => {
+            const plan = v === ALL ? undefined : (v as Plan);
             navigate({ search: (s) => ({ ...s, plan, page: 1 }) });
           }}
         >
-          <option value="">全部档位</option>
-          <option value="FREE">FREE</option>
-          <option value="PRO">PRO</option>
+          <SelectTrigger aria-label="档位" className="sm:w-[140px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL}>全部档位</SelectItem>
+            <SelectItem value="FREE">FREE</SelectItem>
+            <SelectItem value="PRO">PRO</SelectItem>
+          </SelectContent>
         </Select>
         <Select
-          aria-label="状态"
-          className="min-h-9 sm:w-[140px]"
-          value={search.enabled === undefined ? "" : String(search.enabled)}
-          onChange={(e) => {
-            const enabled = e.target.value === "" ? undefined : e.target.value === "true";
+          value={search.enabled === undefined ? ALL : String(search.enabled)}
+          onValueChange={(v) => {
+            const enabled = v === ALL ? undefined : v === "true";
             navigate({ search: (s) => ({ ...s, enabled, page: 1 }) });
           }}
         >
-          <option value="">全部状态</option>
-          <option value="true">启用</option>
-          <option value="false">停用</option>
+          <SelectTrigger aria-label="状态" className="sm:w-[140px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL}>全部状态</SelectItem>
+            <SelectItem value="true">启用</SelectItem>
+            <SelectItem value="false">停用</SelectItem>
+          </SelectContent>
         </Select>
       </div>
 
@@ -95,72 +182,16 @@ export function StudentsPage() {
         </p>
       )}
 
-      <div className="mt-6 overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-divider">
-              <th className={th}>学生</th>
-              <th className={th}>角色</th>
-              <th className={th}>档位</th>
-              <th className={th}>状态</th>
-              <th className={th}>数据</th>
-              <th className={th}>注册时间</th>
-              <th className={th}>操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.items.length === 0 && (
-              <tr>
-                <td colSpan={7} className="px-3 py-10 text-center text-neutral-600">
-                  没有符合条件的学生
-                </td>
-              </tr>
-            )}
-            {data.items.map((s) => {
-              const isAdmin = s.role === "ADMIN";
-              const busy = togglingId === s.id;
-              return (
-                <tr key={s.id} className="border-b border-hairline">
-                  <td className={td}>
-                    <div className="font-medium">{s.name}</div>
-                    <div className="text-xs text-neutral-600 tabular-nums">{s.phone ?? "—"}</div>
-                  </td>
-                  <td className={td}>
-                    <Tag variant={isAdmin ? "solid" : "neutral"}>{isAdmin ? "管理员" : "学生"}</Tag>
-                  </td>
-                  <td className={td}>
-                    <div>{tierLabel[s.tier]}</div>
-                    {s.tier === "PRO" && s.proExpiresAt && (
-                      <div className="text-xs text-neutral-600 tabular-nums">到 {s.proExpiresAt.slice(0, 10)}</div>
-                    )}
-                  </td>
-                  <td className={td}>
-                    <Tag variant={s.enabled ? "accent" : "outline"}>{s.enabled ? "启用" : "停用"}</Tag>
-                  </td>
-                  <td className={`${td} text-neutral-700 tabular-nums`}>
-                    收藏 {s.stats.favorites} · 投递 {s.stats.applications} · 作答 {s.stats.attempts}
-                  </td>
-                  <td className={`${td} text-neutral-700 tabular-nums`}>
-                    {new Date(s.createdAt).toLocaleDateString("zh-CN")}
-                  </td>
-                  <td className={td}>
-                    <div className="flex gap-1.5">
-                      <Button size="sm" disabled={isAdmin || busy} onClick={() => toggleEnabled(s)}>
-                        {s.enabled ? "停用" : "启用"}
-                      </Button>
-                      <Button size="sm" disabled={isAdmin} onClick={() => setPlanTarget(s)}>
-                        档位
-                      </Button>
-                      <Button size="sm" disabled={isAdmin} onClick={() => setGrantsTarget(s)}>
-                        授权 ({s.grants.length})
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+      {/* DataTable 自带 px-4 sm:px-8 内边距，用负外边距抵消以对齐上方筛选栏 */}
+      <div className="mt-6 -mx-4 sm:-mx-8">
+        <DataTable
+          columns={columns}
+          rows={data.items}
+          rowKey={(s) => s.id}
+          caption="学生列表"
+          minWidthClassName="table-auto"
+          emptyMessage="没有符合条件的学生"
+        />
       </div>
 
       <Pagination

@@ -6,7 +6,7 @@
     "useIgnoreFile": true
   },
   "files": {
-    "includes": ["**", "!**/dist", "!**/routeTree.gen.ts", "!**/.superpowers", "!**/.next", "!src/api/schema.d.ts"]
+    "includes": ["**", "!**/dist", "!**/routeTree.gen.ts", "!**/.superpowers", "!**/.next"]
   },
   "formatter": {
     "enabled": true,

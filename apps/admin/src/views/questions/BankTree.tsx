@@ -1,6 +1,6 @@
-import type { AdminQuizMeta } from "@api/types";
-import { cn } from "@shared/lib/cn";
-import { Button } from "@shared/ui/Button";
+import type { AdminQuizMeta } from "@job-hunt/api-client/types";
+import { cn } from "@job-hunt/ui/lib/utils";
+import { Button } from "@job-hunt/ui/components/button";
 
 type Company = AdminQuizMeta["companies"][number];
 type Category = Company["categories"][number];

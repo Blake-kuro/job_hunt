@@ -1,33 +1,43 @@
-import { useState } from "react";
-import { useCreateQuestion, usePatchQuestion } from "@api/mutations";
+import { zodResolver } from "@hookform/resolvers/zod";
 import type {
   AdminQuestion,
-  AdminQuestionBody,
   AdminQuizMeta,
   Difficulty,
   QuestionType,
   QuizOptionLetter,
-} from "@api/types";
-import { Button } from "@shared/ui/Button";
-import { Dialog } from "@shared/ui/Dialog";
-import { Field } from "@shared/ui/Field";
-import { Input } from "@shared/ui/Input";
-import { Select } from "@shared/ui/Select";
-import { Textarea } from "@shared/ui/Textarea";
+} from "@job-hunt/api-client/types";
+import { Button } from "@job-hunt/ui/components/button";
+import { Checkbox } from "@job-hunt/ui/components/checkbox";
+import {
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@job-hunt/ui/components/form";
+import { FormDialog } from "@job-hunt/ui/components/form-dialog";
+import { Input } from "@job-hunt/ui/components/input";
+import { Label } from "@job-hunt/ui/components/label";
+import { RadioGroup, RadioGroupItem } from "@job-hunt/ui/components/radio-group";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@job-hunt/ui/components/select";
+import { Textarea } from "@job-hunt/ui/components/textarea";
+import { type ReactNode, useEffect } from "react";
+import { useFieldArray, useForm } from "react-hook-form";
+import { useCreateQuestion, usePatchQuestion } from "@api/mutations";
 import {
   DIFFICULTY_LABEL,
-  emptyQuestionForm,
-  fromQuestion,
+  defaultValues,
+  type FormValues,
+  fromEntity,
   LETTERS,
   MAX_OPTIONS,
   minOptions,
-  type QuestionFormState,
-  setType,
-  toQuestionBody,
+  optionsForType,
+  schema,
+  toBody,
   TYPE_LABEL,
-} from "./question-form";
-
-const FORM_ID = "question-form";
+} from "./question-schema";
 
 interface QuestionDialogProps {
   mode: "create" | "edit";
@@ -46,265 +56,339 @@ export function QuestionDialog({ mode, question, defaultCategoryId, meta, open, 
   const pending = create.isPending || patch.isPending;
   const serverError = (mode === "create" ? create.error : patch.error)?.message ?? null;
 
+  const form = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues });
+  const { fields, append, remove, replace } = useFieldArray({ control: form.control, name: "options" });
+  const type = form.watch("type");
+  const answer = form.watch("answer");
+  const isJudge = type === "JUDGE";
+  const isMulti = type === "MULTI";
+  const { errors, isSubmitted } = form.formState;
+
+  useEffect(() => {
+    if (open) form.reset(question ? fromEntity(question) : { ...defaultValues, categoryId: defaultCategoryId ?? "" });
+  }, [open, question, defaultCategoryId, form]);
+
   function close() {
     create.reset();
     patch.reset();
     onClose();
   }
 
-  function save(body: AdminQuestionBody) {
-    if (mode === "edit") {
-      if (!question) return;
-      patch.mutate({ id: question.id, body }, { onSuccess: close });
-    } else {
-      create.mutate(body, { onSuccess: close });
-    }
+  function setAnswer(next: QuizOptionLetter[]) {
+    form.setValue("answer", next, { shouldValidate: isSubmitted });
   }
 
-  return (
-    <Dialog
-      open={open}
-      wide
-      title={mode === "create" ? "新增题目" : "编辑题目"}
-      onClose={close}
-      footer={
-        <>
-          <Button type="button" onClick={close}>
-            取消
-          </Button>
-          <Button variant="primary" type="submit" form={FORM_ID} disabled={pending}>
-            {pending ? "保存中…" : "保存"}
-          </Button>
-        </>
-      }
-    >
-      {open && (mode === "create" || question) && (
-        <QuestionForm
-          key={question?.id ?? `new-${defaultCategoryId ?? ""}`}
-          question={question}
-          defaultCategoryId={defaultCategoryId}
-          meta={meta}
-          serverError={serverError}
-          onSubmit={save}
-        />
-      )}
-    </Dialog>
-  );
-}
-
-interface QuestionFormProps {
-  question: AdminQuestion | null;
-  defaultCategoryId?: string;
-  meta: AdminQuizMeta;
-  serverError: string | null;
-  onSubmit: (body: AdminQuestionBody) => void;
-}
-
-function QuestionForm({ question, defaultCategoryId, meta, serverError, onSubmit }: QuestionFormProps) {
-  const [state, setState] = useState<QuestionFormState>(() =>
-    question ? fromQuestion(question) : { ...emptyQuestionForm, categoryId: defaultCategoryId ?? "" },
-  );
-  const [error, setError] = useState<string | null>(null);
-
-  function set<K extends keyof QuestionFormState>(key: K, value: QuestionFormState[K]) {
-    setState((s) => ({ ...s, [key]: value }));
-  }
-
-  function setOption(index: number, text: string) {
-    setState((s) => ({ ...s, options: s.options.map((t, i) => (i === index ? text : t)) }));
-  }
-
-  function addOption() {
-    setState((s) => (s.options.length >= MAX_OPTIONS ? s : { ...s, options: [...s.options, ""] }));
+  /** 切换题型：进出判断题时重置选项；任何切换都清空答案（答案语义随题型变） */
+  function changeType(next: QuestionType) {
+    const options = optionsForType(type, next, form.getValues("options"));
+    form.setValue("type", next);
+    if (options) replace(options);
+    setAnswer([]);
   }
 
   /** 删掉一行后字母重新排：被删行的答案去掉，其后的答案往前挪一位 */
   function removeOption(index: number) {
-    setState((s) => {
-      if (s.options.length <= minOptions(s.type)) return s;
-      const answer = s.answer
+    if (fields.length <= minOptions(type)) return;
+    setAnswer(
+      answer
         .map((l) => LETTERS.indexOf(l))
         .filter((i) => i !== index)
-        .map((i) => LETTERS[i > index ? i - 1 : i]);
-      return { ...s, options: s.options.filter((_, i) => i !== index), answer };
-    });
+        .map((i) => LETTERS[i > index ? i - 1 : i]),
+    );
+    remove(index);
   }
 
-  function pick(letter: QuizOptionLetter) {
-    setState((s) => {
-      if (s.type !== "MULTI") return { ...s, answer: [letter] };
-      const answer = s.answer.includes(letter) ? s.answer.filter((l) => l !== letter) : [...s.answer, letter];
-      return { ...s, answer };
-    });
+  function toggleMulti(letter: QuizOptionLetter, checked: boolean) {
+    setAnswer(checked ? [...answer, letter] : answer.filter((l) => l !== letter));
   }
 
-  const isJudge = state.type === "JUDGE";
-  const isMulti = state.type === "MULTI";
+  const optionRows = fields.map((row, i) => {
+    const letter = LETTERS[i];
+    return (
+      <div key={row.id} className="flex items-start gap-3">
+        <div className="flex min-h-9 w-12 shrink-0 items-center gap-1.5">
+          {isMulti ? (
+            <Checkbox
+              id={`answer-${letter}`}
+              checked={answer.includes(letter)}
+              onCheckedChange={(v) => toggleMulti(letter, v === true)}
+            />
+          ) : (
+            <RadioGroupItem id={`answer-${letter}`} value={letter} />
+          )}
+          <Label htmlFor={`answer-${letter}`} className="cursor-pointer text-sm font-medium">
+            {letter}
+          </Label>
+        </div>
+        <FormField
+          control={form.control}
+          name={`options.${i}.text`}
+          render={({ field }) => (
+            <FormItem className="min-w-0 flex-1 gap-1.5">
+              <FormControl>
+                <Input
+                  aria-label={`选项 ${letter}`}
+                  readOnly={isJudge}
+                  className={isJudge ? "bg-bg text-neutral-700" : undefined}
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage className="text-xs" />
+            </FormItem>
+          )}
+        />
+        {!isJudge && (
+          <Button
+            type="button"
+            size="sm"
+            className="min-h-9"
+            aria-label={`删除选项 ${letter}`}
+            disabled={fields.length <= minOptions(type)}
+            onClick={() => removeOption(i)}
+          >
+            删除
+          </Button>
+        )}
+      </div>
+    );
+  });
 
   return (
-    <form
-      id={FORM_ID}
-      className="grid grid-cols-1 gap-x-5 gap-y-4 sm:grid-cols-2"
-      onSubmit={(e) => {
-        e.preventDefault();
-        const result = toQuestionBody(state);
-        if (!result.ok) {
-          setError(result.error);
-          return;
+    <FormDialog
+      open={open}
+      wide
+      title={mode === "create" ? "新增题目" : "编辑题目"}
+      onClose={close}
+      form={form}
+      onSubmit={async (values) => {
+        const body = toBody(values);
+        try {
+          if (mode === "edit") {
+            if (!question) return;
+            await patch.mutateAsync({ id: question.id, body });
+          } else {
+            await create.mutateAsync(body);
+          }
+        } catch {
+          return; // 错误由 mutation.error 显示在对话框顶部
         }
-        setError(null);
-        onSubmit(result.body);
+        close();
       }}
+      pending={pending}
+      submitLabel={pending ? "保存中…" : "保存"}
+      error={serverError && `保存失败：${serverError}`}
     >
-      <Field label="分类" htmlFor="question-category">
-        <Select id="question-category" value={state.categoryId} onChange={(e) => set("categoryId", e.target.value)}>
-          <option value="">请选择分类</option>
-          {meta.companies.flatMap((co) =>
-            co.categories.map((c) => (
-              <option key={c.id} value={c.id}>
-                {co.name} · {c.name}
-              </option>
-            )),
+      <div className="grid grid-cols-1 gap-x-5 gap-y-4 sm:grid-cols-2">
+        <FormField
+          control={form.control}
+          name="categoryId"
+          render={({ field }) => (
+            <FormItem className="gap-1.5">
+              <FormLabel className="text-xs text-neutral-800">分类</FormLabel>
+              <Select value={field.value} onValueChange={field.onChange}>
+                <FormControl>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="请选择分类" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {meta.companies.flatMap((co) =>
+                    co.categories.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {co.name} · {c.name}
+                      </SelectItem>
+                    )),
+                  )}
+                </SelectContent>
+              </Select>
+              <FormMessage className="text-xs" />
+            </FormItem>
           )}
-        </Select>
-      </Field>
-      <Field label="题型" htmlFor="question-type">
-        <Select
-          id="question-type"
-          value={state.type}
-          onChange={(e) => setState((s) => setType(s, e.target.value as QuestionType))}
-        >
-          {(Object.keys(TYPE_LABEL) as QuestionType[]).map((type) => (
-            <option key={type} value={type}>
-              {TYPE_LABEL[type]}
-            </option>
-          ))}
-        </Select>
-      </Field>
-
-      <Field label="所属部分" htmlFor="question-section" hint="可选，如「形势政策」「企业文化」">
-        <Input
-          id="question-section"
-          maxLength={50}
-          value={state.section}
-          onChange={(e) => set("section", e.target.value)}
         />
-      </Field>
-      <Field label="序号" htmlFor="question-order" hint="分类内的顺序，留空由系统排在最后">
-        <Input
-          id="question-order"
-          type="number"
-          step="1"
-          inputMode="numeric"
-          value={state.sortOrder}
-          onChange={(e) => set("sortOrder", e.target.value)}
+        <FormField
+          control={form.control}
+          name="type"
+          render={({ field }) => (
+            <FormItem className="gap-1.5">
+              <FormLabel className="text-xs text-neutral-800">题型</FormLabel>
+              <Select value={field.value} onValueChange={(v) => changeType(v as QuestionType)}>
+                <FormControl>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {(Object.keys(TYPE_LABEL) as QuestionType[]).map((t) => (
+                    <SelectItem key={t} value={t}>
+                      {TYPE_LABEL[t]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage className="text-xs" />
+            </FormItem>
+          )}
         />
-      </Field>
 
-      <div className="sm:col-span-2">
-        <Field label="题干" htmlFor="question-prompt">
-          <Textarea
-            id="question-prompt"
-            rows={3}
-            value={state.prompt}
-            onChange={(e) => set("prompt", e.target.value)}
-          />
-        </Field>
-      </div>
+        <FormField
+          control={form.control}
+          name="section"
+          render={({ field }) => (
+            <FormItem className="gap-1.5">
+              <FormLabel className="text-xs text-neutral-800">所属部分</FormLabel>
+              <FormControl>
+                <Input maxLength={50} {...field} />
+              </FormControl>
+              <FormDescription className="text-xs text-neutral-600">可选，如「形势政策」「企业文化」</FormDescription>
+              <FormMessage className="text-xs" />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="sortOrder"
+          render={({ field }) => (
+            <FormItem className="gap-1.5">
+              <FormLabel className="text-xs text-neutral-800">序号</FormLabel>
+              <FormControl>
+                <Input type="number" step="1" inputMode="numeric" {...field} />
+              </FormControl>
+              <FormDescription className="text-xs text-neutral-600">分类内的顺序，留空由系统排在最后</FormDescription>
+              <FormMessage className="text-xs" />
+            </FormItem>
+          )}
+        />
 
-      <fieldset className="flex flex-col gap-2 sm:col-span-2">
-        <legend className="mb-1.5 text-xs font-medium text-neutral-800">
-          选项
-          <span className="ml-2 font-normal text-neutral-600">
-            {isJudge
-              ? "判断题选项固定，选出正确答案即可"
-              : isMulti
-                ? "勾选所有正确答案（至少两个）"
-                : "选出唯一正确答案"}
-          </span>
-        </legend>
-        {state.options.map((text, i) => {
-          const letter = LETTERS[i];
-          return (
-            <div key={letter} className="flex items-center gap-3">
-              <label className="flex w-12 shrink-0 cursor-pointer items-center gap-1.5 text-sm font-medium">
-                <input
-                  type={isMulti ? "checkbox" : "radio"}
-                  name="question-answer"
-                  value={letter}
-                  checked={state.answer.includes(letter)}
-                  onChange={() => pick(letter)}
-                />
-                {letter}
-              </label>
-              <Input
-                aria-label={`选项 ${letter}`}
-                value={text}
-                readOnly={isJudge}
-                className={isJudge ? "bg-bg text-neutral-700" : undefined}
-                onChange={(e) => setOption(i, e.target.value)}
-              />
-              {!isJudge && (
-                <Button
-                  type="button"
-                  size="sm"
-                  aria-label={`删除选项 ${letter}`}
-                  disabled={state.options.length <= minOptions(state.type)}
-                  onClick={() => removeOption(i)}
-                >
-                  删除
-                </Button>
-              )}
+        <FormField
+          control={form.control}
+          name="prompt"
+          render={({ field }) => (
+            <FormItem className="gap-1.5 sm:col-span-2">
+              <FormLabel className="text-xs text-neutral-800">题干</FormLabel>
+              <FormControl>
+                <Textarea rows={3} {...field} />
+              </FormControl>
+              <FormMessage className="text-xs" />
+            </FormItem>
+          )}
+        />
+
+        <fieldset className="flex flex-col gap-2 sm:col-span-2">
+          <legend className="mb-1.5 text-xs font-medium text-neutral-800">
+            选项
+            <span className="ml-2 font-normal text-neutral-600">
+              {isJudge
+                ? "判断题选项固定，选出正确答案即可"
+                : isMulti
+                  ? "勾选所有正确答案（至少两个）"
+                  : "选出唯一正确答案"}
+            </span>
+          </legend>
+          {isMulti ? (
+            <div className="flex flex-col gap-2">{optionRows}</div>
+          ) : (
+            <RadioGroup
+              className="flex flex-col gap-2"
+              value={answer[0] ?? ""}
+              onValueChange={(l) => setAnswer([l as QuizOptionLetter])}
+            >
+              {optionRows}
+            </RadioGroup>
+          )}
+          <ArrayMessage>{errors.options?.message ?? errors.answer?.message}</ArrayMessage>
+          {!isJudge && (
+            <div>
+              <Button
+                type="button"
+                size="sm"
+                disabled={fields.length >= MAX_OPTIONS}
+                onClick={() => append({ text: "" })}
+              >
+                添加选项
+              </Button>
             </div>
-          );
-        })}
-        {!isJudge && (
-          <div>
-            <Button type="button" size="sm" disabled={state.options.length >= MAX_OPTIONS} onClick={addOption}>
-              添加选项
-            </Button>
-          </div>
-        )}
-      </fieldset>
+          )}
+        </fieldset>
 
-      <div className="sm:col-span-2">
-        <Field label="解析" htmlFor="question-explanation" hint="每行一条，可留空">
-          <Textarea
-            id="question-explanation"
-            rows={3}
-            value={state.explanation}
-            onChange={(e) => set("explanation", e.target.value)}
-          />
-        </Field>
+        <FormField
+          control={form.control}
+          name="explanation"
+          render={({ field }) => (
+            <FormItem className="gap-1.5 sm:col-span-2">
+              <FormLabel className="text-xs text-neutral-800">解析</FormLabel>
+              <FormControl>
+                <Textarea rows={3} {...field} />
+              </FormControl>
+              <FormDescription className="text-xs text-neutral-600">每行一条，可留空</FormDescription>
+              <FormMessage className="text-xs" />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="difficulty"
+          render={({ field }) => (
+            <FormItem className="gap-1.5">
+              <FormLabel className="text-xs text-neutral-800">难度</FormLabel>
+              <Select value={field.value} onValueChange={field.onChange}>
+                <FormControl>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {(Object.keys(DIFFICULTY_LABEL) as Difficulty[]).map((d) => (
+                    <SelectItem key={d} value={d}>
+                      {DIFFICULTY_LABEL[d]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage className="text-xs" />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="source"
+          render={({ field }) => (
+            <FormItem className="gap-1.5">
+              <FormLabel className="text-xs text-neutral-800">来源</FormLabel>
+              <FormControl>
+                <Input {...field} />
+              </FormControl>
+              <FormDescription className="text-xs text-neutral-600">
+                如「中国华电 · 公共与行业知识」「自编」
+              </FormDescription>
+              <FormMessage className="text-xs" />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="published"
+          render={({ field }) => (
+            <FormItem className="flex items-center gap-2 sm:col-span-2">
+              <FormControl>
+                <Checkbox checked={field.value} onCheckedChange={(v) => field.onChange(v === true)} />
+              </FormControl>
+              <FormLabel className="cursor-pointer text-sm font-normal">已发布（学生端可见）</FormLabel>
+            </FormItem>
+          )}
+        />
       </div>
+    </FormDialog>
+  );
+}
 
-      <Field label="难度" htmlFor="question-difficulty">
-        <Select
-          id="question-difficulty"
-          value={state.difficulty}
-          onChange={(e) => set("difficulty", e.target.value as Difficulty)}
-        >
-          {(Object.keys(DIFFICULTY_LABEL) as Difficulty[]).map((d) => (
-            <option key={d} value={d}>
-              {DIFFICULTY_LABEL[d]}
-            </option>
-          ))}
-        </Select>
-      </Field>
-      <Field label="来源" htmlFor="question-source" hint="如「中国华电 · 公共与行业知识」「自编」">
-        <Input id="question-source" value={state.source} onChange={(e) => set("source", e.target.value)} />
-      </Field>
-
-      <label className="flex cursor-pointer items-center gap-2 text-sm sm:col-span-2">
-        <input type="checkbox" checked={state.published} onChange={(e) => set("published", e.target.checked)} />
-        已发布（学生端可见）
-      </label>
-
-      {(error || serverError) && (
-        <p role="alert" className="text-xs text-red-700 sm:col-span-2">
-          {error ?? `保存失败：${serverError}`}
-        </p>
-      )}
-    </form>
+/** 选项 / 答案是数组级校验（superRefine 挂在 options / answer 根上），不经 FormField，手动渲染文案 */
+function ArrayMessage({ children }: { children: ReactNode }) {
+  if (!children) return null;
+  return (
+    <p role="alert" className="text-xs text-destructive">
+      {children}
+    </p>
   );
 }

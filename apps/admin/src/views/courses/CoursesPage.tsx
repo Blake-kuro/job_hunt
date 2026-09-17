@@ -1,16 +1,69 @@
-import { useState } from "react";
+import type { AdminCourse } from "@job-hunt/api-client/types";
+import { Badge } from "@job-hunt/ui/components/badge";
+import { Button } from "@job-hunt/ui/components/button";
+import { type Column, DataTable } from "@job-hunt/ui/components/data-table";
 import { useSuspenseQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import { useDeleteContent } from "@api/mutations";
 import { coursesQuery } from "@api/queries";
-import type { AdminCourse } from "@api/types";
-import { Button } from "@shared/ui/Button";
-import { Tag } from "@shared/ui/Tag";
 import { CourseDialog } from "./CourseDialog";
 
-const th = "px-3 py-2 text-left text-[11px] font-medium uppercase tracking-[0.08em] text-neutral-700";
-const td = "px-3 py-2.5 align-top whitespace-nowrap";
-
 type DialogState = { mode: "create" } | { mode: "edit"; course: AdminCourse } | null;
+
+interface RowActions {
+  deletingId?: string;
+  onEdit: (c: AdminCourse) => void;
+  onDelete: (c: AdminCourse) => void;
+}
+
+const buildColumns = (a: RowActions): Column<AdminCourse>[] => [
+  {
+    id: "title",
+    header: "标题",
+    cell: (c) => (
+      <div className="max-w-[360px]">
+        <div className="truncate font-medium" title={c.title}>
+          {c.title}
+        </div>
+        {c.description && (
+          <div className="truncate text-xs text-neutral-600" title={c.description}>
+            {c.description}
+          </div>
+        )}
+      </div>
+    ),
+  },
+  {
+    id: "lessons",
+    header: "课时数",
+    cell: (c) => <span className="text-neutral-700 tabular-nums">{c.lessons.length}</span>,
+  },
+  { id: "published", header: "状态", cell: (c) => <Badge>{c.published ? "已发布" : "未发布"}</Badge> },
+  {
+    id: "updatedAt",
+    header: "更新时间",
+    cell: (c) => (
+      <span className="text-neutral-700 tabular-nums">{new Date(c.updatedAt).toLocaleDateString("zh-CN")}</span>
+    ),
+  },
+  {
+    id: "actions",
+    header: "操作",
+    cell: (c) => {
+      const busy = a.deletingId === c.id;
+      return (
+        <div className="flex gap-1.5">
+          <Button size="sm" onClick={() => a.onEdit(c)}>
+            编辑
+          </Button>
+          <Button size="sm" disabled={busy} onClick={() => a.onDelete(c)}>
+            {busy ? "删除中…" : "删除"}
+          </Button>
+        </div>
+      );
+    },
+  },
+];
 
 export function CoursesPage() {
   const { data } = useSuspenseQuery(coursesQuery());
@@ -22,6 +75,11 @@ export function CoursesPage() {
     remove.mutate({ type: "COURSE", id: c.id });
   }
   const deletingId = remove.isPending ? remove.variables?.id : undefined;
+  const columns = buildColumns({
+    deletingId,
+    onEdit: (course) => setDialog({ mode: "edit", course }),
+    onDelete: confirmDelete,
+  });
 
   return (
     <>
@@ -45,61 +103,16 @@ export function CoursesPage() {
         </p>
       )}
 
-      <div className="mt-6 overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-divider">
-              <th className={th}>标题</th>
-              <th className={th}>课时数</th>
-              <th className={th}>状态</th>
-              <th className={th}>更新时间</th>
-              <th className={th}>操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.length === 0 && (
-              <tr>
-                <td colSpan={5} className="px-3 py-10 text-center text-neutral-600">
-                  还没有课程
-                </td>
-              </tr>
-            )}
-            {data.map((c) => {
-              const busy = deletingId === c.id;
-              return (
-                <tr key={c.id} className="border-b border-hairline">
-                  <td className={`${td} max-w-[360px]`}>
-                    <div className="truncate font-medium" title={c.title}>
-                      {c.title}
-                    </div>
-                    {c.description && (
-                      <div className="truncate text-xs text-neutral-600" title={c.description}>
-                        {c.description}
-                      </div>
-                    )}
-                  </td>
-                  <td className={`${td} text-neutral-700 tabular-nums`}>{c.lessons.length}</td>
-                  <td className={td}>
-                    <Tag>{c.published ? "已发布" : "未发布"}</Tag>
-                  </td>
-                  <td className={`${td} text-neutral-700 tabular-nums`}>
-                    {new Date(c.updatedAt).toLocaleDateString("zh-CN")}
-                  </td>
-                  <td className={td}>
-                    <div className="flex gap-1.5">
-                      <Button size="sm" onClick={() => setDialog({ mode: "edit", course: c })}>
-                        编辑
-                      </Button>
-                      <Button size="sm" disabled={busy} onClick={() => confirmDelete(c)}>
-                        {busy ? "删除中…" : "删除"}
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+      {/* DataTable 自带 px-4 sm:px-8 内边距，用负外边距抵消以对齐上方工具栏 */}
+      <div className="mt-6 -mx-4 sm:-mx-8">
+        <DataTable
+          columns={columns}
+          rows={data}
+          rowKey={(c) => c.id}
+          caption="课程列表"
+          minWidthClassName="table-auto"
+          emptyMessage="还没有课程"
+        />
       </div>
 
       <CourseDialog

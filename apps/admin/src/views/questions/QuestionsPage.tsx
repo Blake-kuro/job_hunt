@@ -1,25 +1,27 @@
-import { useEffect, useState } from "react";
+import type { AdminQuestion, QuestionType } from "@job-hunt/api-client/types";
+import { Badge } from "@job-hunt/ui/components/badge";
+import { Button } from "@job-hunt/ui/components/button";
+import { type Column, DataTable } from "@job-hunt/ui/components/data-table";
+import { Input } from "@job-hunt/ui/components/input";
+import { Pagination } from "@job-hunt/ui/components/pagination";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@job-hunt/ui/components/select";
+import { useDebouncedSearch } from "@job-hunt/ui/hooks/use-debounced-search";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { getRouteApi } from "@tanstack/react-router";
+import { useCallback, useState } from "react";
 import { useDeleteCategory, useDeleteCompany, useDeleteQuestion, usePatchQuestion } from "@api/mutations";
 import { questionsQuery, quizMetaQuery } from "@api/queries";
-import type { AdminQuestion, QuestionType } from "@api/types";
-import { Button } from "@shared/ui/Button";
-import { Input } from "@shared/ui/Input";
-import { Pagination } from "@shared/ui/Pagination";
-import { Select } from "@shared/ui/Select";
-import { Tag } from "@shared/ui/Tag";
 import { BankTree } from "./BankTree";
 import { CategoryDialog } from "./CategoryDialog";
 import { CompanyDialog } from "./CompanyDialog";
 import { ImportQuestionsDialog, type ImportTarget } from "./ImportQuestionsDialog";
 import { QuestionDialog } from "./QuestionDialog";
-import { TYPE_LABEL } from "./question-form";
+import { TYPE_LABEL } from "./question-schema";
 
 const route = getRouteApi("/_admin/questions");
 
-const th = "px-3 py-2 text-left text-[11px] font-medium uppercase tracking-[0.08em] text-neutral-700";
-const td = "px-3 py-2.5 align-top whitespace-nowrap";
+/** Radix Select 的项不能是空串：筛选里的「全部」用这个哨兵值 */
+const ALL = "all";
 
 const PROMPT_MAX = 60;
 
@@ -45,25 +47,61 @@ type DialogState =
   | { kind: "import"; target: ImportTarget }
   | null;
 
-/**
- * 文本筛选的本地缓冲 + 300ms 防抖：输入时不逐字改 URL；URL 从外部变化时同步回输入框。
- * commit 收到的是 trim 后的值，空串表示清除。
- */
-function useDebouncedFilter(value: string, commit: (next: string) => void) {
-  const [draft, setDraft] = useState(value);
-  const [prev, setPrev] = useState(value);
-  if (value !== prev) {
-    setPrev(value);
-    setDraft(value);
-  }
-  useEffect(() => {
-    const normalized = draft.trim();
-    if (normalized === value) return;
-    const t = setTimeout(() => commit(normalized), 300);
-    return () => clearTimeout(t);
-  }, [draft, value, commit]);
-  return [draft, setDraft] as const;
+interface RowActions {
+  /** 「全部」/ 公司视图下在题干下显示所属公司 / 分类 */
+  showBank: boolean;
+  togglingId?: string;
+  deletingId?: string;
+  onEdit: (q: AdminQuestion) => void;
+  onTogglePublished: (q: AdminQuestion) => void;
+  onDelete: (q: AdminQuestion) => void;
 }
+
+const buildColumns = (a: RowActions): Column<AdminQuestion>[] => [
+  {
+    id: "sortOrder",
+    header: "序号",
+    cell: (q) => <span className="text-neutral-700 tabular-nums">{q.sortOrder}</span>,
+  },
+  { id: "type", header: "题型", cell: (q) => <Badge variant={TYPE_TAG[q.type]}>{TYPE_LABEL[q.type]}</Badge> },
+  { id: "section", header: "所属部分", cell: (q) => <span className="text-neutral-700">{q.section ?? "—"}</span> },
+  {
+    id: "prompt",
+    header: "题干",
+    cell: (q) => (
+      <div className="max-w-[420px]" title={q.prompt}>
+        {truncate(q.prompt, PROMPT_MAX)}
+        {a.showBank && (
+          <span className="mt-0.5 block text-xs text-neutral-600">
+            {q.companyName} / {q.categoryName}
+          </span>
+        )}
+      </div>
+    ),
+  },
+  { id: "published", header: "状态", cell: (q) => <Badge>{q.published ? "已发布" : "未发布"}</Badge> },
+  {
+    id: "actions",
+    header: "操作",
+    cell: (q) => {
+      const toggling = a.togglingId === q.id;
+      const deleting = a.deletingId === q.id;
+      return (
+        <div className="flex gap-1.5">
+          <Button size="sm" onClick={() => a.onEdit(q)}>
+            编辑
+          </Button>
+          <Button size="sm" disabled={toggling || deleting} onClick={() => a.onTogglePublished(q)}>
+            {toggling ? "处理中…" : q.published ? "下架" : "发布"}
+          </Button>
+          <Button size="sm" disabled={toggling || deleting} onClick={() => a.onDelete(q)}>
+            {deleting ? "删除中…" : "删除"}
+          </Button>
+        </div>
+      );
+    },
+  },
+];
 
 export function QuestionsPage() {
   const search = route.useSearch();
@@ -76,12 +114,17 @@ export function QuestionsPage() {
   const removeCategory = useDeleteCategory();
   const [dialog, setDialog] = useState<DialogState>(null);
 
-  const [qDraft, setQDraft] = useDebouncedFilter(search.q ?? "", (q) =>
-    navigate({ search: (s) => ({ ...s, q: q || undefined, page: 1 }) }),
+  // 文本筛选的本地缓冲 + 300ms 防抖：输入时不逐字改 URL；URL 从外部变化时同步回输入框
+  const commitQ = useCallback(
+    (q: string) => navigate({ search: (s) => ({ ...s, q: q || undefined, page: 1 }) }),
+    [navigate],
   );
-  const [sectionDraft, setSectionDraft] = useDebouncedFilter(search.section ?? "", (section) =>
-    navigate({ search: (s) => ({ ...s, section: section || undefined, page: 1 }) }),
+  const commitSection = useCallback(
+    (section: string) => navigate({ search: (s) => ({ ...s, section: section || undefined, page: 1 }) }),
+    [navigate],
   );
+  const [qDraft, setQDraft] = useDebouncedSearch(search.q ?? "", commitQ);
+  const [sectionDraft, setSectionDraft] = useDebouncedSearch(search.section ?? "", commitSection);
 
   // 当前选中的公司 / 分类（从 URL 反查树），用于标题与新建题目的默认分类
   const selectedCategory = meta.companies
@@ -127,6 +170,18 @@ export function QuestionsPage() {
 
   const actionError = patch.error ?? remove.error ?? removeCompany.error ?? removeCategory.error;
   const showBank = !selectedCategory;
+  const columns = buildColumns({
+    showBank,
+    togglingId,
+    deletingId,
+    onEdit: (question) => setDialog({ kind: "edit", question }),
+    onTogglePublished: togglePublished,
+    onDelete: confirmDelete,
+  });
+  const emptyMessage =
+    selectedCategory && !search.q && !search.type && !search.section && search.published === undefined
+      ? "该分类还没有题目，可以新增或导入 Excel"
+      : "没有符合条件的题目";
 
   return (
     <>
@@ -179,20 +234,23 @@ export function QuestionsPage() {
               onChange={(e) => setQDraft(e.target.value)}
             />
             <Select
-              aria-label="题型"
-              className="min-h-9 sm:w-[120px]"
-              value={search.type ?? ""}
-              onChange={(e) => {
-                const type = (e.target.value || undefined) as QuestionType | undefined;
+              value={search.type ?? ALL}
+              onValueChange={(v) => {
+                const type = v === ALL ? undefined : (v as QuestionType);
                 navigate({ search: (s) => ({ ...s, type, page: 1 }) });
               }}
             >
-              <option value="">全部题型</option>
-              {(Object.keys(TYPE_LABEL) as QuestionType[]).map((t) => (
-                <option key={t} value={t}>
-                  {TYPE_LABEL[t]}
-                </option>
-              ))}
+              <SelectTrigger aria-label="题型" className="sm:w-[120px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL}>全部题型</SelectItem>
+                {(Object.keys(TYPE_LABEL) as QuestionType[]).map((t) => (
+                  <SelectItem key={t} value={t}>
+                    {TYPE_LABEL[t]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
             </Select>
             <Input
               type="search"
@@ -203,17 +261,20 @@ export function QuestionsPage() {
               onChange={(e) => setSectionDraft(e.target.value)}
             />
             <Select
-              aria-label="状态"
-              className="min-h-9 sm:w-[120px]"
-              value={search.published === undefined ? "" : String(search.published)}
-              onChange={(e) => {
-                const published = e.target.value === "" ? undefined : e.target.value === "true";
+              value={search.published === undefined ? ALL : String(search.published)}
+              onValueChange={(v) => {
+                const published = v === ALL ? undefined : v === "true";
                 navigate({ search: (s) => ({ ...s, published, page: 1 }) });
               }}
             >
-              <option value="">全部状态</option>
-              <option value="true">已发布</option>
-              <option value="false">未发布</option>
+              <SelectTrigger aria-label="状态" className="sm:w-[120px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL}>全部状态</SelectItem>
+                <SelectItem value="true">已发布</SelectItem>
+                <SelectItem value="false">未发布</SelectItem>
+              </SelectContent>
             </Select>
             <div className="ml-auto">
               <Button
@@ -233,71 +294,16 @@ export function QuestionsPage() {
             </p>
           )}
 
-          <div className="mt-4 overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-divider">
-                  <th className={`${th} w-14`}>序号</th>
-                  <th className={th}>题型</th>
-                  <th className={th}>所属部分</th>
-                  <th className={th}>题干</th>
-                  <th className={th}>状态</th>
-                  <th className={th}>操作</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.items.length === 0 && (
-                  <tr>
-                    <td colSpan={6} className="px-3 py-10 text-center text-neutral-600">
-                      {selectedCategory &&
-                      !search.q &&
-                      !search.type &&
-                      !search.section &&
-                      search.published === undefined
-                        ? "该分类还没有题目，可以新增或导入 Excel"
-                        : "没有符合条件的题目"}
-                    </td>
-                  </tr>
-                )}
-                {data.items.map((q) => {
-                  const toggling = togglingId === q.id;
-                  const deleting = deletingId === q.id;
-                  return (
-                    <tr key={q.id} className="border-b border-hairline">
-                      <td className={`${td} text-neutral-700 tabular-nums`}>{q.sortOrder}</td>
-                      <td className={td}>
-                        <Tag variant={TYPE_TAG[q.type]}>{TYPE_LABEL[q.type]}</Tag>
-                      </td>
-                      <td className={`${td} text-neutral-700`}>{q.section ?? "—"}</td>
-                      <td className={`${td} max-w-[420px] whitespace-normal`} title={q.prompt}>
-                        {truncate(q.prompt, PROMPT_MAX)}
-                        {showBank && (
-                          <span className="mt-0.5 block text-xs text-neutral-600">
-                            {q.companyName} / {q.categoryName}
-                          </span>
-                        )}
-                      </td>
-                      <td className={td}>
-                        <Tag>{q.published ? "已发布" : "未发布"}</Tag>
-                      </td>
-                      <td className={td}>
-                        <div className="flex gap-1.5">
-                          <Button size="sm" onClick={() => setDialog({ kind: "edit", question: q })}>
-                            编辑
-                          </Button>
-                          <Button size="sm" disabled={toggling || deleting} onClick={() => togglePublished(q)}>
-                            {toggling ? "处理中…" : q.published ? "下架" : "发布"}
-                          </Button>
-                          <Button size="sm" disabled={toggling || deleting} onClick={() => confirmDelete(q)}>
-                            {deleting ? "删除中…" : "删除"}
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+          {/* DataTable 自带 px-4 sm:px-8 内边距，用负外边距抵消以对齐上方筛选栏 */}
+          <div className="mt-4 -mx-4 sm:-mx-8">
+            <DataTable
+              columns={columns}
+              rows={data.items}
+              rowKey={(q) => q.id}
+              caption="题目列表"
+              minWidthClassName="table-auto"
+              emptyMessage={emptyMessage}
+            />
           </div>
 
           <Pagination

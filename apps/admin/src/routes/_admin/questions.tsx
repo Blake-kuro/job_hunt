@@ -1,7 +1,7 @@
 import { createFileRoute, stripSearchParams } from "@tanstack/react-router";
 import { z } from "zod";
 import { questionsQuery, quizMetaQuery } from "@api/queries";
-import { ErrorPanel } from "@shared/ui/ErrorPanel";
+import { RouterErrorPanel } from "../-error";
 import { QuestionsPage } from "@views/questions/QuestionsPage";
 
 /** 与后端 listAdminQuestions 的 query 同步；只用于 validateSearch */
@@ -24,5 +24,5 @@ export const Route = createFileRoute("/_admin/questions")({
   loader: ({ context: { queryClient }, deps }) =>
     Promise.all([queryClient.ensureQueryData(questionsQuery(deps)), queryClient.ensureQueryData(quizMetaQuery())]),
   component: QuestionsPage,
-  errorComponent: ErrorPanel,
+  errorComponent: RouterErrorPanel,
 });

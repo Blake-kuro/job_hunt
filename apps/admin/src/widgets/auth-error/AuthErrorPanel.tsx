@@ -1,10 +1,10 @@
+import { ApiError } from "@job-hunt/api-client/client";
+import { Button } from "@job-hunt/ui/components/button";
 import { useQueryClient } from "@tanstack/react-query";
 import { type ErrorComponentProps, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
-import { ApiError } from "@api/client";
 import { useLogout } from "@api/mutations";
-import { Button } from "./Button";
-import { ErrorPanel } from "./ErrorPanel";
+import { RouterErrorPanel } from "../../routes/-error";
 
 const isAuthError = (error: unknown): error is ApiError =>
   error instanceof ApiError && (error.status === 401 || error.status === 403);
@@ -26,7 +26,7 @@ export function AdminErrorPanel(props: ErrorComponentProps) {
       </p>
     );
   }
-  return <ErrorPanel {...props} />;
+  return <RouterErrorPanel {...props} />;
 }
 
 /** 登录页本身取不到当前用户（账号被停用会 403）：给一个退出入口换号 */
@@ -34,7 +34,7 @@ export function LoginErrorPanel(props: ErrorComponentProps) {
   const navigate = useNavigate();
   const logout = useLogout();
   const { error } = props;
-  if (!isAuthError(error)) return <ErrorPanel {...props} />;
+  if (!isAuthError(error)) return <RouterErrorPanel {...props} />;
   return (
     <div className="flex flex-col items-start gap-3 px-6 py-10">
       <p className="font-heading text-xl">当前账号无法使用管理后台</p>

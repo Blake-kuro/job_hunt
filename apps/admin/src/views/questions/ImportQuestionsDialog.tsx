@@ -1,7 +1,14 @@
+import { Button } from "@job-hunt/ui/components/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@job-hunt/ui/components/dialog";
 import { useRef } from "react";
 import { useImportQuestions } from "@api/mutations";
-import { Button } from "@shared/ui/Button";
-import { Dialog } from "@shared/ui/Dialog";
 
 export interface ImportTarget {
   categoryId: string;
@@ -48,75 +55,81 @@ export function ImportQuestionsDialog({ target, onClose }: ImportQuestionsDialog
   }
 
   return (
-    <Dialog
-      open={target !== null}
-      title="导入 Excel"
-      onClose={close}
-      footer={
-        <>
+    <Dialog open={target !== null} onOpenChange={(next) => !next && close()}>
+      <DialogContent
+        className="gap-0 p-0 sm:max-w-[560px]"
+        closeDisabled={pending}
+        onEscapeKeyDown={(event) => pending && event.preventDefault()}
+        onPointerDownOutside={(event) => pending && event.preventDefault()}
+        onInteractOutside={(event) => pending && event.preventDefault()}
+      >
+        <DialogHeader className="border-b border-divider px-6 py-4 text-left">
+          <DialogTitle className="font-heading text-xl font-semibold">导入 Excel</DialogTitle>
+          <DialogDescription className="sr-only">把 xlsx 里的题目导入到当前分类</DialogDescription>
+        </DialogHeader>
+        {target && (
+          <div className="flex flex-col gap-5 px-6 py-5 text-sm">
+            <p>
+              导入到{" "}
+              <span className="font-medium">
+                {target.companyName} / {target.categoryName}
+              </span>
+              ；表格里的题会追加到该分类，题干相同的行会被跳过。
+            </p>
+            <input ref={fileRef} type="file" accept=".xlsx" hidden onChange={onFileChange} />
+
+            <section>
+              <h3 className="text-xs font-medium uppercase tracking-[0.08em] text-neutral-700">表格格式</h3>
+              <p className="mt-1 text-xs text-neutral-600">
+                取第一个表头同时含「题干」和「答案」的工作表，列按表头名识别，顺序不限；xlsx 最大 20 MB。
+              </p>
+              <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-xs">
+                {COLUMNS.map((c) => (
+                  <div key={c.name} className="contents">
+                    <dt className="font-medium text-text">{c.name}</dt>
+                    <dd className="text-neutral-700">{c.note}</dd>
+                  </div>
+                ))}
+              </dl>
+            </section>
+
+            {importQuestions.error && (
+              <p role="alert" className="text-xs text-red-700">
+                导入失败：{importQuestions.error.message}
+              </p>
+            )}
+
+            {result && (
+              <section aria-live="polite" className="border border-divider bg-surface px-4 py-3">
+                <p>
+                  新增 <span className="font-medium tabular-nums">{result.created}</span> 题
+                  {result.skipped.length > 0 && (
+                    <span className="text-neutral-700">
+                      ，跳过 <span className="font-medium tabular-nums">{result.skipped.length}</span> 行
+                    </span>
+                  )}
+                </p>
+                {result.skipped.length > 0 && (
+                  <ul className="mt-2 flex max-h-56 list-disc flex-col gap-1 overflow-y-auto pl-5 text-xs text-neutral-700">
+                    {result.skipped.map((reason) => (
+                      // 跳过原因以「第 n 行：」开头，行号在同一次导入里唯一
+                      <li key={reason}>{reason}</li>
+                    ))}
+                  </ul>
+                )}
+              </section>
+            )}
+          </div>
+        )}
+        <DialogFooter className="border-t border-divider px-6 py-4">
           <Button type="button" disabled={pending} onClick={close}>
             {result ? "关闭" : "取消"}
           </Button>
           <Button variant="primary" type="button" disabled={pending} onClick={() => fileRef.current?.click()}>
             {pending ? "导入中…" : result ? "再导入一个" : "选择 xlsx 文件"}
           </Button>
-        </>
-      }
-    >
-      {target && (
-        <div className="flex flex-col gap-5 text-sm">
-          <p>
-            导入到{" "}
-            <span className="font-medium">
-              {target.companyName} / {target.categoryName}
-            </span>
-            ；表格里的题会追加到该分类，题干相同的行会被跳过。
-          </p>
-          <input ref={fileRef} type="file" accept=".xlsx" hidden onChange={onFileChange} />
-
-          <section>
-            <h3 className="text-xs font-medium uppercase tracking-[0.08em] text-neutral-700">表格格式</h3>
-            <p className="mt-1 text-xs text-neutral-600">
-              取第一个表头同时含「题干」和「答案」的工作表，列按表头名识别，顺序不限；xlsx 最大 20 MB。
-            </p>
-            <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-xs">
-              {COLUMNS.map((c) => (
-                <div key={c.name} className="contents">
-                  <dt className="font-medium text-text">{c.name}</dt>
-                  <dd className="text-neutral-700">{c.note}</dd>
-                </div>
-              ))}
-            </dl>
-          </section>
-
-          {importQuestions.error && (
-            <p role="alert" className="text-xs text-red-700">
-              导入失败：{importQuestions.error.message}
-            </p>
-          )}
-
-          {result && (
-            <section aria-live="polite" className="border border-divider bg-surface px-4 py-3">
-              <p>
-                新增 <span className="font-medium tabular-nums">{result.created}</span> 题
-                {result.skipped.length > 0 && (
-                  <span className="text-neutral-700">
-                    ，跳过 <span className="font-medium tabular-nums">{result.skipped.length}</span> 行
-                  </span>
-                )}
-              </p>
-              {result.skipped.length > 0 && (
-                <ul className="mt-2 flex max-h-56 list-disc flex-col gap-1 overflow-y-auto pl-5 text-xs text-neutral-700">
-                  {result.skipped.map((reason) => (
-                    // 跳过原因以「第 n 行：」开头，行号在同一次导入里唯一
-                    <li key={reason}>{reason}</li>
-                  ))}
-                </ul>
-              )}
-            </section>
-          )}
-        </div>
-      )}
+        </DialogFooter>
+      </DialogContent>
     </Dialog>
   );
 }

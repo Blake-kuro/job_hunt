@@ -1,16 +1,80 @@
-import { useState } from "react";
+import type { AdminMaterial } from "@job-hunt/api-client/types";
+import { Badge } from "@job-hunt/ui/components/badge";
+import { Button } from "@job-hunt/ui/components/button";
+import { type Column, DataTable } from "@job-hunt/ui/components/data-table";
 import { useSuspenseQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import { useDeleteContent } from "@api/mutations";
 import { materialsQuery } from "@api/queries";
-import type { AdminMaterial } from "@api/types";
-import { Button } from "@shared/ui/Button";
-import { Tag } from "@shared/ui/Tag";
 import { MaterialDialog } from "./MaterialDialog";
 
-const th = "px-3 py-2 text-left text-[11px] font-medium uppercase tracking-[0.08em] text-neutral-700";
-const td = "px-3 py-2.5 align-top whitespace-nowrap";
-
 type DialogState = { mode: "create" } | { mode: "edit"; material: AdminMaterial } | null;
+
+interface RowActions {
+  deletingId?: string;
+  onEdit: (m: AdminMaterial) => void;
+  onDelete: (m: AdminMaterial) => void;
+}
+
+const buildColumns = (a: RowActions): Column<AdminMaterial>[] => [
+  {
+    id: "title",
+    header: "标题",
+    cell: (m) => (
+      <div className="max-w-[320px]">
+        <div className="truncate font-medium" title={m.title}>
+          {m.title}
+        </div>
+        {m.description && (
+          <div className="truncate text-xs text-neutral-600" title={m.description}>
+            {m.description}
+          </div>
+        )}
+      </div>
+    ),
+  },
+  { id: "category", header: "分类", cell: (m) => <span className="text-neutral-700">{m.category}</span> },
+  {
+    id: "url",
+    header: "链接",
+    cell: (m) => (
+      <a
+        href={m.resourceUrl}
+        target="_blank"
+        rel="noreferrer"
+        title={m.resourceUrl}
+        className="block max-w-[260px] truncate text-accent underline-offset-2 hover:underline"
+      >
+        {m.resourceUrl}
+      </a>
+    ),
+  },
+  { id: "published", header: "状态", cell: (m) => <Badge>{m.published ? "已发布" : "未发布"}</Badge> },
+  {
+    id: "updatedAt",
+    header: "更新时间",
+    cell: (m) => (
+      <span className="text-neutral-700 tabular-nums">{new Date(m.updatedAt).toLocaleDateString("zh-CN")}</span>
+    ),
+  },
+  {
+    id: "actions",
+    header: "操作",
+    cell: (m) => {
+      const busy = a.deletingId === m.id;
+      return (
+        <div className="flex gap-1.5">
+          <Button size="sm" onClick={() => a.onEdit(m)}>
+            编辑
+          </Button>
+          <Button size="sm" disabled={busy} onClick={() => a.onDelete(m)}>
+            {busy ? "删除中…" : "删除"}
+          </Button>
+        </div>
+      );
+    },
+  },
+];
 
 export function MaterialsPage() {
   const { data } = useSuspenseQuery(materialsQuery());
@@ -22,6 +86,11 @@ export function MaterialsPage() {
     remove.mutate({ type: "MATERIAL", id: m.id });
   }
   const deletingId = remove.isPending ? remove.variables?.id : undefined;
+  const columns = buildColumns({
+    deletingId,
+    onEdit: (material) => setDialog({ mode: "edit", material }),
+    onDelete: confirmDelete,
+  });
 
   return (
     <>
@@ -45,73 +114,16 @@ export function MaterialsPage() {
         </p>
       )}
 
-      <div className="mt-6 overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-divider">
-              <th className={th}>标题</th>
-              <th className={th}>分类</th>
-              <th className={th}>链接</th>
-              <th className={th}>状态</th>
-              <th className={th}>更新时间</th>
-              <th className={th}>操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.length === 0 && (
-              <tr>
-                <td colSpan={6} className="px-3 py-10 text-center text-neutral-600">
-                  还没有资料
-                </td>
-              </tr>
-            )}
-            {data.map((m) => {
-              const busy = deletingId === m.id;
-              return (
-                <tr key={m.id} className="border-b border-hairline">
-                  <td className={`${td} max-w-[320px]`}>
-                    <div className="truncate font-medium" title={m.title}>
-                      {m.title}
-                    </div>
-                    {m.description && (
-                      <div className="truncate text-xs text-neutral-600" title={m.description}>
-                        {m.description}
-                      </div>
-                    )}
-                  </td>
-                  <td className={`${td} text-neutral-700`}>{m.category}</td>
-                  <td className={`${td} max-w-[260px]`}>
-                    <a
-                      href={m.resourceUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      title={m.resourceUrl}
-                      className="block truncate text-accent underline-offset-2 hover:underline"
-                    >
-                      {m.resourceUrl}
-                    </a>
-                  </td>
-                  <td className={td}>
-                    <Tag>{m.published ? "已发布" : "未发布"}</Tag>
-                  </td>
-                  <td className={`${td} text-neutral-700 tabular-nums`}>
-                    {new Date(m.updatedAt).toLocaleDateString("zh-CN")}
-                  </td>
-                  <td className={td}>
-                    <div className="flex gap-1.5">
-                      <Button size="sm" onClick={() => setDialog({ mode: "edit", material: m })}>
-                        编辑
-                      </Button>
-                      <Button size="sm" disabled={busy} onClick={() => confirmDelete(m)}>
-                        {busy ? "删除中…" : "删除"}
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+      {/* DataTable 自带 px-4 sm:px-8 内边距，用负外边距抵消以对齐上方工具栏 */}
+      <div className="mt-6 -mx-4 sm:-mx-8">
+        <DataTable
+          columns={columns}
+          rows={data}
+          rowKey={(m) => m.id}
+          caption="资料列表"
+          minWidthClassName="table-auto"
+          emptyMessage="还没有资料"
+        />
       </div>
 
       <MaterialDialog

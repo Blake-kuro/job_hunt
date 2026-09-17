@@ -1,7 +1,5 @@
 import { useCreateCategory, usePatchCategory } from "@api/mutations";
-import { Button } from "@shared/ui/Button";
-import { Dialog } from "@shared/ui/Dialog";
-import { NAME_FORM_ID, NameForm } from "./CompanyDialog";
+import { NameDialog } from "./NameDialog";
 
 interface CategoryDialogProps {
   open: boolean;
@@ -26,47 +24,33 @@ export function CategoryDialog({ open, mode, company, initial, onClose }: Catego
     onClose();
   }
 
-  function save(name: string) {
+  async function save(name: string) {
     if (mode === "rename") {
-      if (!initial) return;
-      if (name === initial.name) return close();
-      patch.mutate({ id: initial.id, body: { name } }, { onSuccess: close });
+      if (!initial || name === initial.name) return;
+      await patch.mutateAsync({ id: initial.id, body: { name } });
     } else {
       if (!company) return;
-      create.mutate({ companyId: company.id, name }, { onSuccess: close });
+      await create.mutateAsync({ companyId: company.id, name });
     }
   }
 
   return (
-    <Dialog
-      open={open}
+    <NameDialog
+      open={open && company !== null}
       title={mode === "create" ? "新建分类" : "重命名分类"}
+      label="分类名称"
+      placeholder="如「公共与行业知识」"
+      initialName={mode === "rename" ? initial?.name : undefined}
+      pending={pending}
+      error={serverError}
+      onSubmit={save}
       onClose={close}
-      footer={
-        <>
-          <Button type="button" onClick={close}>
-            取消
-          </Button>
-          <Button variant="primary" type="submit" form={NAME_FORM_ID} disabled={pending}>
-            {pending ? "保存中…" : "保存"}
-          </Button>
-        </>
-      }
     >
-      {open && company && (
-        <NameForm
-          key={initial?.id ?? `new-${company.id}`}
-          label="分类名称"
-          placeholder="如「公共与行业知识」"
-          initial={initial?.name ?? ""}
-          serverError={serverError}
-          onSubmit={save}
-        >
-          <p className="text-sm text-neutral-700">
-            所属公司：<span className="text-text">{company.name}</span>
-          </p>
-        </NameForm>
+      {company && (
+        <p className="text-sm text-neutral-700">
+          所属公司：<span className="text-text">{company.name}</span>
+        </p>
       )}
-    </Dialog>
+    </NameDialog>
   );
 }
