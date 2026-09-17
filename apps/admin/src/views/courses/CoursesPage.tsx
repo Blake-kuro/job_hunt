@@ -103,8 +103,8 @@ export function CoursesPage() {
         </p>
       )}
 
-      {/* DataTable 自带 px-4 sm:px-8 内边距，用负外边距抵消以对齐上方工具栏 */}
-      <div className="mt-6 -mx-4 sm:-mx-8">
+      {/* DataTable 自带 px-4 sm:px-8 内边距，用负外边距抵消以对齐上方工具栏；单元格不换行、超宽时横向滚动（与原手写表一致） */}
+      <div className="mt-6 -mx-4 sm:-mx-8 [&_td]:whitespace-nowrap">
         <DataTable
           columns={columns}
           rows={data}

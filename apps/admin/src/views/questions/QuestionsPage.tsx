@@ -69,7 +69,7 @@ const buildColumns = (a: RowActions): Column<AdminQuestion>[] => [
     id: "prompt",
     header: "题干",
     cell: (q) => (
-      <div className="max-w-[420px]" title={q.prompt}>
+      <div className="max-w-[420px] whitespace-normal" title={q.prompt}>
         {truncate(q.prompt, PROMPT_MAX)}
         {a.showBank && (
           <span className="mt-0.5 block text-xs text-neutral-600">
@@ -294,8 +294,8 @@ export function QuestionsPage() {
             </p>
           )}
 
-          {/* DataTable 自带 px-4 sm:px-8 内边距，用负外边距抵消以对齐上方筛选栏 */}
-          <div className="mt-4 -mx-4 sm:-mx-8">
+          {/* DataTable 自带 px-4 sm:px-8 内边距，用负外边距抵消以对齐上方筛选栏；单元格不换行、超宽时横向滚动（与原手写表一致） */}
+          <div className="mt-4 -mx-4 sm:-mx-8 [&_td]:whitespace-nowrap">
             <DataTable
               columns={columns}
               rows={data.items}

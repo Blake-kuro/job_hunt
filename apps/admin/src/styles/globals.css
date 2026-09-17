@@ -4,3 +4,9 @@
   --font-barlow: "Barlow";
   --font-barlow-condensed: "Barlow Condensed";
 }
+
+/* 包内 DialogContent 没有限高：高表单（岗位 / 题目）超出视口时在对话框内滚动，而不是被裁掉 */
+[data-slot="dialog-content"] {
+  max-height: calc(100vh - 2rem);
+  overflow-y: auto;
+}
