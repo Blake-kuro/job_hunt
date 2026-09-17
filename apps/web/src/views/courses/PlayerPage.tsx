@@ -73,7 +73,10 @@ function LessonPlayer({
 
   if (play.isPending) return <Panel title="正在加载播放信息…" />;
 
-  if (play.isError) {
+  // 只有首次加载失败或业务态（锁定 / 处理中 / 需登录）才替换播放器；
+  // 签名静默重取失败（isRefetchError）保留正在播放的播放器，等播放器报错再走 onExpired 重建
+  const playInfo = play.data;
+  if (play.isError && (play.block !== null || playInfo === undefined)) {
     if (play.block === "PROCESSING") {
       return (
         <Panel title="视频处理中，请稍后再试">
@@ -107,6 +110,7 @@ function LessonPlayer({
       </Panel>
     );
   }
+  if (playInfo === undefined) return <Panel title="正在加载播放信息…" />;
 
   if (reloads > MAX_AUTO_RELOADS) {
     return (
@@ -126,9 +130,9 @@ function LessonPlayer({
 
   const startAt =
     playerKey === 0
-      ? lesson.progress?.completed && lesson.durationSeconds && play.data.positionSeconds >= lesson.durationSeconds - 5
+      ? lesson.progress?.completed && lesson.durationSeconds && playInfo.positionSeconds >= lesson.durationSeconds - 5
         ? 0
-        : play.data.positionSeconds
+        : playInfo.positionSeconds
       : reporter.currentPosition();
 
   async function handleEnded() {
@@ -150,7 +154,7 @@ function LessonPlayer({
     <div>
       <VideoPlayer
         key={playerKey}
-        playInfo={play.data}
+        playInfo={playInfo}
         startAt={startAt}
         onProgress={reporter.onProgress}
         onEnded={() => void handleEnded()}

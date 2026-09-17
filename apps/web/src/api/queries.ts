@@ -56,7 +56,8 @@ function msUntilPlayRefresh(expiresAt: string | undefined) {
 
 export const playInfoQuery = (courseId: string, lessonId: string) =>
   queryOptions({
-    queryKey: ["courses", "play", courseId, lessonId] as const,
+    // 独立命名空间：离开播放页失效 ["courses", …] 时不会连带重取签名
+    queryKey: ["play", courseId, lessonId] as const,
     queryFn: () =>
       unwrap(client.GET("/api/courses/{id}/lessons/{lessonId}/play", { params: { path: { id: courseId, lessonId } } })),
     // 403 / 409 是业务态（锁定 / 处理中），重试无意义

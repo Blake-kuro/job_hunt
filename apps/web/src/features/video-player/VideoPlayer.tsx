@@ -1,14 +1,15 @@
 import { useEffect, useId, useRef } from "react";
 import type { PlayInfo } from "@entities/course";
+import type { ProgressKind } from "./progress";
 import type { TCPlayerInstance } from "./tcplayer";
 
-export type ProgressKind = "timeupdate" | "pause";
+export type { ProgressKind };
 
 export interface VideoPlayerProps {
   playInfo: PlayInfo;
   /** 起播位置（秒） */
   startAt: number;
-  /** 每次 timeupdate / pause 都会调用（不节流，节流由页面做）；duration 未知时为 null */
+  /** 每次 timeupdate / pause 都会调用（不节流，节流由页面做）；duration 未知时为 null。首次 seek 到 startAt 之前不触发。 */
   onProgress: (position: number, info: { kind: ProgressKind; duration: number | null }) => void;
   onEnded: () => void;
   /** 播放器报错（多为签名过期 / 防盗链失效）：页面应重取签名并以当前位置重建播放器 */
@@ -42,6 +43,8 @@ export function VideoPlayer({ playInfo, startAt, onProgress, onEnded, onExpired 
   const info = useRef(playInfo);
   info.current = playInfo;
   const startAtRef = useRef(startAt);
+  // 续播：seek 到 startAt 之前的 timeupdate（位置还是 0）不上报，避免覆盖服务端进度
+  const seekedRef = useRef(startAt <= 0);
   const { fileId } = playInfo;
 
   // 真实播放器：<video> 由这里手动创建 —— tcplayer 会用自己的容器包住并在 dispose 时移除它，
@@ -98,11 +101,14 @@ export function VideoPlayer({ playInfo, startAt, onProgress, onEnded, onExpired 
     const start = startAtRef.current;
     const seek = () => {
       if (start > 0 && start < video.duration) video.currentTime = start;
+      seekedRef.current = true;
     };
     if (video.readyState >= 1) seek();
     const onMeta = () => seek();
-    const onTime = () =>
+    const onTime = () => {
+      if (!seekedRef.current) return;
       callbacks.current.onProgress(video.currentTime, { kind: "timeupdate", duration: safeDuration(video.duration) });
+    };
     const onPause = () => {
       // ended 也会触发 pause；结束由 onEnded 处理
       if (video.ended) return;

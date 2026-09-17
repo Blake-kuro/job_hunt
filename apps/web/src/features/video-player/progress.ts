@@ -1,5 +1,32 @@
 import type { CourseDetail, CourseLesson, LessonProgressBody } from "@entities/course";
 
+export type ProgressKind = "timeupdate" | "pause";
+
+/** timeupdate 距上次上报不足这个间隔就不发 */
+export const REPORT_INTERVAL_MS = 10_000;
+
+export interface ReportInput {
+  kind: ProgressKind;
+  now: number;
+  lastSentAt: number;
+  position: number;
+  duration: number | null;
+  /** completed 已经发过（只发一次） */
+  completedSent: boolean;
+}
+
+/**
+ * 节流决策：≥ 90% 且尚未发过 completed → 立即带 completed 发；
+ * pause → 立即发；timeupdate → 距上次 ≥ 10 秒才发。
+ */
+export function planReport(input: ReportInput): { send: boolean; completed: boolean } {
+  if (!input.completedSent && shouldMarkCompleted(input.position, input.duration))
+    return { send: true, completed: true };
+  if (input.kind === "pause" || input.now - input.lastSentAt >= REPORT_INTERVAL_MS)
+    return { send: true, completed: false };
+  return { send: false, completed: false };
+}
+
 /** 播放到 ≥ 90% 视为看完；不知道时长（null / 0）时只有 `ended` 才算 */
 export function shouldMarkCompleted(position: number, duration: number | null, ended = false): boolean {
   if (ended) return true;

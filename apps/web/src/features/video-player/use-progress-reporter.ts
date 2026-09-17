@@ -2,16 +2,13 @@ import { useCallback, useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useSaveProgress } from "@api/mutations";
 import type { CourseLesson, LessonProgressBody } from "@entities/course";
-import { sendProgressKeepalive, shouldMarkCompleted } from "./progress";
-import type { ProgressKind } from "./VideoPlayer";
-
-/** timeupdate 距上次上报不足这个间隔就不发 */
-export const REPORT_INTERVAL_MS = 10_000;
+import { type ProgressKind, planReport, sendProgressKeepalive } from "./progress";
 
 interface ReporterState {
   position: number;
   duration: number | null;
-  completed: boolean;
+  /** completed 已发出（≥ 90% 或 ended），之后不再重复带 completed */
+  completedSent: boolean;
   lastSentAt: number;
   /** 上次上报之后位置有变化 */
   dirty: boolean;
@@ -20,10 +17,10 @@ interface ReporterState {
 }
 
 /**
- * 播放页的进度上报（节流规则见 brief）：
+ * 播放页的进度上报（决策见 progress.ts 的 planReport）：
  * - timeupdate：距上次上报 ≥ 10 秒才发；pause / 页面隐藏：立即发；
- * - ≥ 90% 或 ended：带 completed: true 立即发（只发一次）；
- * - 关闭标签（pagehide）与离开页面（卸载）：keepalive fetch；卸载后失效 courses / my-courses。
+ * - ≥ 90% 或 ended：带 completed: true 发一次；
+ * - 关闭标签（pagehide）与离开页面（卸载）：keepalive fetch；卸载后失效 课程目录 / 详情 / my-courses。
  * 组件须按 lessonId 加 key，保证换课时时重建。
  */
 export function useProgressReporter(courseId: string, lesson: CourseLesson) {
@@ -32,8 +29,8 @@ export function useProgressReporter(courseId: string, lesson: CourseLesson) {
   const state = useRef<ReporterState>({
     position: lesson.progress?.positionSeconds ?? 0,
     duration: lesson.durationSeconds,
-    completed: lesson.progress?.completed ?? false,
-    // 起播时不立刻发（避免 seek 之前的 0 秒覆盖续播位置）
+    completedSent: lesson.progress?.completed ?? false,
+    // 起播时不立刻发（timeupdate 满 10 秒后才第一次上报）
     lastSentAt: Date.now(),
     dirty: false,
     inflight: null,
@@ -50,6 +47,7 @@ export function useProgressReporter(courseId: string, lesson: CourseLesson) {
       const s = state.current;
       s.lastSentAt = Date.now();
       s.dirty = false;
+      if (completed) s.completedSent = true;
       s.inflight = save.mutateAsync({ courseId, lessonId, body: body(completed) }).catch(() => undefined);
       return s.inflight;
     },
@@ -62,22 +60,25 @@ export function useProgressReporter(courseId: string, lesson: CourseLesson) {
       s.position = position;
       if (info.duration) s.duration = info.duration;
       s.dirty = true;
-      if (!s.completed && shouldMarkCompleted(position, s.duration)) {
-        s.completed = true;
-        void send(true);
-        return;
-      }
-      if (info.kind === "pause" || Date.now() - s.lastSentAt >= REPORT_INTERVAL_MS) void send();
+      const plan = planReport({
+        kind: info.kind,
+        now: Date.now(),
+        lastSentAt: s.lastSentAt,
+        position,
+        duration: s.duration,
+        completedSent: s.completedSent,
+      });
+      if (plan.send) void send(plan.completed);
     },
     [send],
   );
 
-  /** ended：标记完成并等待上报完成（调用方随后跳下一课时） */
+  /** ended：标记完成并等待上报完成（调用方随后跳下一课时）；已发过 completed 且无新位置时只等待在途请求 */
   const onEnded = useCallback(() => {
     const s = state.current;
     if (s.duration) s.position = s.duration;
-    s.completed = true;
-    return send(true);
+    if (s.completedSent && !s.dirty) return Promise.resolve(s.inflight);
+    return send(!s.completedSent);
   }, [send]);
 
   // 监听器 / 卸载清理只随课时变化重建；send 经 ref 取最新值，避免依赖变化误触发「离开页面」逻辑
@@ -103,7 +104,8 @@ export function useProgressReporter(courseId: string, lesson: CourseLesson) {
       s.dirty = false;
       void last.finally(() =>
         Promise.all([
-          qc.invalidateQueries({ queryKey: ["courses"] }),
+          qc.invalidateQueries({ queryKey: ["courses", "list"] }),
+          qc.invalidateQueries({ queryKey: ["courses", "detail", courseId] }),
           qc.invalidateQueries({ queryKey: ["my-courses"] }),
         ]),
       );

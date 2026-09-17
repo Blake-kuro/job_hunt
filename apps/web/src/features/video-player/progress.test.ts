@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import type { CourseLesson } from "@entities/course";
-import { continueLessonId, flattenLessons, nextPlayableLesson, progressUrl, shouldMarkCompleted } from "./progress";
+import {
+  continueLessonId,
+  flattenLessons,
+  nextPlayableLesson,
+  planReport,
+  progressUrl,
+  shouldMarkCompleted,
+} from "./progress";
 
 function lesson(id: string, patch: Partial<CourseLesson> = {}): CourseLesson {
   return {
@@ -65,5 +72,33 @@ describe("continueLessonId", () => {
 describe("progressUrl", () => {
   it("拼接并转义路径参数", () => {
     expect(progressUrl("course-1", "lesson/2")).toBe("/api/courses/course-1/lessons/lesson%2F2/progress");
+  });
+});
+
+describe("planReport", () => {
+  const base = { now: 100_000, lastSentAt: 95_000, position: 30, duration: 600, completedSent: false } as const;
+  it("timeupdate 距上次不足 10 秒不发，满 10 秒发", () => {
+    expect(planReport({ ...base, kind: "timeupdate" })).toEqual({ send: false, completed: false });
+    expect(planReport({ ...base, kind: "timeupdate", lastSentAt: 90_000 })).toEqual({ send: true, completed: false });
+  });
+  it("pause 立即发", () => {
+    expect(planReport({ ...base, kind: "pause" })).toEqual({ send: true, completed: false });
+  });
+  it("≥ 90% 立即带 completed 发，且只发一次", () => {
+    expect(planReport({ ...base, kind: "timeupdate", position: 540 })).toEqual({ send: true, completed: true });
+    expect(planReport({ ...base, kind: "timeupdate", position: 545, completedSent: true })).toEqual({
+      send: false,
+      completed: false,
+    });
+    expect(planReport({ ...base, kind: "pause", position: 545, completedSent: true })).toEqual({
+      send: true,
+      completed: false,
+    });
+  });
+  it("时长未知时不会因位置判定完成", () => {
+    expect(planReport({ ...base, kind: "timeupdate", position: 9_999, duration: null, lastSentAt: 0 })).toEqual({
+      send: true,
+      completed: false,
+    });
   });
 });
