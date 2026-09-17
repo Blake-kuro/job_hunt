@@ -3,7 +3,8 @@ import { createHmac, randomInt, timingSafeEqual } from "node:crypto";
 /**
  * 腾讯云 VOD：上传签名 / 播放签名 / 媒体信息 / 回调 token。
  *
- * - `VOD_MOCK=1` 或缺少 `VOD_SECRET_ID` 时走 mock：签名是固定假值，`fetchMediaInfo` 直接返回 READY。
+ * - `VOD_MOCK=1` 或（非生产环境）缺少 `VOD_SECRET_ID` 时走 mock：签名是固定假值，`fetchMediaInfo` 直接返回 READY；
+ *   生产环境缺配置直接抛错，不会隐式进入 mock，且不接受 mock 回调 token。
  * - 真实签名算法见 https://cloud.tencent.com/document/product/266/9221（上传）与
  *   https://cloud.tencent.com/document/product/266/45554（超级播放器签名）；纯函数 `buildUploadSignature`
  *   / `buildPlaySignature` 不读环境变量，便于用固定输入做快照测试。
@@ -22,8 +23,13 @@ const PLAY_TTL_SECONDS = 2 * 60 * 60;
 /** mock 下 `VOD_CALLBACK_TOKEN` 未配置时接受的回调 token */
 export const MOCK_CALLBACK_TOKEN = "mock-callback";
 
+const isProduction = () => process.env.NODE_ENV === "production";
+
 export function isMock(): boolean {
-  return process.env.VOD_MOCK === "1" || !process.env.VOD_SECRET_ID;
+  if (process.env.VOD_MOCK === "1") return true;
+  if (process.env.VOD_SECRET_ID) return false;
+  if (isProduction()) throw new Error("生产环境必须配置 VOD_SECRET_ID 等腾讯云 VOD 变量（或显式设置 VOD_MOCK=1）");
+  return true;
 }
 
 function requireEnv(name: string): string {
@@ -133,11 +139,33 @@ export function signPlay(fileId: string): { appId: string; fileId: string; psign
   return { appId, fileId, psign, expiresAt };
 }
 
-/** 回调 `?token=` 校验；mock 且未配置 `VOD_CALLBACK_TOKEN` 时接受 `MOCK_CALLBACK_TOKEN` */
+/** 回调 `?token=` 校验；非生产环境下 mock 且未配置 `VOD_CALLBACK_TOKEN` 时接受 `MOCK_CALLBACK_TOKEN` */
 export function verifyCallbackToken(token: string | undefined): boolean {
   if (!token) return false;
-  const expected = process.env.VOD_CALLBACK_TOKEN || (isMock() ? MOCK_CALLBACK_TOKEN : undefined);
+  const expected = process.env.VOD_CALLBACK_TOKEN || (!isProduction() && isMock() ? MOCK_CALLBACK_TOKEN : undefined);
   return expected !== undefined && safeEqual(token, expected);
+}
+
+/** `DescribeMediaInfos` 返回里用到的字段 */
+export interface VodMediaLike {
+  BasicInfo?: { CoverUrl?: string } | null;
+  MetaData?: { Duration?: number } | null;
+  /** `Definition === 0` 是原始文件，不算转码产物 */
+  TranscodeInfo?: { TranscodeSet?: { Definition?: number }[] | null } | null;
+  AdaptiveDynamicStreamingInfo?: { AdaptiveDynamicStreamingSet?: unknown[] | null } | null;
+}
+
+/** 媒体信息 → 课时状态：有非原片的转码输出或自适应码流才算 READY */
+export function mediaInfoToStatus(media: VodMediaLike | undefined): VodMediaInfo {
+  if (!media) return { status: "FAILED", durationSeconds: null, coverUrl: null };
+  const duration = media.MetaData?.Duration;
+  const transcoded = (media.TranscodeInfo?.TranscodeSet ?? []).some((t) => t.Definition !== 0);
+  const adaptive = (media.AdaptiveDynamicStreamingInfo?.AdaptiveDynamicStreamingSet?.length ?? 0) > 0;
+  return {
+    status: transcoded || adaptive ? "READY" : "PROCESSING",
+    durationSeconds: typeof duration === "number" ? Math.round(duration) : null,
+    coverUrl: media.BasicInfo?.CoverUrl || null,
+  };
 }
 
 /** 查 VOD 媒体信息（`DescribeMediaInfos`），用于回调不通时手动刷新 */
@@ -151,15 +179,5 @@ export async function fetchMediaInfo(fileId: string): Promise<VodMediaInfo> {
   });
   const subAppId = process.env.VOD_SUB_APP_ID ? Number(process.env.VOD_SUB_APP_ID) : undefined;
   const res = await client.DescribeMediaInfos({ FileIds: [fileId], ...(subAppId && { SubAppId: subAppId }) });
-  const media = res.MediaInfoSet?.[0];
-  if (!media) return { status: "FAILED", durationSeconds: null, coverUrl: null };
-  const duration = media.MetaData?.Duration;
-  const hasStream =
-    (media.AdaptiveDynamicStreamingInfo?.AdaptiveDynamicStreamingSet?.length ?? 0) > 0 ||
-    (media.TranscodeInfo?.TranscodeSet?.length ?? 0) > 0;
-  return {
-    status: hasStream ? "READY" : "PROCESSING",
-    durationSeconds: typeof duration === "number" ? Math.round(duration) : null,
-    coverUrl: media.BasicInfo?.CoverUrl || null,
-  };
+  return mediaInfoToStatus(res.MediaInfoSet?.[0]);
 }

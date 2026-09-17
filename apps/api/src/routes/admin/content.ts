@@ -1,7 +1,8 @@
 import { createRoute, z } from "@hono/zod-openapi";
 import { AdminContentBodySchema, AdminCourseSchema, AdminMaterialSchema, IdResultSchema } from "../../contract";
 import { prisma } from "../../db";
-import { ERRORS, jsonContent, orNotFound } from "../../lib/route";
+import { AppError } from "../../lib/errors";
+import { ERRORS, errorContent, jsonContent, orNotFound } from "../../lib/route";
 import { newAdminRouter } from "./guard";
 
 const listMaterials = createRoute({
@@ -24,7 +25,11 @@ const saveContent = createRoute({
   tags: ["admin"],
   operationId: "saveAdminContent",
   request: { body: { required: true, content: { "application/json": { schema: AdminContentBodySchema } } } },
-  responses: { 201: jsonContent(IdResultSchema, "已保存"), 404: ERRORS.notFound },
+  responses: {
+    201: jsonContent(IdResultSchema, "已保存"),
+    400: errorContent("课程已迁移到网课，不能用旧接口重写"),
+    404: ERRORS.notFound,
+  },
 });
 const deleteContent = createRoute({
   method: "delete",
@@ -98,7 +103,19 @@ export const contentRoutes = newAdminRouter()
       return c.json({ id: saved.id }, 201);
     }
     if (b.id) {
-      orNotFound(await prisma.course.findUnique({ where: { id: b.id }, select: { id: true } }), `课程 ${b.id} 不存在`);
+      const course = orNotFound(
+        await prisma.course.findUnique({
+          where: { id: b.id },
+          select: {
+            id: true,
+            _count: { select: { progresses: true, lessons: { where: { videoFileId: { not: null } } } } },
+          },
+        }),
+        `课程 ${b.id} 不存在`,
+      );
+      // 过渡期：旧接口整表重写课时会级联删掉 VOD 课时与学生进度，已迁移到网课的课程一律拒绝
+      if (course._count.lessons > 0 || course._count.progresses > 0)
+        throw new AppError(400, "VALIDATION", "该课程已迁移到网课，请在课程页编辑");
     }
     const data = {
       title: b.title,

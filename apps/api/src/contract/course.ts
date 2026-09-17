@@ -76,9 +76,11 @@ export const PlayInfoSchema = z
   })
   .openapi("PlayInfo");
 
+export const MAX_POSITION_SECONDS = 7 * 24 * 3600;
 export const LessonProgressBodySchema = z
   .object({
-    positionSeconds: z.number().int().min(0),
+    /** 秒；上限 7 天，越界 400 而不是写库溢出 */
+    positionSeconds: z.number().int().min(0).max(MAX_POSITION_SECONDS),
     completed: z.boolean().optional(),
   })
   .openapi("LessonProgressBody");

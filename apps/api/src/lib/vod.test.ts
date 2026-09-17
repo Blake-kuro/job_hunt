@@ -6,6 +6,7 @@ import {
   fetchMediaInfo,
   isMock,
   MOCK_CALLBACK_TOKEN,
+  mediaInfoToStatus,
   safeEqual,
   signPlay,
   signUpload,
@@ -73,6 +74,28 @@ describe("buildPlaySignature", () => {
   });
 });
 
+describe("mediaInfoToStatus", () => {
+  it("只有非原片转码或自适应码流才算 READY；原片（Definition 0）不算", () => {
+    expect(mediaInfoToStatus(undefined)).toEqual({ status: "FAILED", durationSeconds: null, coverUrl: null });
+    const base = { MetaData: { Duration: 61.4 }, BasicInfo: { CoverUrl: "" } };
+    expect(mediaInfoToStatus(base)).toMatchObject({ status: "PROCESSING", durationSeconds: 61, coverUrl: null });
+    expect(mediaInfoToStatus({ ...base, TranscodeInfo: { TranscodeSet: [{ Definition: 0 }] } }).status).toBe(
+      "PROCESSING",
+    );
+    expect(
+      mediaInfoToStatus({ ...base, TranscodeInfo: { TranscodeSet: [{ Definition: 0 }, { Definition: 100210 }] } })
+        .status,
+    ).toBe("READY");
+    expect(
+      mediaInfoToStatus({
+        ...base,
+        BasicInfo: { CoverUrl: "https://cdn/c.jpg" },
+        AdaptiveDynamicStreamingInfo: { AdaptiveDynamicStreamingSet: [{}] },
+      }),
+    ).toEqual({ status: "READY", durationSeconds: 61, coverUrl: "https://cdn/c.jpg" });
+  });
+});
+
 describe("mock 与环境变量", () => {
   const saved = { ...process.env };
   afterEach(() => {
@@ -102,6 +125,20 @@ describe("mock 与环境变量", () => {
     const play = signPlay("f1");
     expect(play.appId).toBe("1250000000");
     expect(play.psign.split(".")).toHaveLength(3);
+  });
+
+  it("生产环境：缺 VOD_SECRET_ID 抛错而不是隐式 mock；显式 VOD_MOCK=1 也不接受 mock 回调 token", () => {
+    process.env.NODE_ENV = "production";
+    delete process.env.VOD_MOCK;
+    delete process.env.VOD_SECRET_ID;
+    expect(() => isMock()).toThrow(/VOD_SECRET_ID/);
+    expect(() => signPlay("f1")).toThrow(/VOD_SECRET_ID/);
+    process.env.VOD_MOCK = "1";
+    delete process.env.VOD_CALLBACK_TOKEN;
+    expect(isMock()).toBe(true);
+    expect(verifyCallbackToken(MOCK_CALLBACK_TOKEN)).toBe(false);
+    process.env.VOD_CALLBACK_TOKEN = "real-token";
+    expect(verifyCallbackToken("real-token")).toBe(true);
   });
 
   it("回调 token：常量时间比较；mock 且未配置时接受 MOCK_CALLBACK_TOKEN", () => {

@@ -1579,6 +1579,15 @@ export interface operations {
                     "application/json": components["schemas"]["IdResult"];
                 };
             };
+            /** @description 课程已迁移到网课，不能用旧接口重写 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
             /** @description 不存在 */
             404: {
                 headers: {

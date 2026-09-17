@@ -187,7 +187,17 @@ describe.skipIf(!hasDb)("/api/courses", () => {
     expect((await app.request("/api/courses/paid/lessons/paid-main/play", { headers: s.headers })).status).toBe(200);
   });
 
-  it("progress：写入后详情 / play 带续播位置；completed 只增不减；不可播 403；负数 400", async () => {
+  it("管理员对付费课直接可播、可写进度", async () => {
+    const headers = { cookie: "job_hunt_session=integration-test-session" };
+    expect((await app.request("/api/courses/paid/lessons/paid-main/play", { headers })).status).toBe(200);
+    const res = await app.request("/api/courses/paid/lessons/paid-main/progress", {
+      ...jsonInit("PUT", { positionSeconds: 9 }),
+      headers: { ...headers, "content-type": "application/json" },
+    });
+    expect(res.status).toBe(204);
+  });
+
+  it("progress：写入后详情 / play 带续播位置；completed 只增不减；不可播 403；越界 400", async () => {
     const s = await student("13900000004", "s4");
     const put = (lesson: string, body: unknown) =>
       app.request(`/api/courses/free/lessons/${lesson}/progress`, {
@@ -209,7 +219,12 @@ describe.skipIf(!hasDb)("/api/courses", () => {
     expect(detail.unchaptered[0].progress).toEqual({ positionSeconds: 5, completed: true });
     expect(detail.progressPercent).toBe(100);
 
-    expect((await put("free-1", { positionSeconds: -1 })).status).toBe(400);
+    for (const bad of [-1, 7 * 24 * 3600 + 1, 2 ** 40, 1.5, "3"]) {
+      const res = await put("free-1", { positionSeconds: bad });
+      expect(res.status, `positionSeconds=${bad}`).toBe(400);
+      expect(await res.json()).toMatchObject({ error: { code: "VALIDATION" } });
+    }
+    expect((await put("free-1", { positionSeconds: 7 * 24 * 3600 })).status).toBe(204);
     const forbidden = await app.request("/api/courses/paid/lessons/paid-main/progress", {
       ...jsonInit("PUT", { positionSeconds: 1 }),
       headers: { ...s.headers, "content-type": "application/json" },

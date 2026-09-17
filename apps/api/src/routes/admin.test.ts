@@ -139,6 +139,32 @@ describe.skipIf(!hasDb)("/api/admin", () => {
     expect((await apiRequest(`/api/admin/content/COURSE/${id}`, { method: "DELETE" })).status).toBe(404);
   });
 
+  it("已迁移到网课的课程（有 VOD 课时或学生进度）不能用旧接口重写", async () => {
+    const course = await prisma.course.create({
+      data: { title: "网课", lessons: { create: { id: "vod-lesson", title: "一", videoFileId: "file-1" } } },
+    });
+    const body = { type: "COURSE", id: course.id, title: "改名", published: false, lessons: [] };
+    const rejected = await apiRequest("/api/admin/content", json("POST", body));
+    expect(rejected.status).toBe(400);
+    expect(await rejected.json()).toMatchObject({
+      error: { code: "VALIDATION", message: "该课程已迁移到网课，请在课程页编辑" },
+    });
+    expect(await prisma.courseLesson.count({ where: { courseId: course.id } })).toBe(1);
+
+    const student = await prisma.user.create({ data: { name: "学生" } });
+    const withProgress = await prisma.course.create({
+      data: {
+        title: "旧课",
+        lessons: { create: { id: "old-lesson", title: "一", legacyVideoUrl: "https://x/1.mp4" } },
+      },
+    });
+    await prisma.lessonProgress.create({
+      data: { userId: student.id, lessonId: "old-lesson", courseId: withProgress.id, positionSeconds: 3 },
+    });
+    expect((await apiRequest("/api/admin/content", json("POST", { ...body, id: withProgress.id }))).status).toBe(400);
+    expect(await prisma.lessonProgress.count()).toBe(1);
+  });
+
   it("管理员可创建资料、授权学生，学生只能看到已授权内容", async () => {
     const saved = await apiRequest(
       "/api/admin/content",

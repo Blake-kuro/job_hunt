@@ -1960,7 +1960,8 @@
         "properties": {
           "positionSeconds": {
             "type": "integer",
-            "minimum": 0
+            "minimum": 0,
+            "maximum": 604800
           },
           "completed": {
             "type": "boolean"
@@ -3112,6 +3113,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/IdResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "课程已迁移到网课，不能用旧接口重写",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
                 }
               }
             }

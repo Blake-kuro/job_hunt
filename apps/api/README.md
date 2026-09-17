@@ -94,7 +94,7 @@ pnpm dev                      # http://localhost:3001
 
 | 变量 | 说明 |
 |---|---|
-| `VOD_MOCK` | `1` 走 mock：上传签名 `mock-upload`、播放签名 `mock-play`、媒体信息直接 READY / 600 秒；缺少 `VOD_SECRET_ID` 时也自动 mock。测试固定 mock |
+| `VOD_MOCK` | `1` 走 mock：上传签名 `mock-upload`、播放签名 `mock-play`、媒体信息直接 READY / 600 秒；非生产环境缺少 `VOD_SECRET_ID` 时也自动 mock。**生产环境（`NODE_ENV=production`）缺配置直接抛错，不会隐式 mock，回调也不接受 `mock-callback`。** 测试固定 mock |
 | `VOD_SECRET_ID` / `VOD_SECRET_KEY` | 子账号 API 密钥（只授 VOD 权限），用于上传签名与 `DescribeMediaInfos` |
 | `VOD_APP_ID` / `VOD_SUB_APP_ID` | VOD 应用 id；子应用可选 |
 | `VOD_PLAY_KEY` | 超级播放器签名密钥（控制台「超级播放器」里生成） |
