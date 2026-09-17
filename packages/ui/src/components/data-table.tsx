@@ -10,6 +10,8 @@ export interface Column<T> {
   /** 列宽（百分比或 px）；提供时用 <colgroup> 固定，全部列相加应为 100% */
   width?: string;
   align?: "left" | "right";
+  /** 追加到该列每个 <td> 的类名（例如单列 whitespace-nowrap / 截断） */
+  cellClassName?: string;
   cell: (row: T) => ReactNode;
 }
 
@@ -24,6 +26,12 @@ interface DataTableProps<T> {
   renderCard?: (row: T) => ReactNode;
   /** 表格的最小宽度，低于此宽度横向滚动 */
   minWidthClassName?: string;
+  /** 列宽算法：fixed（默认）按 <colgroup> / 首行分配，auto 按内容撑开 */
+  layout?: "fixed" | "auto";
+  /** 所有单元格不换行（配合横向滚动，管理端列表的用法） */
+  nowrap?: boolean;
+  /** 去掉容器自带的 px-4 pb-6 sm:px-8，由调用方控制外边距 */
+  flush?: boolean;
 }
 
 /** 列定义驱动的数据表：表头 11px 大写宽字距、行间 hairline，与原 web / admin 手写表一致。 */
@@ -35,9 +43,12 @@ export function DataTable<T>({
   emptyMessage = "没有匹配的结果。",
   renderCard,
   minWidthClassName,
+  layout = "fixed",
+  nowrap = false,
+  flush = false,
 }: DataTableProps<T>) {
   if (rows.length === 0) {
-    return <p className="px-4 py-10 text-center text-sm text-neutral-700 sm:px-8">{emptyMessage}</p>;
+    return <p className={cn("py-10 text-center text-sm text-neutral-700", !flush && "px-4 sm:px-8")}>{emptyMessage}</p>;
   }
 
   const hasWidths = columns.some((col) => col.width);
@@ -54,8 +65,8 @@ export function DataTable<T>({
         </ul>
       )}
 
-      <div className={cn("px-4 pb-6 sm:px-8", renderCard && "hidden lg:block")}>
-        <Table className={cn("table-fixed border-collapse", minWidthClassName)}>
+      <div className={cn(!flush && "px-4 pb-6 sm:px-8", renderCard && "hidden lg:block")}>
+        <Table className={cn("border-collapse", layout === "auto" ? "table-auto" : "table-fixed", minWidthClassName)}>
           <TableCaption className="sr-only">{caption}</TableCaption>
           {hasWidths && (
             <colgroup>
@@ -88,8 +99,10 @@ export function DataTable<T>({
                   <TableCell
                     key={col.id}
                     className={cn(
-                      "h-[62px] p-0 pr-3.5 align-middle whitespace-normal",
+                      "h-[62px] p-0 pr-3.5 align-middle",
+                      nowrap ? "whitespace-nowrap" : "whitespace-normal",
                       col.align === "right" ? "text-right" : "text-left",
+                      col.cellClassName,
                     )}
                   >
                     {col.cell(row)}

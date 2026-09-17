@@ -1,9 +1,8 @@
-import type { ReactNode } from "react";
+import { type ReactNode, useId } from "react";
 import type { FieldValues, SubmitHandler, UseFormReturn } from "react-hook-form";
-import { cn } from "../lib/utils";
 import { Alert, AlertDescription } from "./alert";
 import { Button } from "./button";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "./dialog";
+import { DialogShell } from "./dialog-shell";
 import { Form } from "./form";
 
 interface FormDialogProps<TFieldValues extends FieldValues> {
@@ -14,6 +13,8 @@ interface FormDialogProps<TFieldValues extends FieldValues> {
   form: UseFormReturn<TFieldValues>;
   onSubmit: SubmitHandler<TFieldValues>;
   submitLabel?: string;
+  /** pending 时提交按钮的文案 */
+  pendingLabel?: string;
   cancelLabel?: string;
   /** 提交中：禁用提交按钮与 ✕，Esc / 遮罩不关闭 */
   pending?: boolean;
@@ -23,7 +24,10 @@ interface FormDialogProps<TFieldValues extends FieldValues> {
   children: ReactNode;
 }
 
-/** 表单对话框：Dialog + react-hook-form `<Form>`，footer 取消 / 提交，pending 时不可关闭。 */
+/**
+ * 表单对话框：DialogShell + react-hook-form `<Form>`，footer 取消 / 提交，pending 时不可关闭。
+ * `<form>` 只包住 body，提交按钮在 footer 里通过 form 属性关联，这样超高表单只有 body 滚动、头尾固定。
+ */
 export function FormDialog<TFieldValues extends FieldValues>({
   open,
   title,
@@ -32,61 +36,44 @@ export function FormDialog<TFieldValues extends FieldValues>({
   form,
   onSubmit,
   submitLabel = "保存",
+  pendingLabel = "保存中…",
   cancelLabel = "取消",
   pending = false,
   error,
   wide = false,
   children,
 }: FormDialogProps<TFieldValues>) {
+  const formId = useId();
+
   return (
-    <Dialog
+    <DialogShell
       open={open}
-      onOpenChange={(next) => {
-        if (!next && !pending) onClose();
-      }}
+      title={title}
+      description={description}
+      onClose={onClose}
+      closeDisabled={pending}
+      wide={wide}
+      footer={
+        <>
+          <Button type="button" variant="secondary" onClick={onClose} disabled={pending}>
+            {cancelLabel}
+          </Button>
+          <Button type="submit" form={formId} variant="primary" disabled={pending}>
+            {pending ? pendingLabel : submitLabel}
+          </Button>
+        </>
+      }
     >
-      <DialogContent
-        closeDisabled={pending}
-        onEscapeKeyDown={(event) => {
-          if (pending) event.preventDefault();
-        }}
-        onPointerDownOutside={(event) => {
-          if (pending) event.preventDefault();
-        }}
-        onInteractOutside={(event) => {
-          if (pending) event.preventDefault();
-        }}
-        className={cn("gap-0 p-0", wide ? "sm:max-w-[760px]" : "sm:max-w-[560px]")}
-      >
-        <DialogHeader className="border-b border-divider px-6 py-4 text-left">
-          <DialogTitle className="font-heading text-xl font-semibold">{title}</DialogTitle>
-          {description ? (
-            <DialogDescription>{description}</DialogDescription>
-          ) : (
-            <DialogDescription className="sr-only">{title}</DialogDescription>
+      <Form {...form}>
+        <form id={formId} noValidate onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4">
+          {error && (
+            <Alert variant="destructive" role="alert">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
           )}
-        </DialogHeader>
-        <Form {...form}>
-          <form noValidate onSubmit={form.handleSubmit(onSubmit)}>
-            <div className="flex flex-col gap-4 px-6 py-5">
-              {error && (
-                <Alert variant="destructive" role="alert">
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
-              {children}
-            </div>
-            <DialogFooter className="border-t border-divider px-6 py-4">
-              <Button type="button" variant="secondary" onClick={onClose} disabled={pending}>
-                {cancelLabel}
-              </Button>
-              <Button type="submit" variant="primary" disabled={pending}>
-                {submitLabel}
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
+          {children}
+        </form>
+      </Form>
+    </DialogShell>
   );
 }
