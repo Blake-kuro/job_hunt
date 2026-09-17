@@ -1,7 +1,7 @@
+import { Button } from "@job-hunt/ui/components/button";
+import { DialogShell } from "@job-hunt/ui/components/dialog-shell";
 import { useRef } from "react";
 import { useImportQuestions } from "@api/mutations";
-import { Button } from "@shared/ui/Button";
-import { Dialog } from "@shared/ui/Dialog";
 
 export interface ImportTarget {
   categoryId: string;
@@ -48,10 +48,12 @@ export function ImportQuestionsDialog({ target, onClose }: ImportQuestionsDialog
   }
 
   return (
-    <Dialog
+    <DialogShell
       open={target !== null}
       title="导入 Excel"
       onClose={close}
+      closeDisabled={pending}
+      bodyClassName="flex flex-col gap-5 text-sm"
       footer={
         <>
           <Button type="button" disabled={pending} onClick={close}>
@@ -64,7 +66,7 @@ export function ImportQuestionsDialog({ target, onClose }: ImportQuestionsDialog
       }
     >
       {target && (
-        <div className="flex flex-col gap-5 text-sm">
+        <>
           <p>
             导入到{" "}
             <span className="font-medium">
@@ -115,8 +117,8 @@ export function ImportQuestionsDialog({ target, onClose }: ImportQuestionsDialog
               )}
             </section>
           )}
-        </div>
+        </>
       )}
-    </Dialog>
+    </DialogShell>
   );
 }

@@ -9,4 +9,4 @@ export type {
   QuizQuestionPublic,
   QuizQuota,
   WrongBookItem,
-} from "@api/types";
+} from "@job-hunt/api-client/types";

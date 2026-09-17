@@ -1,12 +1,21 @@
-import { useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import type { AdminStudent } from "@job-hunt/api-client/types";
+import {
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@job-hunt/ui/components/form";
+import { FormDialog } from "@job-hunt/ui/components/form-dialog";
+import { Input } from "@job-hunt/ui/components/input";
+import { Label } from "@job-hunt/ui/components/label";
+import { RadioGroup, RadioGroupItem } from "@job-hunt/ui/components/radio-group";
+import { useEffect } from "react";
+import { useForm } from "react-hook-form";
 import { usePatchStudent } from "@api/mutations";
-import type { AdminStudent, AdminStudentPatch, Plan } from "@api/types";
-import { Button } from "@shared/ui/Button";
-import { Dialog } from "@shared/ui/Dialog";
-import { Field } from "@shared/ui/Field";
-import { Input } from "@shared/ui/Input";
-
-const FORM_ID = "plan-form";
+import { defaultValues, type FormValues, fromEntity, schema, toBody } from "./plan-schema";
 
 interface PlanDialogProps {
   student: AdminStudent | null;
@@ -16,78 +25,75 @@ interface PlanDialogProps {
 /** 调整学生档位：FREE / PRO，PRO 可选到期日（空 = 永久） */
 export function PlanDialog({ student, onClose }: PlanDialogProps) {
   const patch = usePatchStudent();
+  const form = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues });
+  const plan = form.watch("plan");
+
+  useEffect(() => {
+    if (student) form.reset(fromEntity(student));
+  }, [student, form]);
 
   function close() {
     patch.reset();
     onClose();
   }
 
-  function save(body: AdminStudentPatch) {
-    if (!student) return;
-    patch.mutate({ id: student.id, body }, { onSuccess: close });
-  }
-
   return (
-    <Dialog
+    <FormDialog
       open={student !== null}
       title={student ? `档位 · ${student.name}` : "档位"}
       onClose={close}
-      footer={
-        <>
-          <Button type="button" onClick={close}>
-            取消
-          </Button>
-          <Button variant="primary" type="submit" form={FORM_ID} disabled={patch.isPending}>
-            {patch.isPending ? "保存中…" : "保存"}
-          </Button>
-        </>
-      }
-    >
-      {student && <PlanForm key={student.id} student={student} error={patch.error?.message ?? null} onSubmit={save} />}
-    </Dialog>
-  );
-}
-
-interface PlanFormProps {
-  student: AdminStudent;
-  error: string | null;
-  onSubmit: (body: AdminStudentPatch) => void;
-}
-
-function PlanForm({ student, error, onSubmit }: PlanFormProps) {
-  const [plan, setPlan] = useState<Plan>(student.plan);
-  const [date, setDate] = useState(student.proExpiresAt?.slice(0, 10) ?? "");
-
-  return (
-    <form
-      id={FORM_ID}
-      className="flex flex-col gap-5"
-      onSubmit={(e) => {
-        e.preventDefault();
-        onSubmit({ plan, proExpiresAt: plan === "PRO" && date ? `${date}T00:00:00.000Z` : null });
+      form={form}
+      onSubmit={async (values) => {
+        if (!student) return;
+        try {
+          await patch.mutateAsync({ id: student.id, body: toBody(values) });
+        } catch {
+          return; // 错误由 patch.error 显示在对话框顶部
+        }
+        close();
       }}
+      pending={patch.isPending}
+      error={patch.error && `保存失败：${patch.error.message}`}
     >
-      <fieldset className="flex gap-6">
-        <legend className="mb-1.5 text-xs font-medium text-neutral-800">档位</legend>
-        {(["FREE", "PRO"] as const).map((p) => (
-          <label key={p} className="flex cursor-pointer items-center gap-2 text-sm">
-            <input type="radio" name="plan" value={p} checked={plan === p} onChange={() => setPlan(p)} />
-            {p}
-          </label>
-        ))}
-      </fieldset>
+      <FormField
+        control={form.control}
+        name="plan"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>档位</FormLabel>
+            <FormControl>
+              <RadioGroup className="flex gap-6" value={field.value} onValueChange={field.onChange}>
+                {(["FREE", "PRO"] as const).map((p) => (
+                  <div key={p} className="flex items-center gap-2">
+                    <RadioGroupItem id={`plan-${p}`} value={p} />
+                    <Label htmlFor={`plan-${p}`} className="cursor-pointer text-sm font-normal">
+                      {p}
+                    </Label>
+                  </div>
+                ))}
+              </RadioGroup>
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
 
       {plan === "PRO" && (
-        <Field label="PRO 到期日期" htmlFor="plan-expires" hint="留空表示永久有效">
-          <Input id="plan-expires" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-        </Field>
+        <FormField
+          control={form.control}
+          name="proExpiresAt"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>PRO 到期日期</FormLabel>
+              <FormControl>
+                <Input type="date" {...field} />
+              </FormControl>
+              <FormDescription>留空表示永久有效</FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
       )}
-
-      {error && (
-        <p role="alert" className="text-xs text-red-700">
-          保存失败：{error}
-        </p>
-      )}
-    </form>
+    </FormDialog>
   );
 }

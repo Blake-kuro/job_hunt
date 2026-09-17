@@ -3,8 +3,8 @@ import type { AdminQuestionImportResult } from "../contract";
 import { prisma } from "../db";
 import type { Prisma } from "../generated/prisma/client";
 import type { QuestionType } from "../generated/prisma/enums";
-import { NotFoundError } from "./errors";
 import { cellText, loadWorkbook, WorkbookParseError } from "./excel";
+import { orNotFound } from "./route";
 import { JUDGE_OPTIONS, LETTERS, normalizeAnswer, type OptionShape, validateQuestionShape } from "./grade";
 
 const TYPE_MAP = new Map<string, QuestionType>([
@@ -131,11 +131,13 @@ export async function importQuestionWorkbook(
   const ws = wb.worksheets.find(isQuestionSheet);
   if (!ws) throw new WorkbookParseError("找不到含 题干 / 答案 列的工作表");
 
-  const category = await prisma.questionCategory.findUnique({
-    where: { id: categoryId },
-    select: { id: true, name: true, company: { select: { name: true } } },
-  });
-  if (!category) throw new NotFoundError(`分类 ${categoryId} 不存在`);
+  const category = orNotFound(
+    await prisma.questionCategory.findUnique({
+      where: { id: categoryId },
+      select: { id: true, name: true, company: { select: { name: true } } },
+    }),
+    `分类 ${categoryId} 不存在`,
+  );
   const existing = await prisma.question.findMany({ where: { categoryId }, select: { prompt: true } });
   const seen = new Set(existing.map((q) => q.prompt));
 

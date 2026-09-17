@@ -1,4 +1,3 @@
-import { BlueprintCard } from "@shared/ui/BlueprintCard";
 import type { JobProgress } from "@entities/job";
 
 interface ProgressCardProps {
@@ -13,7 +12,11 @@ export function ProgressCard({ progress }: ProgressCardProps) {
   ];
 
   return (
-    <BlueprintCard className="px-5 py-[18px]">
+    <div className="blueprint border border-divider px-5 py-[18px]">
+      <i className="corner tl" />
+      <i className="corner tr" />
+      <i className="corner bl" />
+      <i className="corner br" />
       <p className="text-[10px] uppercase tracking-[0.1em] text-accent">我的进度</p>
 
       <div className="mt-3.5 grid grid-cols-3 gap-3">
@@ -37,6 +40,6 @@ export function ProgressCard({ progress }: ProgressCardProps) {
           <span>收藏岗位后这里会提醒最近的截止</span>
         )}
       </div>
-    </BlueprintCard>
+    </div>
   );
 }

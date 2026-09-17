@@ -4,12 +4,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import app from "../app";
 import { prisma } from "../db";
 import { apiRequest, hasDb, resetDb, seedDevUser } from "../test/db";
-
-const json = (method: string, body: unknown) => ({
-  method,
-  headers: { "content-type": "application/json" },
-  body: JSON.stringify(body),
-});
+import { jsonInit as json } from "../test/http";
 
 async function studentSession(userId: string, token: string) {
   await prisma.session.create({

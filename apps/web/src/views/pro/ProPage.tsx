@@ -1,9 +1,9 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { meQuery } from "@api/queries";
-import { cn } from "@shared/lib/cn";
-import { Kicker } from "@shared/ui/Kicker";
-import { Tag } from "@shared/ui/Tag";
+import { Button } from "@job-hunt/ui/components/button";
+import { Kicker } from "@job-hunt/ui/components/kicker";
+import { Badge } from "@job-hunt/ui/components/badge";
 import { Navbar } from "@widgets/navbar/Navbar";
 
 const ROWS = [
@@ -11,19 +11,6 @@ const ROWS = [
   { label: "题库", guest: "前 20 道", free: "前 200 道", pro: "全部" },
   { label: "收藏 / 投递 / 错题本", guest: "✓", free: "✓", pro: "✓" },
 ];
-
-/**
- * `Button`（src/shared/ui/Button.tsx）不支持 `asChild`，无法把它的根元素换成 `Link`。
- * 这里手动复刻 `variant="primary" size="lg" blueprint` 时 Button 产出的类名与角标记（.corner），
- * 直接套在 `Link` 上，保持视觉一致。
- */
-const primaryLgBlueprintClass = cn(
-  "inline-flex shrink-0 cursor-pointer items-center whitespace-nowrap justify-center gap-1.5 border font-heading font-semibold leading-tight transition-colors",
-  "disabled:cursor-not-allowed disabled:opacity-45",
-  "bg-accent text-bg border-accent hover:bg-accent-600 active:bg-accent-700",
-  "text-sm px-4 py-2",
-  "blueprint",
-);
 
 export function ProPage() {
   const { data: user } = useSuspenseQuery(meQuery());
@@ -35,9 +22,9 @@ export function ProPage() {
         <h1 className="mt-2 text-[32px] sm:text-[44px]">解锁全部岗位与题库</h1>
         <p className="mt-3 max-w-[640px] text-[15px] text-neutral-700">
           当前档位：
-          <Tag variant={user.tier === "PRO" ? "accent" : "neutral"}>
+          <Badge variant={user.tier === "PRO" ? "accent" : "neutral"}>
             {user.tier === "PRO" ? "PRO" : user.tier === "FREE" ? "免费账号" : "游客"}
-          </Tag>
+          </Badge>
         </p>
         <div className="mt-8 max-w-[760px] overflow-x-auto">
           <table className="w-full min-w-[520px] text-sm">
@@ -68,13 +55,9 @@ export function ProPage() {
             联系开通，我们会在核对后为你的手机号开启 PRO。
           </p>
           {user.tier === "GUEST" && (
-            <Link to="/login" className={cn(primaryLgBlueprintClass, "mt-4")}>
-              先登录
-              <i className="corner tl" />
-              <i className="corner tr" />
-              <i className="corner bl" />
-              <i className="corner br" />
-            </Link>
+            <Button asChild variant="primary" size="lg" blueprint className="mt-4">
+              <Link to="/login">先登录</Link>
+            </Button>
           )}
         </div>
       </section>

@@ -1,24 +1,109 @@
-import { useEffect, useRef, useState } from "react";
+import type { AdminImportResult, AdminJob, CategoryId } from "@job-hunt/api-client/types";
+import { Badge } from "@job-hunt/ui/components/badge";
+import { Button } from "@job-hunt/ui/components/button";
+import { type Column, DataTable } from "@job-hunt/ui/components/data-table";
+import { Input } from "@job-hunt/ui/components/input";
+import { Pagination } from "@job-hunt/ui/components/pagination";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@job-hunt/ui/components/select";
+import { useDebouncedSearch } from "@job-hunt/ui/hooks/use-debounced-search";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { getRouteApi } from "@tanstack/react-router";
+import { useCallback, useRef, useState } from "react";
 import { useDeleteJob, useImportJobs } from "@api/mutations";
 import { jobsQuery } from "@api/queries";
-import type { AdminImportResult, AdminJob, CategoryId } from "@api/types";
-import { Button } from "@shared/ui/Button";
-import { Input } from "@shared/ui/Input";
-import { Pagination } from "@shared/ui/Pagination";
-import { Select } from "@shared/ui/Select";
-import { Tag } from "@shared/ui/Tag";
 import { ImportResultDialog } from "./ImportResultDialog";
 import { JobDialog } from "./JobDialog";
-import { CATEGORY_LABEL } from "./job-form";
+import { CATEGORY_LABEL } from "./job-schema";
 
 const route = getRouteApi("/_admin/jobs");
 
-const th = "px-3 py-2 text-left text-[11px] font-medium uppercase tracking-[0.08em] text-neutral-700";
-const td = "px-3 py-2.5 align-top whitespace-nowrap";
+/** Radix Select 的项不能是空串：筛选里的「全部」用这个哨兵值 */
+const ALL = "all";
 
 type DialogState = { mode: "create" } | { mode: "edit"; job: AdminJob } | null;
+
+interface RowActions {
+  deletingId?: number;
+  onEdit: (job: AdminJob) => void;
+  onDelete: (job: AdminJob) => void;
+}
+
+const buildColumns = (a: RowActions): Column<AdminJob>[] => [
+  {
+    id: "enterprise",
+    header: "企业",
+    cell: (job) => (
+      <>
+        <div className="font-medium">{job.enterpriseName}</div>
+        <div className="text-xs text-neutral-600">{job.enterpriseNature ?? "—"}</div>
+      </>
+    ),
+  },
+  {
+    id: "position",
+    header: "岗位",
+    cell: (job) => (
+      <>
+        <div>{job.position}</div>
+        {job.serialNumber && <div className="text-xs text-neutral-600 tabular-nums">#{job.serialNumber}</div>}
+      </>
+    ),
+  },
+  { id: "category", header: "分类", cell: (job) => <Badge>{CATEGORY_LABEL[job.categoryId]}</Badge> },
+  {
+    id: "location",
+    header: "城市",
+    cell: (job) => <span className="text-neutral-700">{job.workLocation ?? "—"}</span>,
+  },
+  {
+    id: "batch",
+    header: "批次",
+    cell: (job) => <span className="text-neutral-700">{job.recruitmentBatch ?? "—"}</span>,
+  },
+  {
+    id: "deadline",
+    header: "截止",
+    cell: (job) => (
+      <>
+        <div>{job.deadline ?? "—"}</div>
+        {job.deadlineAt && <div className="text-xs text-neutral-600 tabular-nums">{job.deadlineAt}</div>}
+      </>
+    ),
+  },
+  {
+    id: "stats",
+    header: "数据",
+    cell: (job) => (
+      <span className="text-neutral-700 tabular-nums">
+        收藏 {job.stats.favorites} · 投递 {job.stats.applications}
+      </span>
+    ),
+  },
+  {
+    id: "createTime",
+    header: "发布时间",
+    cell: (job) => (
+      <span className="text-neutral-700 tabular-nums">{new Date(job.createTime).toLocaleDateString("zh-CN")}</span>
+    ),
+  },
+  {
+    id: "actions",
+    header: "操作",
+    cell: (job) => {
+      const busy = a.deletingId === job.id;
+      return (
+        <div className="flex gap-1.5">
+          <Button size="sm" onClick={() => a.onEdit(job)}>
+            编辑
+          </Button>
+          <Button size="sm" disabled={busy} onClick={() => a.onDelete(job)}>
+            {busy ? "删除中…" : "删除"}
+          </Button>
+        </div>
+      );
+    },
+  },
+];
 
 export function JobsPage() {
   const search = route.useSearch();
@@ -31,19 +116,11 @@ export function JobsPage() {
   const [importResult, setImportResult] = useState<AdminImportResult | null>(null);
 
   // 搜索框本地缓冲 + 300ms 防抖，避免每个字符都改 URL
-  const query = search.q ?? "";
-  const [draft, setDraft] = useState(query);
-  const [prevQuery, setPrevQuery] = useState(query);
-  if (query !== prevQuery) {
-    setPrevQuery(query);
-    setDraft(query);
-  }
-  useEffect(() => {
-    const normalized = draft.trim();
-    if (normalized === query) return;
-    const t = setTimeout(() => navigate({ search: (s) => ({ ...s, q: normalized || undefined, page: 1 }) }), 300);
-    return () => clearTimeout(t);
-  }, [draft, query, navigate]);
+  const commitQuery = useCallback(
+    (q: string) => navigate({ search: (s) => ({ ...s, q: q || undefined, page: 1 }) }),
+    [navigate],
+  );
+  const [draft, setDraft] = useDebouncedSearch(search.q ?? "", commitQuery);
 
   function confirmDelete(job: AdminJob) {
     if (!window.confirm("删除该岗位？收藏和投递记录会一并删除")) return;
@@ -63,6 +140,11 @@ export function JobsPage() {
   }
 
   const actionError = importJobs.error ?? remove.error;
+  const columns = buildColumns({
+    deletingId,
+    onEdit: (job) => setDialog({ mode: "edit", job }),
+    onDelete: confirmDelete,
+  });
 
   return (
     <>
@@ -79,20 +161,23 @@ export function JobsPage() {
           onChange={(e) => setDraft(e.target.value)}
         />
         <Select
-          aria-label="分类"
-          className="min-h-9 sm:w-[150px]"
-          value={search.category === undefined ? "" : String(search.category)}
-          onChange={(e) => {
-            const category = e.target.value === "" ? undefined : (Number(e.target.value) as CategoryId);
+          value={search.category === undefined ? ALL : String(search.category)}
+          onValueChange={(v) => {
+            const category = v === ALL ? undefined : (Number(v) as CategoryId);
             navigate({ search: (s) => ({ ...s, category, page: 1 }) });
           }}
         >
-          <option value="">全部分类</option>
-          {([1, 2, 3] as CategoryId[]).map((id) => (
-            <option key={id} value={String(id)}>
-              {CATEGORY_LABEL[id]}
-            </option>
-          ))}
+          <SelectTrigger aria-label="分类" className="sm:w-[150px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL}>全部分类</SelectItem>
+            {([1, 2, 3] as CategoryId[]).map((id) => (
+              <SelectItem key={id} value={String(id)}>
+                {CATEGORY_LABEL[id]}
+              </SelectItem>
+            ))}
+          </SelectContent>
         </Select>
         <div className="ml-auto flex gap-2">
           <input ref={fileRef} type="file" accept=".xlsx" hidden onChange={onFileChange} />
@@ -111,73 +196,17 @@ export function JobsPage() {
         </p>
       )}
 
-      <div className="mt-6 overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-divider">
-              <th className={th}>企业</th>
-              <th className={th}>岗位</th>
-              <th className={th}>分类</th>
-              <th className={th}>城市</th>
-              <th className={th}>批次</th>
-              <th className={th}>截止</th>
-              <th className={th}>数据</th>
-              <th className={th}>发布时间</th>
-              <th className={th}>操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.items.length === 0 && (
-              <tr>
-                <td colSpan={9} className="px-3 py-10 text-center text-neutral-600">
-                  没有符合条件的岗位
-                </td>
-              </tr>
-            )}
-            {data.items.map((job) => {
-              const busy = deletingId === job.id;
-              return (
-                <tr key={job.id} className="border-b border-hairline">
-                  <td className={td}>
-                    <div className="font-medium">{job.enterpriseName}</div>
-                    <div className="text-xs text-neutral-600">{job.enterpriseNature ?? "—"}</div>
-                  </td>
-                  <td className={td}>
-                    <div>{job.position}</div>
-                    {job.serialNumber && (
-                      <div className="text-xs text-neutral-600 tabular-nums">#{job.serialNumber}</div>
-                    )}
-                  </td>
-                  <td className={td}>
-                    <Tag>{CATEGORY_LABEL[job.categoryId]}</Tag>
-                  </td>
-                  <td className={`${td} text-neutral-700`}>{job.workLocation ?? "—"}</td>
-                  <td className={`${td} text-neutral-700`}>{job.recruitmentBatch ?? "—"}</td>
-                  <td className={td}>
-                    <div>{job.deadline ?? "—"}</div>
-                    {job.deadlineAt && <div className="text-xs text-neutral-600 tabular-nums">{job.deadlineAt}</div>}
-                  </td>
-                  <td className={`${td} text-neutral-700 tabular-nums`}>
-                    收藏 {job.stats.favorites} · 投递 {job.stats.applications}
-                  </td>
-                  <td className={`${td} text-neutral-700 tabular-nums`}>
-                    {new Date(job.createTime).toLocaleDateString("zh-CN")}
-                  </td>
-                  <td className={td}>
-                    <div className="flex gap-1.5">
-                      <Button size="sm" onClick={() => setDialog({ mode: "edit", job })}>
-                        编辑
-                      </Button>
-                      <Button size="sm" disabled={busy} onClick={() => confirmDelete(job)}>
-                        {busy ? "删除中…" : "删除"}
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+      <div className="mt-6 pb-6">
+        <DataTable
+          columns={columns}
+          rows={data.items}
+          rowKey={(job) => String(job.id)}
+          caption="岗位列表"
+          layout="auto"
+          nowrap
+          flush
+          emptyMessage="没有符合条件的岗位"
+        />
       </div>
 
       <Pagination

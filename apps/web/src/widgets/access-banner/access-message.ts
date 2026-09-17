@@ -1,4 +1,4 @@
-import type { Access, QuizQuota } from "@api/types";
+import type { Access, QuizQuota } from "@job-hunt/api-client/types";
 
 /** 与后端 LIMITS.FREE 一致（双份维护：后端 src/lib/access.ts） */
 export const FREE_LIMITS = { jobs: 100, questions: 200 } as const;

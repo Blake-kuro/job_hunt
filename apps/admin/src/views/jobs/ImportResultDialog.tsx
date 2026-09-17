@@ -1,6 +1,6 @@
-import type { AdminImportResult } from "@api/types";
-import { Button } from "@shared/ui/Button";
-import { Dialog } from "@shared/ui/Dialog";
+import type { AdminImportResult } from "@job-hunt/api-client/types";
+import { Button } from "@job-hunt/ui/components/button";
+import { DialogShell } from "@job-hunt/ui/components/dialog-shell";
 
 interface ImportResultDialogProps {
   result: AdminImportResult | null;
@@ -10,10 +10,11 @@ interface ImportResultDialogProps {
 /** Excel 导入结果：每个 sheet 的新增 / 更新 / 跳过计数 + 跳过明细 */
 export function ImportResultDialog({ result, onClose }: ImportResultDialogProps) {
   return (
-    <Dialog
+    <DialogShell
       open={result !== null}
       title="导入结果"
       onClose={onClose}
+      bodyClassName="flex flex-col gap-5"
       footer={
         <Button variant="primary" type="button" onClick={onClose}>
           知道了
@@ -21,7 +22,7 @@ export function ImportResultDialog({ result, onClose }: ImportResultDialogProps)
       }
     >
       {result && (
-        <div className="flex flex-col gap-5">
+        <>
           {result.sheets.length === 0 && <p className="text-sm text-neutral-700">文件里没有可导入的工作表。</p>}
           {result.sheets.map((sheet) => (
             <section key={sheet.name}>
@@ -46,8 +47,8 @@ export function ImportResultDialog({ result, onClose }: ImportResultDialogProps)
               ? "表格带 id 列：按 id 更新已有岗位。"
               : "按 serialNumber 匹配已有岗位，无序号的行直接新增。"}
           </p>
-        </div>
+        </>
       )}
-    </Dialog>
+    </DialogShell>
   );
 }

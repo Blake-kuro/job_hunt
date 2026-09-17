@@ -3,12 +3,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import type { Prisma } from "../generated/prisma/client";
 import { addDays, dateKey } from "../lib/dates";
 import { apiRequest, guestClient, hasDb, insertJobs, jobFixture, resetDb, seedDevUser } from "../test/db";
-
-const json = (body: unknown) => ({
-  method: "PUT",
-  headers: { "content-type": "application/json" },
-  body: JSON.stringify(body),
-});
+import { jsonInit } from "../test/http";
 
 const jobList = async (res: Response) => (await res.json()) as JobListResult;
 
@@ -64,14 +59,14 @@ describe.skipIf(!hasDb)("/api/jobs", () => {
   });
 
   it("PUT application 写状态，DELETE 清除", async () => {
-    const put = await apiRequest("/api/jobs/2/application", json({ status: "APPLIED" }));
+    const put = await apiRequest("/api/jobs/2/application", jsonInit("PUT", { status: "APPLIED" }));
     expect(await put.json()).toEqual({ applicationStatus: "APPLIED" });
     const del = await apiRequest("/api/jobs/2/application", { method: "DELETE" });
     expect(await del.json()).toEqual({ applicationStatus: null });
   });
 
   it("PUT application 非法 status → 400；不存在的 id → 404", async () => {
-    expect((await apiRequest("/api/jobs/2/application", json({ status: "NOPE" }))).status).toBe(400);
+    expect((await apiRequest("/api/jobs/2/application", jsonInit("PUT", { status: "NOPE" }))).status).toBe(400);
     const res = await apiRequest("/api/jobs/999/favorite", { method: "PUT" });
     expect(res.status).toBe(404);
     expect(await res.json()).toMatchObject({ error: { code: "NOT_FOUND" } });
@@ -79,7 +74,7 @@ describe.skipIf(!hasDb)("/api/jobs", () => {
 
   it("GET progress 反映收藏与投递", async () => {
     await apiRequest("/api/jobs/1/favorite", { method: "PUT" });
-    await apiRequest("/api/jobs/2/application", json({ status: "APPLIED" }));
+    await apiRequest("/api/jobs/2/application", jsonInit("PUT", { status: "APPLIED" }));
     const body = await (await apiRequest("/api/jobs/progress")).json();
     expect(body).toMatchObject({
       starred: 1,

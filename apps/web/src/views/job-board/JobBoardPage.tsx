@@ -4,10 +4,10 @@ import { getRouteApi, useNavigate } from "@tanstack/react-router";
 import { useMarkApplied, useToggleFavorite } from "@api/mutations";
 import { jobsQuery, progressQuery } from "@api/queries";
 import { type CategoryFilter, JobFilters, type SortOrder } from "@features/job-filters/JobFilters";
-import { Button } from "@shared/ui/Button";
-import { Input } from "@shared/ui/Input";
-import { Kicker } from "@shared/ui/Kicker";
-import { Tag } from "@shared/ui/Tag";
+import { Button } from "@job-hunt/ui/components/button";
+import { Input } from "@job-hunt/ui/components/input";
+import { Kicker } from "@job-hunt/ui/components/kicker";
+import { Badge } from "@job-hunt/ui/components/badge";
 import { AccessBanner } from "@widgets/access-banner/AccessBanner";
 import { JobTable } from "@widgets/job-table/JobTable";
 import { Navbar } from "@widgets/navbar/Navbar";
@@ -106,9 +106,7 @@ export function JobBoardPage() {
       </section>
 
       <div className="flex flex-col gap-2 border-b border-divider bg-accent-100 px-4 py-3 sm:flex-row sm:items-center sm:gap-3.5 sm:px-8">
-        <Tag variant="solid" className="self-start">
-          本周新增
-        </Tag>
+        <Badge className="self-start bg-accent text-bg">本周新增</Badge>
         <p className="text-sm">
           新上 <b className="tabular-nums">{progress.newThisWeek}</b> 条公告，其中实习{" "}
           <b className="tabular-nums">{progress.newInternshipsThisWeek}</b> 条

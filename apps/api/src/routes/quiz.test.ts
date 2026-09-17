@@ -1,22 +1,13 @@
 import type { QuizAnswerResult, QuizBanks, QuizDashboard, QuizNext, WrongBookItem } from "../contract";
 import { beforeEach, describe, expect, it } from "vitest";
 import { apiRequest, guestClient, hasDb, resetDb, seedBank, seedDevUser } from "../test/db";
+import { jsonInit } from "../test/http";
 
-const post = (body: unknown) => ({
-  method: "POST",
-  headers: { "content-type": "application/json" },
-  body: JSON.stringify(body),
-});
-const put = (body: unknown) => ({
-  method: "PUT",
-  headers: { "content-type": "application/json" },
-  body: JSON.stringify(body),
-});
 const qid = (n: number) => `tq-${String(n).padStart(3, "0")}`;
 
 type Client = (path: string, init?: RequestInit) => Promise<Response> | Response;
 const answer = (client: Client, questionId: string, picked: string[]) =>
-  client("/api/quiz/attempts", post({ questionId, picked }));
+  client("/api/quiz/attempts", jsonInit("POST", { questionId, picked }));
 const next = async (client: Client, categoryId: string) =>
   (await (await client(`/api/quiz/categories/${categoryId}/next`)).json()) as QuizNext;
 const banks = async (client: Client) => (await (await client("/api/quiz/banks")).json()) as QuizBanks;
@@ -124,7 +115,7 @@ describe.skipIf(!hasDb)("/api/quiz", () => {
 
   it("dashboard：打卡、本周、配额、错题；重复作答不增加累计题数", async () => {
     await answer(apiRequest, qid(1), ["A"]);
-    await apiRequest(`/api/quiz/wrong-book/${qid(1)}`, put({ mastered: true }));
+    await apiRequest(`/api/quiz/wrong-book/${qid(1)}`, jsonInit("PUT", { mastered: true }));
     await answer(apiRequest, qid(1), ["D"]);
     const body = (await (await apiRequest("/api/quiz/dashboard")).json()) as QuizDashboard;
     expect(body.streakDays).toBe(1);
@@ -138,9 +129,9 @@ describe.skipIf(!hasDb)("/api/quiz", () => {
 
   it("wrong-book PUT mastered → 204 且从列表消失；不存在 → 404", async () => {
     await answer(apiRequest, qid(1), ["A"]);
-    expect((await apiRequest(`/api/quiz/wrong-book/${qid(1)}`, put({ mastered: true }))).status).toBe(204);
+    expect((await apiRequest(`/api/quiz/wrong-book/${qid(1)}`, jsonInit("PUT", { mastered: true }))).status).toBe(204);
     expect(await wrongBook(apiRequest)).toHaveLength(0);
-    expect((await apiRequest(`/api/quiz/wrong-book/${qid(2)}`, put({ mastered: true }))).status).toBe(404);
+    expect((await apiRequest(`/api/quiz/wrong-book/${qid(2)}`, jsonInit("PUT", { mastered: true }))).status).toBe(404);
   });
 
   it("旧端点 /today、/company-sets 已删除", async () => {

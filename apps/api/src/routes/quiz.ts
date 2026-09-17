@@ -1,6 +1,5 @@
 import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
 import {
-  ApiErrorSchema,
   CategoryIdParamSchema,
   QuestionIdParamSchema,
   QuizAnswerResultSchema,
@@ -13,19 +12,17 @@ import {
 } from "../contract";
 import type { Env } from "../env";
 import { validationHook } from "../lib/errors";
+import { ERRORS, errorContent, jsonContent } from "../lib/route";
 import { getDashboard, listBanks, listWrongBook, nextQuestion, setMastered, submitAnswer } from "../services/quiz";
 
-const json = <S>(schema: S, description: string) => ({ description, content: { "application/json": { schema } } });
-const badRequest = json(ApiErrorSchema, "参数校验失败");
-const notFound = json(ApiErrorSchema, "不存在");
-const forbidden = json(ApiErrorSchema, "作答次数已用完");
+const forbidden = errorContent("作答次数已用完");
 
 const banksRoute = createRoute({
   method: "get",
   path: "/banks",
   tags: ["quiz"],
   operationId: "listQuizBanks",
-  responses: { 200: json(QuizBanksSchema, "题库（公司 → 分类）与当前用户进度、配额") },
+  responses: { 200: jsonContent(QuizBanksSchema, "题库（公司 → 分类）与当前用户进度、配额") },
 });
 
 const nextRoute = createRoute({
@@ -34,7 +31,7 @@ const nextRoute = createRoute({
   tags: ["quiz"],
   operationId: "getNextQuestion",
   request: { params: CategoryIdParamSchema },
-  responses: { 200: json(QuizNextSchema, "该分类下一道未作答题"), 404: notFound },
+  responses: { 200: jsonContent(QuizNextSchema, "该分类下一道未作答题"), 404: ERRORS.notFound },
 });
 
 const attemptsRoute = createRoute({
@@ -43,7 +40,12 @@ const attemptsRoute = createRoute({
   tags: ["quiz"],
   operationId: "submitAttempt",
   request: { body: { required: true, content: { "application/json": { schema: SubmitAttemptSchema } } } },
-  responses: { 200: json(QuizAnswerResultSchema, "判题结果"), 400: badRequest, 403: forbidden, 404: notFound },
+  responses: {
+    200: jsonContent(QuizAnswerResultSchema, "判题结果"),
+    400: ERRORS.badRequest,
+    403: forbidden,
+    404: ERRORS.notFound,
+  },
 });
 
 const dashboardRoute = createRoute({
@@ -51,7 +53,7 @@ const dashboardRoute = createRoute({
   path: "/dashboard",
   tags: ["quiz"],
   operationId: "getQuizDashboard",
-  responses: { 200: json(QuizDashboardSchema, "打卡仪表盘") },
+  responses: { 200: jsonContent(QuizDashboardSchema, "打卡仪表盘") },
 });
 
 const wrongBookRoute = createRoute({
@@ -59,7 +61,7 @@ const wrongBookRoute = createRoute({
   path: "/wrong-book",
   tags: ["quiz"],
   operationId: "listWrongBook",
-  responses: { 200: json(WrongBookListSchema, "错题本") },
+  responses: { 200: jsonContent(WrongBookListSchema, "错题本") },
 });
 
 const setMasteredRoute = createRoute({
@@ -71,7 +73,7 @@ const setMasteredRoute = createRoute({
     params: QuestionIdParamSchema,
     body: { required: true, content: { "application/json": { schema: SetMasteredSchema } } },
   },
-  responses: { 204: { description: "已更新" }, 400: badRequest, 404: notFound },
+  responses: { 204: { description: "已更新" }, 400: ERRORS.badRequest, 404: ERRORS.notFound },
 });
 
 export const quizRoutes = new OpenAPIHono<Env>({ defaultHook: validationHook })

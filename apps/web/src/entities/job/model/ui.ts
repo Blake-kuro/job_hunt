@@ -1,4 +1,4 @@
-import type { ApplicationStatus, JobListItem } from "@api/types";
+import type { ApplicationStatus, JobListItem } from "@job-hunt/api-client/types";
 
 export function isExpired(item: Pick<JobListItem, "daysLeft">): boolean {
   return item.daysLeft !== null && item.daysLeft < 0;

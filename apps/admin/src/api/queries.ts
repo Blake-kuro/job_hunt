@@ -1,6 +1,6 @@
 import { queryOptions } from "@tanstack/react-query";
-import { client, unwrap } from "./client";
-import type { JobsQuery, QuestionsQuery, StudentsQuery } from "./types";
+import { client, unwrap } from "@job-hunt/api-client/client";
+import type { JobsQuery, QuestionsQuery, StudentsQuery } from "@job-hunt/api-client/types";
 
 /** URL 里的布尔过滤（?enabled=false）→ 后端 query 的 "true" | "false" */
 const boolParam = (v: boolean | undefined) =>

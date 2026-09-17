@@ -3,25 +3,14 @@ import { Link } from "@tanstack/react-router";
 import { useSetMastered } from "@api/mutations";
 import { quizBanksQuery, quizDashboardQuery } from "@api/queries";
 import type { QuizBanks } from "@entities/quiz";
-import { cn } from "@shared/lib/cn";
-import { Kicker } from "@shared/ui/Kicker";
+import { Button } from "@job-hunt/ui/components/button";
+import { Kicker } from "@job-hunt/ui/components/kicker";
+import { ProgressBar } from "@job-hunt/ui/components/progress-bar";
 import { AccessBanner } from "@widgets/access-banner/AccessBanner";
 import { Navbar } from "@widgets/navbar/Navbar";
 import { PracticeSidebar } from "@widgets/practice-sidebar/PracticeSidebar";
 
 type Category = QuizBanks["companies"][number]["categories"][number];
-
-/** 与 Button secondary / primary md 的类名保持一致（Button 不支持 asChild，Link 手动套用） */
-const linkButtonBase =
-  "inline-flex shrink-0 items-center justify-center whitespace-nowrap border px-3 py-1.5 font-heading text-[13px] font-semibold leading-tight transition-colors";
-const linkButtonClass = {
-  primary: cn(
-    linkButtonBase,
-    "cursor-pointer border-accent bg-accent text-bg hover:bg-accent-600 active:bg-accent-700",
-  ),
-  secondary: cn(linkButtonBase, "cursor-pointer border-divider hover:bg-text/7 active:bg-text/15"),
-  disabled: cn(linkButtonBase, "cursor-not-allowed border-divider opacity-45"),
-};
 
 function CategoryRow({ category }: { category: Category }) {
   const { id, name, total, answered, correct } = category;
@@ -36,22 +25,18 @@ function CategoryRow({ category }: { category: Category }) {
             已答 {answered} / {total} · 答对 {correct}
           </span>
         </div>
-        <div className="mt-2.5 h-1.5 w-full max-w-[420px] bg-neutral-100">
-          <div className="h-full bg-accent transition-[width]" style={{ width: `${percent}%` }} />
-        </div>
+        <ProgressBar value={percent} className="mt-2.5 max-w-[420px] bg-neutral-100" />
       </div>
       {state === "empty" ? (
-        <span aria-disabled="true" className={linkButtonClass.disabled}>
-          暂无题目
-        </span>
+        <Button asChild className="cursor-not-allowed opacity-45 hover:bg-transparent active:bg-transparent">
+          <span aria-disabled="true">暂无题目</span>
+        </Button>
       ) : (
-        <Link
-          to="/practice/$categoryId"
-          params={{ categoryId: id }}
-          className={state === "done" ? linkButtonClass.secondary : linkButtonClass.primary}
-        >
-          {state === "start" ? "开始" : state === "continue" ? "继续" : "已完成"}
-        </Link>
+        <Button asChild variant={state === "done" ? "secondary" : "primary"}>
+          <Link to="/practice/$categoryId" params={{ categoryId: id }}>
+            {state === "start" ? "开始" : state === "continue" ? "继续" : "已完成"}
+          </Link>
+        </Button>
       )}
     </li>
   );

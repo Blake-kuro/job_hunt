@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
-import { Segmented } from "@shared/ui/Segmented";
-import { Button } from "@shared/ui/Button";
-import { Input } from "@shared/ui/Input";
-import { cn } from "@shared/lib/cn";
+import { Segmented } from "@job-hunt/ui/components/segmented";
+import { Button } from "@job-hunt/ui/components/button";
+import { Input } from "@job-hunt/ui/components/input";
+import { useDebouncedSearch } from "@job-hunt/ui/hooks/use-debounced-search";
+import { cn } from "@job-hunt/ui/lib/utils";
 import { CATEGORY_OPTIONS } from "@entities/job";
 
 export type CategoryFilter = "all" | "1" | "2" | "3";
@@ -34,18 +34,7 @@ export function JobFilters({
   onExport,
 }: JobFiltersProps) {
   // 搜索框本地缓冲 + 300ms 防抖，避免每个字符都改 URL
-  const [draft, setDraft] = useState(query);
-  const [prevQuery, setPrevQuery] = useState(query);
-  if (query !== prevQuery) {
-    setPrevQuery(query);
-    setDraft(query);
-  }
-  useEffect(() => {
-    const normalized = draft.trim();
-    if (normalized === query) return;
-    const t = setTimeout(() => onQueryChange(normalized), 300);
-    return () => clearTimeout(t);
-  }, [draft, query, onQueryChange]);
+  const [draft, setDraft] = useDebouncedSearch(query, onQueryChange);
 
   return (
     <div className="flex flex-col gap-3 border-b border-divider px-4 py-4 sm:px-8 lg:flex-row lg:flex-wrap lg:items-center lg:gap-3.5">

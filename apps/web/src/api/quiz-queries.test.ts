@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { client } from "./client";
+import { client } from "@job-hunt/api-client/client";
 import { quizBanksQuery, quizNextQuery } from "./queries";
 
 afterEach(() => vi.restoreAllMocks());

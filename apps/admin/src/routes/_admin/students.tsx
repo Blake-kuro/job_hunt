@@ -1,7 +1,7 @@
 import { createFileRoute, stripSearchParams } from "@tanstack/react-router";
 import { z } from "zod";
 import { studentsQuery } from "@api/queries";
-import { ErrorPanel } from "@shared/ui/ErrorPanel";
+import { RouterErrorPanel } from "../-error";
 import { StudentsPage } from "@views/students/StudentsPage";
 
 /** 与后端 listAdminStudents 的 query 同步；只用于 validateSearch */
@@ -21,5 +21,5 @@ export const Route = createFileRoute("/_admin/students")({
   loaderDeps: ({ search }) => search,
   loader: ({ context: { queryClient }, deps }) => queryClient.ensureQueryData(studentsQuery(deps)),
   component: StudentsPage,
-  errorComponent: ErrorPanel,
+  errorComponent: RouterErrorPanel,
 });

@@ -1,6 +1,6 @@
 import { createFileRoute, stripSearchParams } from "@tanstack/react-router";
 import { jobsQuery, meQuery, progressQuery } from "@api/queries";
-import { ErrorPanel } from "@shared/ui/ErrorPanel";
+import { RouterErrorPanel } from "./-error";
 import { JobBoardPage } from "@views/job-board/JobBoardPage";
 import { jobListSearchSchema } from "./-search";
 
@@ -18,5 +18,5 @@ export const Route = createFileRoute("/")({
       queryClient.ensureQueryData(meQuery()),
     ]),
   component: JobBoardPage,
-  errorComponent: ErrorPanel,
+  errorComponent: RouterErrorPanel,
 });

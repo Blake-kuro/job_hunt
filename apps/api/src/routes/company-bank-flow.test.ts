@@ -1,12 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import type { QuizNext, QuizBanks, QuizAnswerResult } from "../contract";
 import { apiRequest, guestClient, hasDb, resetDb, seedDevUser } from "../test/db";
-
-const post = (body: unknown) => ({
-  method: "POST",
-  headers: { "content-type": "application/json" },
-  body: JSON.stringify(body),
-});
+import { jsonInit } from "../test/http";
 
 describe.skipIf(!hasDb)("后台建题到客户端分类刷题的完整契约", () => {
   beforeEach(async () => {
@@ -14,12 +9,12 @@ describe.skipIf(!hasDb)("后台建题到客户端分类刷题的完整契约", (
     await seedDevUser();
   });
   it("创建公司分类和三种题型 → 分类选题 → 数组提交 → 进度与答完状态", async () => {
-    const companyResponse = await apiRequest("/api/admin/companies", post({ name: "跨端验证公司" }));
+    const companyResponse = await apiRequest("/api/admin/companies", jsonInit("POST", { name: "跨端验证公司" }));
     expect(companyResponse.status).toBe(201);
     const company = (await companyResponse.json()) as { id: string };
     const categoryResponse = await apiRequest(
       "/api/admin/question-categories",
-      post({ companyId: company.id, name: "基础知识" }),
+      jsonInit("POST", { companyId: company.id, name: "基础知识" }),
     );
     expect(categoryResponse.status).toBe(201);
     const category = (await categoryResponse.json()) as { id: string };
@@ -60,7 +55,7 @@ describe.skipIf(!hasDb)("后台建题到客户端分类刷题的完整契约", (
       const { picked: _, ...fields } = shape;
       const response = await apiRequest(
         "/api/admin/questions",
-        post({
+        jsonInit("POST", {
           ...fields,
           categoryId: category.id,
           prompt: `题目 ${index}`,
@@ -84,7 +79,7 @@ describe.skipIf(!hasDb)("后台建题到客户端分类刷题的完整契约", (
       expect(next.question).not.toHaveProperty("answer");
       const response = await learner(
         "/api/quiz/attempts",
-        post({ questionId: next.question?.id, picked: shape.picked }),
+        jsonInit("POST", { questionId: next.question?.id, picked: shape.picked }),
       );
       expect(response.status).toBe(200);
       const result = (await response.json()) as QuizAnswerResult;

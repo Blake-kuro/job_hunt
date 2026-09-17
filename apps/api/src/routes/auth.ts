@@ -1,17 +1,10 @@
 import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
 import { clearSession, findDeviceUserId, sendLoginCode, setSessionCookie, verifyLoginCode } from "../auth";
-import {
-  ApiErrorSchema,
-  AuthResultSchema,
-  SendSmsBodySchema,
-  SendSmsResultSchema,
-  VerifySmsBodySchema,
-} from "../contract";
+import { AuthResultSchema, SendSmsBodySchema, SendSmsResultSchema, VerifySmsBodySchema } from "../contract";
 import type { Env } from "../env";
 import { validationHook } from "../lib/errors";
+import { errorContent, jsonContent } from "../lib/route";
 import { getCurrentUser } from "../services/users";
-
-const jsonContent = (schema: typeof ApiErrorSchema) => ({ "application/json": { schema } });
 
 const sendSms = createRoute({
   method: "post",
@@ -20,9 +13,9 @@ const sendSms = createRoute({
   operationId: "sendLoginSms",
   request: { body: { required: true, content: { "application/json": { schema: SendSmsBodySchema } } } },
   responses: {
-    200: { description: "验证码已发送", content: { "application/json": { schema: SendSmsResultSchema } } },
-    400: { description: "手机号格式无效", content: jsonContent(ApiErrorSchema) },
-    429: { description: "发送过于频繁", content: jsonContent(ApiErrorSchema) },
+    200: jsonContent(SendSmsResultSchema, "验证码已发送"),
+    400: errorContent("手机号格式无效"),
+    429: errorContent("发送过于频繁"),
   },
 });
 
@@ -33,8 +26,8 @@ const verifySms = createRoute({
   operationId: "verifyLoginSms",
   request: { body: { required: true, content: { "application/json": { schema: VerifySmsBodySchema } } } },
   responses: {
-    200: { description: "登录成功", content: { "application/json": { schema: AuthResultSchema } } },
-    400: { description: "验证码无效", content: jsonContent(ApiErrorSchema) },
+    200: jsonContent(AuthResultSchema, "登录成功"),
+    400: errorContent("验证码无效"),
   },
 });
 
