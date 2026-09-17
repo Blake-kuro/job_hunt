@@ -4,11 +4,19 @@ import type {
   AdminAccessBody,
   AdminCategoryBody,
   AdminCategoryPatch,
+  AdminChapterBody,
+  AdminChapterPatch,
   AdminCompanyBody,
   AdminCompanyPatch,
+  AdminCourseBody,
+  AdminCourseGrantBody,
+  AdminCoursePatch,
   AdminJobBody,
-  AdminMaterialBody,
   AdminJobPatch,
+  AdminLessonBody,
+  AdminLessonOrderBody,
+  AdminLessonPatch,
+  AdminMaterialBody,
   AdminQuestionBody,
   AdminQuestionPatch,
   AdminStudentPatch,
@@ -19,6 +27,11 @@ type AdminResource = "summary" | "students" | "materials" | "courses" | "quiz-me
 /** 写操作成功后失效相关资源的列表缓存 */
 function invalidate(qc: QueryClient, ...resources: AdminResource[]) {
   return Promise.all(resources.map((r) => qc.invalidateQueries({ queryKey: ["admin", r] })));
+}
+
+/** 单门课程的详情与学员列表（key 前缀 ["admin", "course", id]） */
+function invalidateCourse(qc: QueryClient, courseId: string) {
+  return qc.invalidateQueries({ queryKey: ["admin", "course", courseId] });
 }
 
 // ---- 登录 / 登出 ----
@@ -232,5 +245,137 @@ export function useImportJobs() {
         }),
       ),
     onSuccess: () => invalidate(qc, "jobs", "summary"),
+  });
+}
+
+// ---- 课程 ----
+
+export function useCreateCourse() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: AdminCourseBody) => unwrap(client.POST("/api/admin/courses", { body })),
+    onSuccess: () => invalidate(qc, "courses", "summary"),
+  });
+}
+
+export function usePatchCourse() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, body }: { id: string; body: AdminCoursePatch }) =>
+      unwrap(client.PATCH("/api/admin/courses/{id}", { params: { path: { id } }, body })),
+    onSuccess: (_, { id }) => Promise.all([invalidate(qc, "courses", "summary"), invalidateCourse(qc, id)]),
+  });
+}
+
+/** 删除课程会级联删除章 / 课时 / 学习进度，并清掉该课的按课授权 */
+export function useDeleteCourse() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => unwrap(client.DELETE("/api/admin/courses/{id}", { params: { path: { id } } })),
+    onSuccess: () => invalidate(qc, "courses", "students", "summary"),
+  });
+}
+
+// ---- 章 / 课时（都带 courseId，用于失效该课详情） ----
+
+export function useCreateChapter() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ courseId, body }: { courseId: string; body: AdminChapterBody }) =>
+      unwrap(client.POST("/api/admin/courses/{id}/chapters", { params: { path: { id: courseId } }, body })),
+    onSuccess: (_, { courseId }) => invalidateCourse(qc, courseId),
+  });
+}
+
+export function usePatchChapter() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, body }: { id: string; courseId: string; body: AdminChapterPatch }) =>
+      unwrap(client.PATCH("/api/admin/chapters/{id}", { params: { path: { id } }, body })),
+    onSuccess: (_, { courseId }) => invalidateCourse(qc, courseId),
+  });
+}
+
+/** 删章不删课时：其下课时回到「未分章」 */
+export function useDeleteChapter() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id }: { id: string; courseId: string }) =>
+      unwrap(client.DELETE("/api/admin/chapters/{id}", { params: { path: { id } } })),
+    onSuccess: (_, { courseId }) => invalidateCourse(qc, courseId),
+  });
+}
+
+export function useCreateLesson() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ courseId, body }: { courseId: string; body: AdminLessonBody }) =>
+      unwrap(client.POST("/api/admin/courses/{id}/lessons", { params: { path: { id: courseId } }, body })),
+    onSuccess: (_, { courseId }) => Promise.all([invalidateCourse(qc, courseId), invalidate(qc, "courses")]),
+  });
+}
+
+/** 写 videoFileId 时后端把状态置为 PROCESSING，需再调刷新才会变 READY */
+export function usePatchLesson() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, body }: { id: string; courseId: string; body: AdminLessonPatch }) =>
+      unwrap(client.PATCH("/api/admin/lessons/{id}", { params: { path: { id } }, body })),
+    onSuccess: (_, { courseId }) => Promise.all([invalidateCourse(qc, courseId), invalidate(qc, "courses")]),
+  });
+}
+
+export function useDeleteLesson() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id }: { id: string; courseId: string }) =>
+      unwrap(client.DELETE("/api/admin/lessons/{id}", { params: { path: { id } } })),
+    onSuccess: (_, { courseId }) => Promise.all([invalidateCourse(qc, courseId), invalidate(qc, "courses", "summary")]),
+  });
+}
+
+/** body 必须覆盖该课全部章与全部课时，后端严格校验 */
+export function useReorderLessons() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ courseId, body }: { courseId: string; body: AdminLessonOrderBody }) =>
+      unwrap(client.PUT("/api/admin/courses/{id}/lessons/order", { params: { path: { id: courseId } }, body })),
+    onSuccess: (_, { courseId }) => invalidateCourse(qc, courseId),
+  });
+}
+
+/** 向 VOD 查一次媒体状态并回填；返回更新后的课时 */
+export function useRefreshLessonVideo() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id }: { id: string; courseId: string }) =>
+      unwrap(client.POST("/api/admin/lessons/{id}/video/refresh", { params: { path: { id } } })),
+    onSuccess: (_, { courseId }) => Promise.all([invalidateCourse(qc, courseId), invalidate(qc, "courses", "summary")]),
+  });
+}
+
+export function useCreateUploadSignature() {
+  return useMutation({ mutationFn: () => unwrap(client.POST("/api/admin/vod/upload-signature")) });
+}
+
+// ---- 按课授权 ----
+
+export function useGrantCourse() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ courseId, body }: { courseId: string; body: AdminCourseGrantBody }) =>
+      unwrap(client.POST("/api/admin/courses/{id}/grants", { params: { path: { id: courseId } }, body })),
+    onSuccess: (_, { courseId }) =>
+      Promise.all([invalidateCourse(qc, courseId), invalidate(qc, "courses", "students", "summary")]),
+  });
+}
+
+export function useRevokeCourseGrant() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ courseId, userId }: { courseId: string; userId: string }) =>
+      unwrap(client.DELETE("/api/admin/courses/{id}/grants/{userId}", { params: { path: { id: courseId, userId } } })),
+    onSuccess: (_, { courseId }) =>
+      Promise.all([invalidateCourse(qc, courseId), invalidate(qc, "courses", "students", "summary")]),
   });
 }

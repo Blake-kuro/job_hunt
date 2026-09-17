@@ -42,6 +42,8 @@ export function DashboardPage() {
         <LinkedStat label="已发布题目" value={s.publishedQuestions} to="/questions" />
         <LinkedStat label="资料" value={s.materials} to="/materials" />
         <LinkedStat label="课程" value={s.courses} to="/courses" />
+        <StatCard label="就绪课时" value={s.readyLessons} hint="视频已转码可播放的课时" />
+        <LinkedStat label="按课开通" value={s.courseGrants} hint="课程授权记录数（含已过期）" to="/students" />
       </div>
     </>
   );
