@@ -22,6 +22,12 @@ pnpm gen:api    # 默认读取 ../api/openapi.json，也支持 OPENAPI_SOURCE
 
 游客无需登录即可浏览前 20 条岗位 / 20 道题；登录与 PRO 的权益见 /pro。
 
+## 网课
+
+- `/courses` 目录、`/courses/$courseId` 课程页、`/courses/$courseId/$lessonId` 播放页、`/me/courses` 我的课程。
+- 播放器：`index.html` 从 CDN 引入腾讯云 TCPlayer v5；`src/features/video-player/VideoPlayer.tsx` 在 `window.TCPlayer` 不存在或后端返回 mock 签名（`VOD_MOCK=1` 时 `psign` 为 `mock-play`）时改播 `public/sample.mp4`（本地放一个小 mp4 即可，已在 .gitignore）。
+- 进度上报：`timeupdate` 每 ≥ 10 秒、`pause` / 页面隐藏立即、关闭标签 / 离开页面用 keepalive fetch；≥ 90% 或播完标记 `completed` 并自动跳下一可播课时。
+
 ## 命令
 
 `pnpm typecheck` / `pnpm lint` / `pnpm test` / `pnpm build`

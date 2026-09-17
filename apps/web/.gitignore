@@ -5,3 +5,5 @@ dist/
 !.env.example
 *.tsbuildinfo
 .superpowers/
+# 网课播放页 mock 分支用的本地示例视频，不入库
+public/sample.mp4

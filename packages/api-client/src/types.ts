@@ -44,6 +44,20 @@ export type QuizAnswerResult = S["QuizAnswerResult"];
 export type WrongBookItem = S["WrongBookItem"];
 export type QuizDashboard = S["QuizDashboard"];
 
+// 网课（学生端）
+export type CourseAccess = S["CourseAccess"];
+export type VideoStatus = S["VideoStatus"];
+export type CourseCard = S["CourseCard"];
+export type CourseCatalog = S["CourseCatalog"];
+export type CourseDetail = S["CourseDetail"];
+export type CourseChapter = S["CourseChapter"];
+export type CourseLesson = S["CourseLesson"];
+export type LessonProgress = S["LessonProgress"];
+export type PlayInfo = S["PlayInfo"];
+export type LessonProgressBody = S["LessonProgressBody"];
+export type MyCourse = S["MyCourse"];
+export type MyCourses = S["MyCourses"];
+
 // 管理端
 export type AdminSummary = S["AdminSummary"];
 export type AdminStudent = S["AdminStudent"];
