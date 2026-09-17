@@ -70,16 +70,19 @@ export function VideoPlayer({ playInfo, startAt, onProgress, onEnded, onExpired 
     const start = startAtRef.current;
     player.ready(() => {
       if (start > 0) player.currentTime(start);
+      seekedRef.current = true;
     });
-    player.on("timeupdate", () =>
+    player.on("timeupdate", () => {
+      if (!seekedRef.current) return;
       callbacks.current.onProgress(player.currentTime(), {
         kind: "timeupdate",
         duration: safeDuration(player.duration()),
-      }),
-    );
-    player.on("pause", () =>
-      callbacks.current.onProgress(player.currentTime(), { kind: "pause", duration: safeDuration(player.duration()) }),
-    );
+      });
+    });
+    player.on("pause", () => {
+      if (!seekedRef.current) return;
+      callbacks.current.onProgress(player.currentTime(), { kind: "pause", duration: safeDuration(player.duration()) });
+    });
     player.on("ended", () => callbacks.current.onEnded());
     player.on("error", () => callbacks.current.onExpired());
     return () => {
