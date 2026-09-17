@@ -68,6 +68,8 @@ const buildColumns = (a: RowActions): Column<AdminQuestion>[] => [
   {
     id: "prompt",
     header: "题干",
+    // 其他列不换行时，窄容器下题干列会被挤到一字一行；给下限，超出走横向滚动
+    cellClassName: "min-w-[280px]",
     cell: (q) => (
       <div className="max-w-[420px] whitespace-normal" title={q.prompt}>
         {truncate(q.prompt, PROMPT_MAX)}
