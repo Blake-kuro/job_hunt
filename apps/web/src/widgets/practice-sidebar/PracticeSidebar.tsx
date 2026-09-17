@@ -1,6 +1,6 @@
-import { Tag } from "@shared/ui/Tag";
-import { Kicker } from "@shared/ui/Kicker";
-import { cn } from "@shared/lib/cn";
+import { Badge } from "@job-hunt/ui/components/badge";
+import { Kicker } from "@job-hunt/ui/components/kicker";
+import { cn } from "@job-hunt/ui/lib/utils";
 import type { QuizDashboard } from "@entities/quiz";
 
 export function PracticeSidebar({
@@ -46,7 +46,7 @@ export function PracticeSidebar({
             <li key={w.questionId} className="flex items-center justify-between gap-2.5 text-[13px]">
               <span className="truncate">{w.title}</span>
               <span className="flex shrink-0 items-center gap-1.5">
-                <Tag className="text-[10px]">{w.due}</Tag>
+                <Badge className="text-[10px]">{w.due}</Badge>
                 <button
                   type="button"
                   disabled={saving}

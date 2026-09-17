@@ -1,10 +1,10 @@
 import { useState, type ReactNode } from "react";
 import type { JobListItem } from "@entities/job";
 import { isExpired, statusLabel, statusVariant } from "@entities/job";
-import { Button } from "@shared/ui/Button";
-import { Tag } from "@shared/ui/Tag";
-import { DataTable, type Column } from "@shared/ui/DataTable";
-import { cn } from "@shared/lib/cn";
+import { Button } from "@job-hunt/ui/components/button";
+import { Badge } from "@job-hunt/ui/components/badge";
+import { type Column, DataTable } from "@job-hunt/ui/components/data-table";
+import { cn } from "@job-hunt/ui/lib/utils";
 
 interface JobTableProps {
   jobs: JobListItem[];
@@ -160,9 +160,9 @@ export function JobTable({ jobs, onToggleStar, onMarkApplied, saving }: JobTable
       header: "投递状态",
       width: "8%",
       cell: (j) => (
-        <Tag variant={statusVariant(j.applicationStatus, isExpired(j))}>
+        <Badge variant={statusVariant(j.applicationStatus, isExpired(j))}>
           {statusLabel(j.applicationStatus, isExpired(j))}
-        </Tag>
+        </Badge>
       ),
     },
     {
@@ -201,7 +201,7 @@ export function JobTable({ jobs, onToggleStar, onMarkApplied, saving }: JobTable
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="font-heading text-[17px]">{j.company}</span>
-                <Tag>{j.categoryLabel}</Tag>
+                <Badge>{j.categoryLabel}</Badge>
               </div>
               <Positions positions={j.positions} className="mt-1 block text-sm text-neutral-800" />
               <p className="mt-1 text-xs text-neutral-700">
@@ -215,9 +215,9 @@ export function JobTable({ jobs, onToggleStar, onMarkApplied, saving }: JobTable
               </p>
               <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-2">
                 <DeadlineCell job={j} />
-                <Tag variant={statusVariant(j.applicationStatus, expired)}>
+                <Badge variant={statusVariant(j.applicationStatus, expired)}>
                   {statusLabel(j.applicationStatus, expired)}
-                </Tag>
+                </Badge>
                 <span className="flex-1" />
                 <ExternalLink href={j.announcementLink}>公告 ↗</ExternalLink>
                 {j.deliveryAddress && <ExternalLink href={j.deliveryAddress}>去投递</ExternalLink>}

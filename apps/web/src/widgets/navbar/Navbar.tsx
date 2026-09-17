@@ -3,7 +3,7 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useLogout } from "@api/mutations";
 import { meQuery } from "@api/queries";
-import { cn } from "@shared/lib/cn";
+import { cn } from "@job-hunt/ui/lib/utils";
 
 interface NavbarProps {
   active: "jobs" | "practice";

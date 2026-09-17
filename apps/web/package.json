@@ -14,13 +14,13 @@
     "typecheck": "tsc --noEmit",
     "lint": "biome check .",
     "format": "biome format --write .",
-    "test": "vitest run",
-    "gen:api": "pnpm dlx openapi-typescript@7 \"${OPENAPI_SOURCE:-../api/openapi.json}\" -o src/api/schema.d.ts"
+    "test": "vitest run"
   },
   "dependencies": {
+    "@job-hunt/api-client": "workspace:*",
+    "@job-hunt/ui": "workspace:*",
     "@tanstack/react-query": "^5.102.8",
     "@tanstack/react-router": "^1.170.35",
-    "openapi-fetch": "^0.17.0",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "zod": "^4.5.4"
@@ -35,7 +35,6 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@vitejs/plugin-react": "^6.1.1",
-    "hono": "^4.13.0",
     "tailwindcss": "^4",
     "typescript": "7.0.2",
     "vite": "^8.3.0",

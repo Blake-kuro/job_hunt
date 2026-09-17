@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { meQuery, quizDashboardQuery, quizNextQuery } from "@api/queries";
-import { ErrorPanel } from "@shared/ui/ErrorPanel";
+import { RouterErrorPanel } from "./-error";
 import { PracticePage } from "@views/practice/PracticePage";
 
 export const Route = createFileRoute("/practice_/$categoryId")({
@@ -14,5 +14,5 @@ export const Route = createFileRoute("/practice_/$categoryId")({
     ]);
   },
   component: PracticePage,
-  errorComponent: ErrorPanel,
+  errorComponent: RouterErrorPanel,
 });

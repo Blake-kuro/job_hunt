@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { getRouteApi } from "@tanstack/react-router";
 import { useSendLoginSms, useVerifyLoginSms } from "@api/mutations";
-import { Button } from "@shared/ui/Button";
-import { Input } from "@shared/ui/Input";
-import { Kicker } from "@shared/ui/Kicker";
+import { Button } from "@job-hunt/ui/components/button";
+import { Input } from "@job-hunt/ui/components/input";
+import { Kicker } from "@job-hunt/ui/components/kicker";
 
 const route = getRouteApi("/login");
 const phonePattern = /^1[3-9]\d{9}$/;
@@ -106,7 +106,7 @@ export function LoginPage() {
                   onChange={(event) => setPhone(event.target.value.replace(/\D/g, ""))}
                   disabled={sent}
                   placeholder="请输入手机号"
-                  className="min-h-11 flex-1 border-0 bg-transparent px-3.5 focus-visible:outline-none"
+                  className="min-h-11 flex-1 border-0 bg-transparent px-3.5 disabled:opacity-100"
                 />
                 {sent && (
                   <button

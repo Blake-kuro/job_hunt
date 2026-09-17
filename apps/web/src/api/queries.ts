@@ -1,6 +1,6 @@
 import { queryOptions } from "@tanstack/react-query";
-import { client, unwrap } from "./client";
-import type { JobListQuery } from "./types";
+import { client, unwrap } from "@job-hunt/api-client/client";
+import type { JobListQuery } from "@job-hunt/api-client/types";
 
 export const meQuery = () =>
   queryOptions({

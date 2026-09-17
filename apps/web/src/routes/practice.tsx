@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { meQuery, quizBanksQuery, quizDashboardQuery } from "@api/queries";
-import { ErrorPanel } from "@shared/ui/ErrorPanel";
+import { RouterErrorPanel } from "./-error";
 import { BankPickerPage } from "@views/practice/BankPickerPage";
 
 export const Route = createFileRoute("/practice")({
@@ -13,5 +13,5 @@ export const Route = createFileRoute("/practice")({
     ]);
   },
   component: BankPickerPage,
-  errorComponent: ErrorPanel,
+  errorComponent: RouterErrorPanel,
 });

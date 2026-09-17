@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { Button } from "@shared/ui/Button";
-import { Tag } from "@shared/ui/Tag";
-import { Kicker } from "@shared/ui/Kicker";
-import { cn } from "@shared/lib/cn";
+import { Button } from "@job-hunt/ui/components/button";
+import { Badge } from "@job-hunt/ui/components/badge";
+import { Kicker } from "@job-hunt/ui/components/kicker";
+import { cn } from "@job-hunt/ui/lib/utils";
 import type { QuestionType, QuizAnswerResult, QuizOption, QuizOptionLetter, QuizQuestionPublic } from "@entities/quiz";
 import { togglePick } from "./pick";
 
@@ -71,10 +71,10 @@ export function QuizQuestion({
     <div className="px-4 py-8 sm:px-8 sm:py-9">
       <div className="flex flex-wrap items-center gap-2.5">
         <Kicker className="text-accent-700">{indexLabel}</Kicker>
-        <Tag variant={multi ? "accent" : "neutral"}>{typeLabel[question.type]}</Tag>
-        {question.section && <Tag variant="outline">{question.section}</Tag>}
-        <Tag>{question.category}</Tag>
-        <Tag>{question.difficulty}</Tag>
+        <Badge variant={multi ? "accent" : "neutral"}>{typeLabel[question.type]}</Badge>
+        {question.section && <Badge variant="outline">{question.section}</Badge>}
+        <Badge>{question.category}</Badge>
+        <Badge>{question.difficulty}</Badge>
       </div>
       {multi && !revealed && <p className="mt-2 text-xs text-neutral-700">多选题：可选择多个选项，再次点击取消。</p>}
 
@@ -143,9 +143,9 @@ export function QuizQuestion({
         <div className="mt-6 max-w-[880px] border-t border-divider pt-5">
           <div className="flex flex-wrap items-center gap-3">
             <Kicker className="text-accent-700">答案 {result.answer.join("、")}</Kicker>
-            <Tag variant={result.correct ? "accent" : "neutral"}>
+            <Badge variant={result.correct ? "accent" : "neutral"}>
               {result.correct ? "回答正确" : "回答错误 · 已加入错题本"}
-            </Tag>
+            </Badge>
             <span className="text-xs tabular-nums text-neutral-700">
               {result.accuracyRate === null ? "暂无统计" : `本题正确率 ${result.accuracyRate}%`}
             </span>

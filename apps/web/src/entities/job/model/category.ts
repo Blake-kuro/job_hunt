@@ -1,4 +1,4 @@
-import type { CategoryId } from "@api/types";
+import type { CategoryId } from "@job-hunt/api-client/types";
 
 export const CATEGORY: Record<CategoryId, string> = { 1: "秋招与实习", 2: "央国企", 3: "外企" };
 
