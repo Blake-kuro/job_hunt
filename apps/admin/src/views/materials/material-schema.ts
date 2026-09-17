@@ -1,4 +1,4 @@
-import type { AdminContentBody, AdminMaterial } from "@job-hunt/api-client/types";
+import type { AdminMaterial, AdminMaterialBody } from "@job-hunt/api-client/types";
 import { z } from "zod";
 
 export const DEFAULT_CATEGORY = "未分类";
@@ -34,10 +34,9 @@ export function fromEntity(m: AdminMaterial): FormValues {
 }
 
 /** 校验通过的表单值 → 请求体：描述空 → null，分类空 → 「未分类」；带 id 即更新 */
-export function toBody(v: FormValues, id?: string): AdminContentBody {
+export function toBody(v: FormValues, id?: string): AdminMaterialBody {
   const description = v.description.trim();
   return {
-    type: "MATERIAL",
     id,
     title: v.title.trim(),
     description: description || null,

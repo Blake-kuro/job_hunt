@@ -36,10 +36,12 @@ export const materialsQuery = () =>
     queryFn: () => unwrap(client.GET("/api/admin/materials")),
   });
 
+/** 过渡期：取前 100 门课的摘要（授权对话框下拉与只读列表用；课程管理页重做时改为分页查询） */
 export const coursesQuery = () =>
   queryOptions({
     queryKey: ["admin", "courses"] as const,
-    queryFn: () => unwrap(client.GET("/api/admin/courses")),
+    queryFn: async () =>
+      (await unwrap(client.GET("/api/admin/courses", { params: { query: { page: 1, pageSize: 100 } } }))).items,
   });
 
 export const quizMetaQuery = () =>

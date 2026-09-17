@@ -51,14 +51,29 @@ pnpm dev                      # http://localhost:3001
 
 管理员由 `ADMIN_PHONE_NUMBERS`（逗号分隔手机号）在登录时提升为 `ADMIN`（只升不降）；`/api/admin/*` 要求 `ADMIN` 角色，其余用户 403。管理端目录：`../admin`。
 
-- `GET /api/admin/summary` 概览计数（学生 / 启用 / PRO / 游客 / 岗位 / 公司 / 题目 / 已发布题目 / 资料 / 课程）
+- `GET /api/admin/summary` 概览计数（学生 / 启用 / PRO / 游客 / 岗位 / 公司 / 题目 / 已发布题目 / 资料 / 课程 / 已就绪课时 / 课程授权）
 - `GET /api/admin/students?q&plan&enabled&page&pageSize` 学生分页列表（有手机号的用户），含档位、统计与授权内容标题
 - `PATCH /api/admin/students/{id}` 修改姓名 / 启用 / 套餐 / PRO 到期（管理员账号 403）
 - `PUT /api/admin/students/{id}/access` 整体替换授权（内容不存在 400）
 - `GET /api/admin/materials` 全部资料
-- `GET /api/admin/courses` 全部课程（含课时；过渡期返回旧字段 `videoUrl` / `durationMinutes`，由 `legacyVideoUrl` / `durationSeconds` 换算，网课管理接口重做后移除）
-- `POST /api/admin/content` 创建 / 更新资料或课程（带 `id` 为更新），返回 `201 { id }`
-- `DELETE /api/admin/content/{type}/{id}` 删除资料或课程，并清理对应授权
+- `POST /api/admin/content` 创建 / 更新资料（body `AdminMaterialBody`，带 `id` 为更新），返回 `201 { id }`；课程走下面的 `/courses`
+- `DELETE /api/admin/content/MATERIAL/{id}` 删除资料，并清理对应授权
+- `GET /api/admin/courses?q&published&page&pageSize` 课程分页列表（按 `sortOrder, createdAt desc`），每门含 `lessonCount / readyCount / grantCount`
+- `GET /api/admin/courses/{id}` 课程详情：`chapters[].lessons` 与 `unchaptered`（课时含 `videoFileId / videoStatus / durationSeconds`）
+- `POST /api/admin/courses` body `{ title, summary?, description?, teacher?, priceCents, coverUrl?, published, sortOrder? }` → `201 { id }`
+- `PATCH /api/admin/courses/{id}` 只写提供的字段，`null` 清空（不存在 404）
+- `DELETE /api/admin/courses/{id}` 级联章 / 课时 / 进度，事务里清理 `AccessGrant{COURSE}`
+- `POST /api/admin/courses/{id}/chapters` body `{ title }` → `201 { id }`（排在最后）
+- `PATCH /api/admin/chapters/{id}` `{ title?, sortOrder? }`；`DELETE /api/admin/chapters/{id}` 删章，课时回到无章
+- `POST /api/admin/courses/{id}/lessons` body `{ title, chapterId?, freePreview? }` → `201 { id }`（排在最后；章不属于该课 400）
+- `PATCH /api/admin/lessons/{id}` `{ title?, chapterId?, sortOrder?, freePreview?, videoFileId? }`；写 `videoFileId` 即置 `videoStatus = PROCESSING` 并清空时长
+- `DELETE /api/admin/lessons/{id}` 删课时（级联进度）
+- `PUT /api/admin/courses/{id}/lessons/order` body `{ chapters: [{ id, lessonIds }], unchaptered }` 一次性写章顺序与课时归属 / 顺序；必须恰好覆盖全部课时，否则 400
+- `POST /api/admin/lessons/{id}/video/refresh` 查 VOD 媒体信息回填状态 / 时长，返回课时（没有 `videoFileId` 400；mock 下 READY / 600 秒）
+- `POST /api/admin/vod/upload-signature` → `{ signature, expiresAt }`（客户端直传签名，1 小时；mock 为 `mock-upload`）
+- `GET /api/admin/courses/{id}/students?page&pageSize` 已开通学员：`userId / name / phone / grantedAt / expiresAt / progressPercent / lastActiveAt`（含已过期授权）
+- `POST /api/admin/courses/{id}/grants` body `{ userIds, expiresAt? }` 批量开通，幂等：已有授权只在传了 `expiresAt` 时更新到期（学生不存在 400）
+- `DELETE /api/admin/courses/{id}/grants/{userId}` 移除授权（不存在 404）
 - `GET /api/admin/quiz-meta` 公司 → 分类树（含题量 / 已发布题量）
 - `GET /api/admin/questions?q&companyId&categoryId&type&section&published&page&pageSize` 题目分页列表（按 `sortOrder, id`），含公司名 / 分类名 / 题型 / 选项 / 答案
 - `POST /api/admin/questions` 创建题目，返回 `201 { id }`（分类不存在或题型 / 选项 / 答案形状不合法 400）

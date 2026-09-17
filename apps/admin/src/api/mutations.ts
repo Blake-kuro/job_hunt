@@ -6,8 +6,8 @@ import type {
   AdminCategoryPatch,
   AdminCompanyBody,
   AdminCompanyPatch,
-  AdminContentBody,
   AdminJobBody,
+  AdminMaterialBody,
   AdminJobPatch,
   AdminQuestionBody,
   AdminQuestionPatch,
@@ -65,22 +65,22 @@ export function usePutStudentAccess() {
   });
 }
 
-// ---- 资料 / 课程 ----
+// ---- 资料 ----
 
 export function useSaveContent() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (body: AdminContentBody) => unwrap(client.POST("/api/admin/content", { body })),
-    onSuccess: () => invalidate(qc, "materials", "courses", "students", "summary"),
+    mutationFn: (body: AdminMaterialBody) => unwrap(client.POST("/api/admin/content", { body })),
+    onSuccess: () => invalidate(qc, "materials", "students", "summary"),
   });
 }
 
 export function useDeleteContent() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ type, id }: { type: "MATERIAL" | "COURSE"; id: string }) =>
+    mutationFn: ({ type, id }: { type: "MATERIAL"; id: string }) =>
       unwrap(client.DELETE("/api/admin/content/{type}/{id}", { params: { path: { type, id } } })),
-    onSuccess: () => invalidate(qc, "materials", "courses", "students", "summary"),
+    onSuccess: () => invalidate(qc, "materials", "students", "summary"),
   });
 }
 

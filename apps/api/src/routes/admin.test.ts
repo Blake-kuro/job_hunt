@@ -54,6 +54,8 @@ describe.skipIf(!hasDb)("/api/admin", () => {
       questions: 0,
       materials: 0,
       courses: 0,
+      readyLessons: 0,
+      courseGrants: 0,
     });
   });
 
@@ -63,7 +65,7 @@ describe.skipIf(!hasDb)("/api/admin", () => {
     });
     const saved = await apiRequest(
       "/api/admin/content",
-      json("POST", { type: "MATERIAL", title: "简历模板", url: "https://example.com/r", published: true }),
+      json("POST", { title: "简历模板", url: "https://example.com/r", published: true }),
     );
     expect(saved.status).toBe(201);
     const { id: materialId } = (await saved.json()) as { id: string };
@@ -108,68 +110,10 @@ describe.skipIf(!hasDb)("/api/admin", () => {
     expect(row).toMatchObject({ plan: "PRO", proExpiresAt: null, name: "李四" });
   });
 
-  it("课程可创建 / 更新 / 列表 / 删除，删除后授权也被清理", async () => {
-    const body = {
-      type: "COURSE",
-      title: "面试课",
-      published: false,
-      lessons: [{ title: "第一课", videoUrl: "https://example.com/1.mp4", durationMinutes: 10 }],
-    };
-    const created = await apiRequest("/api/admin/content", json("POST", body));
-    expect(created.status).toBe(201);
-    const { id } = (await created.json()) as { id: string };
-    expect(
-      (await apiRequest("/api/admin/content", json("POST", { ...body, id, title: "面试课 2", lessons: [] }))).status,
-    ).toBe(201);
-    const list = (await (await apiRequest("/api/admin/courses")).json()) as {
-      id: string;
-      title: string;
-      lessons: unknown[];
-    }[];
-    expect(list).toMatchObject([{ id, title: "面试课 2", lessons: [] }]);
-    const student = await prisma.user.create({
-      data: { name: "学生", identities: { create: { provider: "PHONE", providerKey: "13900000000" } } },
-    });
-    await apiRequest(
-      `/api/admin/students/${student.id}/access`,
-      json("PUT", { grants: [{ contentType: "COURSE", contentId: id }] }),
-    );
-    expect((await apiRequest(`/api/admin/content/COURSE/${id}`, { method: "DELETE" })).status).toBe(204);
-    expect(await prisma.accessGrant.count()).toBe(0);
-    expect((await apiRequest(`/api/admin/content/COURSE/${id}`, { method: "DELETE" })).status).toBe(404);
-  });
-
-  it("已迁移到网课的课程（有 VOD 课时或学生进度）不能用旧接口重写", async () => {
-    const course = await prisma.course.create({
-      data: { title: "网课", lessons: { create: { id: "vod-lesson", title: "一", videoFileId: "file-1" } } },
-    });
-    const body = { type: "COURSE", id: course.id, title: "改名", published: false, lessons: [] };
-    const rejected = await apiRequest("/api/admin/content", json("POST", body));
-    expect(rejected.status).toBe(400);
-    expect(await rejected.json()).toMatchObject({
-      error: { code: "VALIDATION", message: "该课程已迁移到网课，请在课程页编辑" },
-    });
-    expect(await prisma.courseLesson.count({ where: { courseId: course.id } })).toBe(1);
-
-    const student = await prisma.user.create({ data: { name: "学生" } });
-    const withProgress = await prisma.course.create({
-      data: {
-        title: "旧课",
-        lessons: { create: { id: "old-lesson", title: "一", legacyVideoUrl: "https://x/1.mp4" } },
-      },
-    });
-    await prisma.lessonProgress.create({
-      data: { userId: student.id, lessonId: "old-lesson", courseId: withProgress.id, positionSeconds: 3 },
-    });
-    expect((await apiRequest("/api/admin/content", json("POST", { ...body, id: withProgress.id }))).status).toBe(400);
-    expect(await prisma.lessonProgress.count()).toBe(1);
-  });
-
   it("管理员可创建资料、授权学生，学生只能看到已授权内容", async () => {
     const saved = await apiRequest(
       "/api/admin/content",
       json("POST", {
-        type: "MATERIAL",
         title: "简历模板",
         category: "求职资料",
         url: "https://example.com/resume",
@@ -211,13 +155,16 @@ describe.skipIf(!hasDb)("/api/admin", () => {
     expect((await app.request("/api/content", { headers })).status).toBe(403);
   });
 
-  it("内容体按类型校验：MATERIAL 缺少 url → 400 VALIDATION", async () => {
-    const res = await apiRequest(
-      "/api/admin/content",
-      json("POST", { type: "MATERIAL", title: "无链接资料", published: true }),
-    );
+  it("资料体校验：缺少 url → 400 VALIDATION；`POST /content` 不再接受课程", async () => {
+    const res = await apiRequest("/api/admin/content", json("POST", { title: "无链接资料", published: true }));
     expect(res.status).toBe(400);
     expect(await res.json()).toMatchObject({ error: { code: "VALIDATION" } });
+    const course = await apiRequest(
+      "/api/admin/content",
+      json("POST", { type: "COURSE", title: "课", published: false, lessons: [] }),
+    );
+    expect(course.status).toBe(400);
+    expect((await apiRequest("/api/admin/content/COURSE/x", { method: "DELETE" })).status).toBe(400);
   });
 
   it("题库：公司 / 分类、分页列表、创建 / 修改 / 删除、形状校验", async () => {

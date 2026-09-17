@@ -26,6 +26,8 @@ export const summaryRoutes = newAdminRouter().openapi(getSummary, async (c) => {
     publishedQuestions,
     materials,
     courses,
+    readyLessons,
+    courseGrants,
   ] = await Promise.all([
     prisma.user.count({ where: phoneUser }),
     prisma.user.count({ where: { ...phoneUser, enabled: true } }),
@@ -41,6 +43,8 @@ export const summaryRoutes = newAdminRouter().openapi(getSummary, async (c) => {
     prisma.question.count({ where: { published: true } }),
     prisma.studyMaterial.count(),
     prisma.course.count(),
+    prisma.courseLesson.count({ where: { videoStatus: "READY" } }),
+    prisma.accessGrant.count({ where: { contentType: "COURSE" } }),
   ]);
   return c.json(
     {
@@ -54,6 +58,8 @@ export const summaryRoutes = newAdminRouter().openapi(getSummary, async (c) => {
       publishedQuestions,
       materials,
       courses,
+      readyLessons,
+      courseGrants,
     },
     200,
   );
