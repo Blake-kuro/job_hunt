@@ -30,6 +30,9 @@ describe("course-schema", () => {
     expect(issues({ ...valid, title: " " })).toEqual([["title", "请填写标题"]]);
     expect(issues({ ...valid, coverUrl: "ftp://x" })).toEqual([["coverUrl", "封面链接需以 http:// 或 https:// 开头"]]);
     expect(issues({ ...valid, coverUrl: "" })).toEqual([]);
+    // 空白串先 trim 再判空：通过校验且 toBody 发 null，与旧 CourseForm 一致
+    expect(issues({ ...valid, coverUrl: "   " })).toEqual([]);
+    expect(toBody(schema.parse({ ...valid, coverUrl: "   " }))).toMatchObject({ coverUrl: null });
     expect(issues({ ...valid, coverUrl: "https://img.example.com/c.png" })).toEqual([]);
   });
 

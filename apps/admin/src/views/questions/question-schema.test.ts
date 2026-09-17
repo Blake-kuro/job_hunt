@@ -1,11 +1,13 @@
 import type { AdminQuestion } from "@job-hunt/api-client/types";
 import { describe, expect, it } from "vitest";
 import {
+  applyType,
   defaultValues,
   type FormValues,
   fromEntity,
   minOptions,
   optionsForType,
+  removeOption,
   schema,
   toBody,
 } from "./question-schema";
@@ -27,6 +29,12 @@ function messages(values: FormValues): string[] {
   return r.success ? [] : r.error.issues.map((i) => i.message);
 }
 
+/** 校验失败时返回 [路径, 文案] 列表 */
+function issues(values: FormValues): [string, string][] {
+  const r = schema.safeParse(values);
+  return r.success ? [] : r.error.issues.map((i) => [i.path.join("."), i.message]);
+}
+
 /** 校验通过再转换；失败则抛出，便于 toMatchObject */
 function parseBody(values: FormValues) {
   return toBody(schema.parse(values));
@@ -42,7 +50,9 @@ describe("题目表单", () => {
   it("选项至少两个、最多六个且不能有空项", () => {
     expect(messages({ ...filled, options: opts("甲"), answer: ["A"] })).toContain("至少两个选项");
     expect(messages({ ...filled, options: opts("1", "2", "3", "4", "5", "6", "7") })).toContain("最多六个选项");
-    expect(messages({ ...filled, options: opts("甲", " ") })).toContain("选项不能为空");
+    // 空项错误挂在该行输入框上；单选题选项不足两个只报数组下限，不再附带多选题文案
+    expect(issues({ ...filled, options: opts("甲", " ") })).toEqual([["options.1.text", "选项不能为空"]]);
+    expect(messages({ ...filled, options: opts("甲"), answer: ["A"] })).toEqual(["至少两个选项"]);
     expect(parseBody({ ...filled, options: opts("甲", "乙") })).toMatchObject({
       options: [
         { letter: "A", text: "甲" },
@@ -96,6 +106,28 @@ describe("题目表单", () => {
     expect(optionsForType("JUDGE", "MULTI", opts("正确", "错误"))).toEqual(opts("", "", "", ""));
     expect(optionsForType("SINGLE", "MULTI", filled.options)).toBe(filled.options);
     expect(optionsForType("SINGLE", "SINGLE", filled.options)).toBeNull();
+  });
+
+  it("applyType 切题型清空答案；进出判断题换选项，单选 ↔ 多选保留选项；题型不变原样返回", () => {
+    const judge = applyType(filled, "JUDGE");
+    expect(judge).toMatchObject({ type: "JUDGE", options: opts("正确", "错误"), answer: [] });
+    expect(applyType(judge, "SINGLE")).toMatchObject({ type: "SINGLE", options: opts("", "", "", ""), answer: [] });
+    const multi = applyType(filled, "MULTI");
+    expect(multi.options).toBe(filled.options);
+    expect(multi.answer).toEqual([]);
+    expect(applyType(filled, "SINGLE")).toBe(filled);
+  });
+
+  it("removeOption 删行后被删行的答案去掉、其后的答案前移；到下限时不删", () => {
+    const multi: FormValues = { ...filled, type: "MULTI", answer: ["A", "B", "D"] };
+    expect(removeOption(multi, 1)).toMatchObject({ options: opts("甲", "丙", "丁"), answer: ["A", "C"] });
+    expect(removeOption(multi, 0)).toMatchObject({ options: opts("乙", "丙", "丁"), answer: ["A", "C"] });
+    expect(removeOption(multi, 3)).toMatchObject({ options: opts("甲", "乙", "丙"), answer: ["A", "B"] });
+    const atMin: FormValues = { ...filled, options: opts("甲", "乙"), answer: ["B"] };
+    expect(removeOption(atMin, 0)).toBe(atMin);
+    expect(removeOption({ ...multi, options: opts("甲", "乙", "丙") }, 2)).toMatchObject({
+      options: opts("甲", "乙", "丙"),
+    });
   });
 
   it("fromEntity 往返保留题型、所属部分、序号与答案", () => {

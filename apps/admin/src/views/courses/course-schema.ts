@@ -18,7 +18,11 @@ export const schema = z
   .object({
     title: z.string().trim().min(1, "请填写标题"),
     description: z.string(),
-    coverUrl: z.string().trim().regex(HTTP_RE, "封面链接需以 http:// 或 https:// 开头").or(z.literal("")),
+    // 先 trim 再判空：空白串视为未填（toBody 发 null），非空才校验前缀
+    coverUrl: z
+      .string()
+      .trim()
+      .refine((v) => v === "" || HTTP_RE.test(v), "封面链接需以 http:// 或 https:// 开头"),
     published: z.boolean(),
     lessons: z.array(lesson),
   })

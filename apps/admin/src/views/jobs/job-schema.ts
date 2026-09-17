@@ -20,7 +20,11 @@ export const schema = z.object({
   announcementLink: z.string(),
   deliveryAddress: z.string(),
   deadline: z.string(),
-  deadlineAt: z.string().trim().regex(DATE_RE, "截止日期格式为 YYYY-MM-DD").or(z.literal("")),
+  // 先 trim 再判空：空白串视为未填（toBody 发 null），非空才校验格式
+  deadlineAt: z
+    .string()
+    .trim()
+    .refine((v) => v === "" || DATE_RE.test(v), "截止日期格式为 YYYY-MM-DD"),
 });
 
 export type FormValues = z.infer<typeof schema>;

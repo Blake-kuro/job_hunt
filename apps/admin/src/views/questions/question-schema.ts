@@ -45,8 +45,10 @@ export const schema = z
   })
   .superRefine((v, ctx) => {
     const texts = optionTexts(v);
-    if (texts.some((t) => !t)) ctx.addIssue({ code: "custom", path: ["options"], message: "选项不能为空" });
-    else if (texts.length < minOptions(v.type))
+    const blank = texts.flatMap((t, i) => (t ? [] : [i]));
+    // 空项错误挂在对应行的输入框下；行数下限（数组 .min 之外只有多选题需要）挂在数组根
+    for (const i of blank) ctx.addIssue({ code: "custom", path: ["options", i, "text"], message: "选项不能为空" });
+    if (blank.length === 0 && v.type === "MULTI" && texts.length < minOptions("MULTI"))
       ctx.addIssue({ code: "custom", path: ["options"], message: "多选题至少三个选项" });
 
     const valid = LETTERS.slice(0, texts.length);
@@ -109,6 +111,29 @@ export function optionsForType(
   if (to === "JUDGE") return judgeOptions();
   if (from === "JUDGE") return blankOptions();
   return options;
+}
+
+/** 切换题型后的表单值：进出判断题时重置选项；任何切换都清空答案（答案语义随题型变）。题型未变则原样返回。 */
+export function applyType(values: FormValues, type: QuestionType): FormValues {
+  const options = optionsForType(values.type, type, values.options);
+  if (!options) return values;
+  return { ...values, type, options, answer: [] };
+}
+
+/**
+ * 删掉一行后字母重新排：被删行的答案去掉，其后的答案往前挪一位。
+ * 行数已到该题型下限时不删，原样返回。
+ */
+export function removeOption(values: FormValues, index: number): FormValues {
+  if (values.options.length <= minOptions(values.type) || index < 0 || index >= values.options.length) return values;
+  return {
+    ...values,
+    options: values.options.filter((_, i) => i !== index),
+    answer: values.answer
+      .map((l) => LETTERS.indexOf(l))
+      .filter((i) => i !== index)
+      .map((i) => LETTERS[i > index ? i - 1 : i]),
+  };
 }
 
 export function fromEntity(q: AdminQuestion): FormValues {

@@ -47,6 +47,9 @@ describe("job-schema", () => {
     const base = { ...defaultValues, enterpriseName: "示例公司", position: "前端" };
     expect(firstIssue({ ...base, deadlineAt: "2026/09/30" })).toEqual(["deadlineAt", "截止日期格式为 YYYY-MM-DD"]);
     expect(firstIssue({ ...base, deadlineAt: "" })).toBeNull();
+    // 空白串先 trim 再判空：通过校验且 toBody 发 null
+    expect(firstIssue({ ...base, deadlineAt: "  " })).toBeNull();
+    expect(toBody(schema.parse({ ...base, deadlineAt: "  " }))).toMatchObject({ deadlineAt: null });
     expect(firstIssue({ ...base, deadlineAt: "2026-09-30" })).toBeNull();
     expect(toBody({ ...base, deadlineAt: "2026-09-30" })).toMatchObject({ deadlineAt: "2026-09-30" });
   });
