@@ -174,12 +174,21 @@ export const AdminCourseDetailSchema = z
   .openapi("AdminCourseDetail");
 export type AdminCourseDetail = z.infer<typeof AdminCourseDetailSchema>;
 const CourseTitle = z.string().trim().min(1).max(200);
+/** 可空短文本：trim 后空串归一为 null */
+const optionalText = (max: number) =>
+  z
+    .string()
+    .trim()
+    .max(max)
+    .transform((v) => v || null)
+    .nullable()
+    .optional();
 export const AdminCourseBodySchema = z
   .object({
     title: CourseTitle,
-    summary: z.string().nullable().optional(),
-    description: z.string().nullable().optional(),
-    teacher: z.string().nullable().optional(),
+    summary: optionalText(500),
+    description: optionalText(5000),
+    teacher: optionalText(100),
     priceCents: z.number().int().min(0),
     coverUrl: z.string().url().nullable().optional(),
     published: z.boolean(),

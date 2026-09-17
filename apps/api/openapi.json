@@ -904,19 +904,22 @@
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "maxLength": 500
           },
           "description": {
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "maxLength": 5000
           },
           "teacher": {
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "maxLength": 100
           },
           "priceCents": {
             "type": "integer",
@@ -954,19 +957,22 @@
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "maxLength": 500
           },
           "description": {
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "maxLength": 5000
           },
           "teacher": {
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "maxLength": 100
           },
           "priceCents": {
             "type": "integer",

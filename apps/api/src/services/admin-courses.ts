@@ -280,7 +280,7 @@ export async function deleteLesson(id: string): Promise<void> {
 
 /**
  * 一次性写整门课的结构：`chapters` 的数组顺序即章顺序，各章 `lessonIds` 与 `unchaptered`
- * 决定课时归属与顺序。必须恰好覆盖该课全部课时且不重复，章必须都属于该课，否则 400。
+ * 决定课时归属与顺序。章与课时都必须恰好覆盖该课全部且不重复，否则 400。
  */
 export async function reorderLessons(courseId: string, body: AdminLessonOrderBody): Promise<void> {
   await requireCourse(courseId);
@@ -289,9 +289,12 @@ export async function reorderLessons(courseId: string, body: AdminLessonOrderBod
     prisma.courseLesson.findMany({ where: { courseId }, select: { id: true } }),
   ]);
   const chapterIds = new Set(chapters.map((c) => c.id));
-  for (const ch of body.chapters) {
-    if (!chapterIds.has(ch.id)) throw new AppError(400, "VALIDATION", `章 ${ch.id} 不属于该课程`);
+  const submittedChapters = body.chapters.map((ch) => ch.id);
+  if (new Set(submittedChapters).size !== submittedChapters.length) throw new AppError(400, "VALIDATION", "章 id 重复");
+  for (const id of submittedChapters) {
+    if (!chapterIds.has(id)) throw new AppError(400, "VALIDATION", `章 ${id} 不属于该课程`);
   }
+  if (submittedChapters.length !== chapterIds.size) throw new AppError(400, "VALIDATION", "章列表必须覆盖该课程全部章");
   const submitted = [...body.chapters.flatMap((ch) => ch.lessonIds), ...body.unchaptered];
   const lessonIds = new Set(lessons.map((l) => l.id));
   if (new Set(submitted).size !== submitted.length) throw new AppError(400, "VALIDATION", "课时 id 重复");
@@ -386,15 +389,18 @@ export async function listCourseStudents(
 
 /**
  * 批量开通，幂等：不存在的授权 `createMany skipDuplicates`；已有的只在传了 `expiresAt` 时更新到期；
- * 用户不存在 → 400
+ * 只接受启用的 STUDENT，不存在 / 管理员 / 已停用 → 400 并列出
  */
 export async function grantCourse(courseId: string, body: AdminCourseGrantBody, grantedById: string): Promise<void> {
   await requireCourse(courseId);
   const userIds = [...new Set(body.userIds)];
-  const users = await prisma.user.findMany({ where: { id: { in: userIds } }, select: { id: true } });
+  const users = await prisma.user.findMany({
+    where: { id: { in: userIds }, role: "STUDENT", enabled: true },
+    select: { id: true },
+  });
   const known = new Set(users.map((u) => u.id));
   const missing = userIds.filter((id) => !known.has(id));
-  if (missing.length) throw new AppError(400, "VALIDATION", `学生不存在：${missing.join(", ")}`);
+  if (missing.length) throw new AppError(400, "VALIDATION", `学生不存在或不可授权：${missing.join(", ")}`);
   const expiresAt = body.expiresAt === undefined ? undefined : body.expiresAt && new Date(body.expiresAt);
   await prisma.$transaction(async (tx) => {
     if (expiresAt !== undefined) {

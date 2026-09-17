@@ -80,6 +80,14 @@ describe.skipIf(!hasDb)("/api/admin 课程", () => {
       teacher: "王老师",
       sortOrder: 5,
     });
+    // 空白文本归一为 null，超长 400
+    expect(
+      (await apiRequest(`/api/admin/courses/${id}`, json("PATCH", { teacher: "   ", summary: " 摘要 " }))).status,
+    ).toBe(204);
+    expect(await detail(id)).toMatchObject({ teacher: null, summary: "摘要" });
+    expect((await apiRequest(`/api/admin/courses/${id}`, json("PATCH", { teacher: "x".repeat(101) }))).status).toBe(
+      400,
+    );
     expect((await apiRequest(`/api/admin/courses/${id}`, json("PATCH", { priceCents: -1 }))).status).toBe(400);
     expect((await apiRequest(`/api/admin/courses/${id}`, json("PATCH", { coverUrl: "not-url" }))).status).toBe(400);
     expect((await apiRequest("/api/admin/courses/nope", json("PATCH", { title: "x" }))).status).toBe(404);
@@ -195,7 +203,7 @@ describe.skipIf(!hasDb)("/api/admin 课程", () => {
     expect((await detail(courseId)).lessonCount).toBe(2);
   });
 
-  it("排序：一次性写章顺序与课时归属 / 顺序；缺课时 / 重复 / 外来 id → 400", async () => {
+  it("排序：一次性写章顺序与课时归属 / 顺序；缺章 / 缺课时 / 重复 / 外来 id → 400", async () => {
     const courseId = await createCourse();
     const other = await createCourse({ title: "别的课" });
     const ch1 = (await post(`/api/admin/courses/${courseId}/chapters`, { title: "A" })).body?.id as string;
@@ -232,12 +240,18 @@ describe.skipIf(!hasDb)("/api/admin 课程", () => {
       [l2, 3, null],
     ]);
 
-    const full = { chapters: [{ id: ch1, lessonIds: [l1, l2, l3] }], unchaptered: [l4] };
+    const both = [
+      { id: ch1, lessonIds: [l1, l2, l3] },
+      { id: ch2, lessonIds: [] },
+    ];
+    const full = { chapters: both, unchaptered: [l4] };
     expect((await put({ ...full, unchaptered: [] })).status).toBe(400); // 缺 l4
     expect((await put({ ...full, unchaptered: [l4, l4] })).status).toBe(400); // 重复
     expect((await put({ ...full, unchaptered: [l4, foreignLesson] })).status).toBe(400); // 外来课时
-    expect((await put({ chapters: [{ id: foreignChapter, lessonIds: [] }], unchaptered: ids })).status).toBe(400);
-    expect((await put({ chapters: [{ id: "nope", lessonIds: [] }], unchaptered: ids })).status).toBe(400);
+    expect((await put({ ...full, chapters: [both[0]] })).status).toBe(400); // 缺章 ch2
+    expect((await put({ ...full, chapters: [...both, { id: ch2, lessonIds: [] }] })).status).toBe(400); // 章重复
+    expect((await put({ ...full, chapters: [...both, { id: foreignChapter, lessonIds: [] }] })).status).toBe(400);
+    expect((await put({ ...full, chapters: [...both, { id: "nope", lessonIds: [] }] })).status).toBe(400);
     expect((await apiRequest("/api/admin/courses/nope/lessons/order", json("PUT", full))).status).toBe(404);
     // 校验失败不写库
     expect(
@@ -281,7 +295,7 @@ describe.skipIf(!hasDb)("/api/admin 课程", () => {
     expect((await detail(courseId)).readyCount).toBe(1);
   });
 
-  it("按课授权：批量开通幂等、更新到期、学生不存在 400、学员列表进度、移除", async () => {
+  it("按课授权：批量开通幂等、更新到期、学生不存在 / 管理员 / 停用 400、学员列表进度、移除", async () => {
     const courseId = await createCourse();
     const l1 = (await post(`/api/admin/courses/${courseId}/lessons`, { title: "一" })).body?.id as string;
     const l2 = (await post(`/api/admin/courses/${courseId}/lessons`, { title: "二" })).body?.id as string;
@@ -317,7 +331,15 @@ describe.skipIf(!hasDb)("/api/admin 课程", () => {
 
     const bad = await grant({ userIds: [a.id, "nope"] });
     expect(bad.status).toBe(400);
-    expect(await bad.json()).toMatchObject({ error: { code: "VALIDATION", message: "学生不存在：nope" } });
+    expect(await bad.json()).toMatchObject({ error: { code: "VALIDATION", message: "学生不存在或不可授权：nope" } });
+    expect(await prisma.accessGrant.count()).toBe(3);
+    // 管理员 / 停用学生不可授权，整体不写
+    const disabled = await prisma.user.create({ data: { name: "停用", enabled: false } });
+    const notAllowed = await grant({ userIds: [admin.id, disabled.id, a.id] });
+    expect(notAllowed.status).toBe(400);
+    expect(await notAllowed.json()).toMatchObject({
+      error: { message: `学生不存在或不可授权：${admin.id}, ${disabled.id}` },
+    });
     expect(await prisma.accessGrant.count()).toBe(3);
     expect((await grant({ userIds: [] })).status).toBe(400);
     expect((await apiRequest("/api/admin/courses/nope/grants", json("POST", { userIds: [a.id] }))).status).toBe(404);
