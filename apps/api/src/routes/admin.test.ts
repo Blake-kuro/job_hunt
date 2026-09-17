@@ -164,7 +164,17 @@ describe.skipIf(!hasDb)("/api/admin", () => {
     const headers = await studentSession(student.id, "student-session");
     const content = await app.request("/api/content", { headers });
     expect(content.status).toBe(200);
-    expect(await content.json()).toMatchObject({ materials: [{ title: "简历模板" }], courses: [] });
+    expect(await content.json()).toEqual({
+      materials: [
+        {
+          id: materialId,
+          title: "简历模板",
+          description: null,
+          category: "求职资料",
+          resourceUrl: "https://example.com/resume",
+        },
+      ],
+    });
   });
 
   it("普通学生不能访问后台，停用后不能访问业务接口", async () => {

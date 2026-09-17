@@ -19,14 +19,15 @@ model User {
   enabled      Boolean   @default(true)
   createdAt    DateTime  @default(now())
 
-  identities   AuthIdentity[]
-  sessions      Session[]
-  favorites    Favorite[]
-  applications Application[]
-  attempts     Attempt[]
-  wrongBook    WrongBookEntry[]
-  accessGrants  AccessGrant[] @relation("StudentGrants")
-  grantedAccess AccessGrant[] @relation("GrantedBy")
+  identities       AuthIdentity[]
+  sessions         Session[]
+  favorites        Favorite[]
+  applications     Application[]
+  attempts         Attempt[]
+  wrongBook        WrongBookEntry[]
+  accessGrants     AccessGrant[]    @relation("StudentGrants")
+  grantedAccess    AccessGrant[]    @relation("GrantedBy")
+  lessonProgresses LessonProgress[]
 }
 
 enum UserRole {
@@ -115,26 +116,82 @@ model StudyMaterial {
 }
 
 model Course {
-  id          String         @id @default(cuid())
+  id          String           @id @default(cuid())
   title       String
+  /// 一句话简介（目录卡片）
+  summary     String?
+  /// 详细介绍（课程页，支持换行）
   description String?
+  /// VOD 图片 fileId（可选）
+  coverFileId String?
   coverUrl    String?
-  published   Boolean        @default(false)
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  teacher     String?
+  /// 标价，分；0 = 免费课
+  priceCents  Int              @default(0)
+  published   Boolean          @default(false)
+  sortOrder   Int              @default(0)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  chapters    CourseChapter[]
   lessons     CourseLesson[]
+  progresses  LessonProgress[]
+}
+
+model CourseChapter {
+  id        String         @id @default(cuid())
+  courseId  String
+  title     String
+  sortOrder Int            @default(0)
+  course    Course         @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessons   CourseLesson[]
+
+  @@index([courseId, sortOrder])
+}
+
+enum VideoStatus {
+  NONE
+  UPLOADING
+  PROCESSING
+  READY
+  FAILED
 }
 
 model CourseLesson {
-  id              String @id @default(cuid())
+  id              String           @id @default(cuid())
   courseId        String
+  chapterId       String?
   title           String
-  videoUrl        String
-  durationMinutes Int?
-  sortOrder       Int    @default(0)
-  course          Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  sortOrder       Int              @default(0)
+  /// 试看
+  freePreview     Boolean          @default(false)
+  /// 腾讯云 VOD FileId
+  videoFileId     String?
+  videoStatus     VideoStatus      @default(NONE)
+  /// 转码完成后由 VOD 回调 / 查询回填
+  durationSeconds Int?
+  /// 迁移前的外链视频地址（仅保留旧数据，新课时不写）
+  legacyVideoUrl  String?
+  course          Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  chapter         CourseChapter?   @relation(fields: [chapterId], references: [id], onDelete: SetNull)
+  progresses      LessonProgress[]
 
   @@index([courseId, sortOrder])
+  @@index([chapterId])
+}
+
+model LessonProgress {
+  userId          String
+  lessonId        String
+  courseId        String
+  positionSeconds Int          @default(0)
+  completed       Boolean      @default(false)
+  updatedAt       DateTime     @updatedAt
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson          CourseLesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  course          Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@id([userId, lessonId])
+  @@index([userId, courseId, updatedAt])
 }
 
 // ── 岗位（用户现有 Excel 结构）────────────────────────
@@ -168,8 +225,8 @@ model Job {
 model Favorite {
   userId String
   jobId  Int
-  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  job    Job  @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  job    Job    @relation(fields: [jobId], references: [id], onDelete: Cascade)
 
   @@id([userId, jobId])
 }
@@ -183,9 +240,9 @@ model Application {
   userId    String
   jobId     Int
   status    AppStatus
-  updatedAt DateTime @updatedAt
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  job       Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  updatedAt DateTime  @updatedAt
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  job       Job       @relation(fields: [jobId], references: [id], onDelete: Cascade)
 
   @@id([userId, jobId])
 }

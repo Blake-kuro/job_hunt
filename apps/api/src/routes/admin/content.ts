@@ -64,11 +64,12 @@ export const contentRoutes = newAdminRouter()
         coverUrl: course.coverUrl,
         published: course.published,
         updatedAt: course.updatedAt.toISOString(),
+        // 过渡期（Task 2 重做管理端课程接口前）：旧外链 / 分钟时长由新列换算
         lessons: course.lessons.map((l) => ({
           id: l.id,
           title: l.title,
-          videoUrl: l.videoUrl,
-          durationMinutes: l.durationMinutes,
+          videoUrl: l.legacyVideoUrl ?? "",
+          durationMinutes: l.durationSeconds === null ? null : Math.round(l.durationSeconds / 60),
           sortOrder: l.sortOrder,
         })),
       })),
@@ -110,8 +111,9 @@ export const contentRoutes = newAdminRouter()
       await tx.courseLesson.deleteMany({ where: { courseId: course.id } });
       await tx.courseLesson.createMany({
         data: b.lessons.map((l, i) => ({
-          ...l,
-          durationMinutes: l.durationMinutes ?? null,
+          title: l.title,
+          legacyVideoUrl: l.videoUrl,
+          durationSeconds: l.durationMinutes == null ? null : l.durationMinutes * 60,
           courseId: course.id,
           sortOrder: i,
         })),

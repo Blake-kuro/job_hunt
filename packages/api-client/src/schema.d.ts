@@ -565,7 +565,7 @@ export interface components {
             };
         };
         /** @enum {string} */
-        ApiErrorCode: "VALIDATION" | "UNAUTHORIZED" | "FORBIDDEN" | "CODE_INVALID" | "RATE_LIMITED" | "NOT_FOUND" | "INTERNAL";
+        ApiErrorCode: "VALIDATION" | "UNAUTHORIZED" | "FORBIDDEN" | "CODE_INVALID" | "RATE_LIMITED" | "NOT_FOUND" | "CONFLICT" | "INTERNAL";
         SendSmsBody: {
             /** @example 13800138000 */
             phone: string;
@@ -907,19 +907,6 @@ export interface components {
                 description: string | null;
                 category: string;
                 resourceUrl: string;
-            }[];
-            courses: {
-                id: string;
-                title: string;
-                description: string | null;
-                coverUrl: string | null;
-                lessons: {
-                    id: string;
-                    title: string;
-                    videoUrl: string;
-                    durationMinutes: number | null;
-                    sortOrder: number;
-                }[];
             }[];
         };
         JobListResult: {
@@ -1953,7 +1940,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description 已授权的资料和课程 */
+            /** @description 已授权的资料（网课见 /courses） */
             200: {
                 headers: {
                     [name: string]: unknown;

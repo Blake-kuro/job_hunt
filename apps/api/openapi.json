@@ -61,6 +61,7 @@
           "CODE_INVALID",
           "RATE_LIMITED",
           "NOT_FOUND",
+          "CONFLICT",
           "INTERNAL"
         ]
       },
@@ -1553,77 +1554,10 @@
                 "resourceUrl"
               ]
             }
-          },
-          "courses": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "type": "string"
-                },
-                "title": {
-                  "type": "string"
-                },
-                "description": {
-                  "type": [
-                    "string",
-                    "null"
-                  ]
-                },
-                "coverUrl": {
-                  "type": [
-                    "string",
-                    "null"
-                  ]
-                },
-                "lessons": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "id": {
-                        "type": "string"
-                      },
-                      "title": {
-                        "type": "string"
-                      },
-                      "videoUrl": {
-                        "type": "string"
-                      },
-                      "durationMinutes": {
-                        "type": [
-                          "number",
-                          "null"
-                        ]
-                      },
-                      "sortOrder": {
-                        "type": "number"
-                      }
-                    },
-                    "required": [
-                      "id",
-                      "title",
-                      "videoUrl",
-                      "durationMinutes",
-                      "sortOrder"
-                    ]
-                  }
-                }
-              },
-              "required": [
-                "id",
-                "title",
-                "description",
-                "coverUrl",
-                "lessons"
-              ]
-            }
           }
         },
         "required": [
-          "materials",
-          "courses"
+          "materials"
         ]
       },
       "JobListResult": {
@@ -3469,7 +3403,7 @@
         "operationId": "listStudentContent",
         "responses": {
           "200": {
-            "description": "已授权的资料和课程",
+            "description": "已授权的资料（网课见 /courses）",
             "content": {
               "application/json": {
                 "schema": {
