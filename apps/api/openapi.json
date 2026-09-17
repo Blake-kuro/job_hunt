@@ -178,6 +178,105 @@
           "code"
         ]
       },
+      "VodCallbackResult": {
+        "type": "object",
+        "properties": {
+          "handled": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "handled"
+        ]
+      },
+      "VodCallbackBody": {
+        "type": "object",
+        "properties": {
+          "EventType": {
+            "type": "string"
+          },
+          "ProcedureStateChangeEvent": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "FileId": {
+                "type": "string"
+              },
+              "Status": {
+                "type": "string"
+              },
+              "ErrCode": {
+                "type": "integer"
+              },
+              "Message": {
+                "type": "string"
+              },
+              "MetaData": {
+                "type": [
+                  "object",
+                  "null"
+                ],
+                "properties": {
+                  "Duration": {
+                    "type": "number"
+                  }
+                }
+              },
+              "MediaProcessResultSet": {
+                "type": [
+                  "array",
+                  "null"
+                ],
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "Type": {
+                      "type": "string"
+                    },
+                    "CoverBySnapshotTask": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "Status": {
+                          "type": "string"
+                        },
+                        "ErrCode": {
+                          "type": "integer"
+                        },
+                        "Output": {
+                          "type": [
+                            "object",
+                            "null"
+                          ],
+                          "properties": {
+                            "CoverUrl": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "required": [
+                    "Type"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "FileId",
+              "Status"
+            ]
+          }
+        },
+        "required": [
+          "EventType"
+        ]
+      },
       "AdminSummary": {
         "type": "object",
         "properties": {
@@ -1560,6 +1659,413 @@
           "materials"
         ]
       },
+      "CourseCatalog": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CourseCard"
+            }
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "CourseCard": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "summary": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "coverUrl": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "teacher": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "priceCents": {
+            "type": "integer"
+          },
+          "lessonCount": {
+            "type": "integer"
+          },
+          "durationSeconds": {
+            "type": "integer"
+          },
+          "freePreviewCount": {
+            "type": "integer"
+          },
+          "access": {
+            "$ref": "#/components/schemas/CourseAccess"
+          },
+          "progressPercent": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "summary",
+          "coverUrl",
+          "teacher",
+          "priceCents",
+          "lessonCount",
+          "durationSeconds",
+          "freePreviewCount",
+          "access",
+          "progressPercent"
+        ]
+      },
+      "CourseAccess": {
+        "type": "string",
+        "enum": [
+          "GRANTED",
+          "PREVIEW",
+          "LOCKED"
+        ]
+      },
+      "CourseDetail": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "summary": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "coverUrl": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "teacher": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "priceCents": {
+            "type": "integer"
+          },
+          "lessonCount": {
+            "type": "integer"
+          },
+          "durationSeconds": {
+            "type": "integer"
+          },
+          "freePreviewCount": {
+            "type": "integer"
+          },
+          "access": {
+            "$ref": "#/components/schemas/CourseAccess"
+          },
+          "progressPercent": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "chapters": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CourseChapter"
+            }
+          },
+          "unchaptered": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CourseLesson"
+            }
+          },
+          "lastLessonId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "summary",
+          "coverUrl",
+          "teacher",
+          "priceCents",
+          "lessonCount",
+          "durationSeconds",
+          "freePreviewCount",
+          "access",
+          "progressPercent",
+          "description",
+          "chapters",
+          "unchaptered",
+          "lastLessonId"
+        ]
+      },
+      "CourseChapter": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "lessons": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CourseLesson"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "lessons"
+        ]
+      },
+      "CourseLesson": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "durationSeconds": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "freePreview": {
+            "type": "boolean"
+          },
+          "videoStatus": {
+            "$ref": "#/components/schemas/VideoStatus"
+          },
+          "playable": {
+            "type": "boolean"
+          },
+          "progress": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LessonProgress"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "durationSeconds",
+          "freePreview",
+          "videoStatus",
+          "playable",
+          "progress"
+        ]
+      },
+      "VideoStatus": {
+        "type": "string",
+        "enum": [
+          "NONE",
+          "UPLOADING",
+          "PROCESSING",
+          "READY",
+          "FAILED"
+        ]
+      },
+      "LessonProgress": {
+        "type": "object",
+        "properties": {
+          "positionSeconds": {
+            "type": "integer"
+          },
+          "completed": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "positionSeconds",
+          "completed"
+        ]
+      },
+      "PlayInfo": {
+        "type": "object",
+        "properties": {
+          "appId": {
+            "type": "string"
+          },
+          "fileId": {
+            "type": "string"
+          },
+          "psign": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "positionSeconds": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "appId",
+          "fileId",
+          "psign",
+          "expiresAt",
+          "positionSeconds"
+        ]
+      },
+      "LessonProgressBody": {
+        "type": "object",
+        "properties": {
+          "positionSeconds": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "completed": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "positionSeconds"
+        ]
+      },
+      "MyCourses": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MyCourse"
+            }
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "MyCourse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "summary": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "coverUrl": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "teacher": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "priceCents": {
+            "type": "integer"
+          },
+          "lessonCount": {
+            "type": "integer"
+          },
+          "durationSeconds": {
+            "type": "integer"
+          },
+          "freePreviewCount": {
+            "type": "integer"
+          },
+          "access": {
+            "$ref": "#/components/schemas/CourseAccess"
+          },
+          "progressPercent": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "lastLessonId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "lastLessonTitle": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "summary",
+          "coverUrl",
+          "teacher",
+          "priceCents",
+          "lessonCount",
+          "durationSeconds",
+          "freePreviewCount",
+          "access",
+          "progressPercent",
+          "lastLessonId",
+          "lastLessonTitle",
+          "updatedAt"
+        ]
+      },
       "JobListResult": {
         "type": "object",
         "properties": {
@@ -2284,6 +2790,57 @@
         "responses": {
           "204": {
             "description": "已退出登录"
+          }
+        }
+      }
+    },
+    "/api/vod/callback": {
+      "post": {
+        "tags": [
+          "vod"
+        ],
+        "operationId": "vodCallback",
+        "description": "腾讯云 VOD 事件通知（无需登录，`?token=` 须等于 VOD_CALLBACK_TOKEN）；只处理 ProcedureStateChanged",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "token",
+            "in": "query"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VodCallbackBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "已接收",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VodCallbackResult"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "token 无效",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           }
         }
       }
@@ -3415,6 +3972,205 @@
         }
       }
     },
+    "/api/courses": {
+      "get": {
+        "tags": [
+          "courses"
+        ],
+        "operationId": "listCourses",
+        "responses": {
+          "200": {
+            "description": "已发布课程目录，含当前用户权限与进度",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CourseCatalog"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/courses/{id}": {
+      "get": {
+        "tags": [
+          "courses"
+        ],
+        "operationId": "getCourse",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "课程详情（章 / 课时 / 进度）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CourseDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/courses/{id}/lessons/{lessonId}/play": {
+      "get": {
+        "tags": [
+          "courses"
+        ],
+        "operationId": "getLessonPlayInfo",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "lessonId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "播放签名与续播位置",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlayInfo"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "该课时需要开通课程后观看",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "视频处理中",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/courses/{id}/lessons/{lessonId}/progress": {
+      "put": {
+        "tags": [
+          "courses"
+        ],
+        "operationId": "saveLessonProgress",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "lessonId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LessonProgressBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "已记录"
+          },
+          "400": {
+            "description": "参数校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "该课时不可播放",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/me": {
       "get": {
         "tags": [
@@ -3428,6 +4184,26 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/me/courses": {
+      "get": {
+        "tags": [
+          "me"
+        ],
+        "operationId": "listMyCourses",
+        "responses": {
+          "200": {
+            "description": "有授权或有学习进度的课程，按最近学习排序",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyCourses"
                 }
               }
             }

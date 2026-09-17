@@ -29,7 +29,7 @@ pnpm dev                      # http://localhost:3001
 - 开发环境会在后端日志和发送接口的 `developmentCode` 字段显示验证码；生产环境接入短信服务商前会拒绝发送。
 - 登录身份独立保存，已预留 `WECHAT` / `QQ` 类型，后续可将扫码身份绑定到同一用户。
 - 管理后台见下文「后台管理」一节。
-- 学习内容接口只返回已发布且仍在授权有效期内的资料和网课；刷题配额见下文「刷题 API 与配额」。
+- 学习资料接口只返回已发布且仍在授权有效期内的资料；网课见下文「网课 / VOD」；刷题配额见下文「刷题 API 与配额」。
 - 错误统一 `{ error: { code, message, issues? } }`，包括参数、登录态、验证码及频控错误。
 - 跨域：`CORS_ORIGINS` 逗号分隔；前端走 Vite 代理时不需要。
 - 时区 Asia/Shanghai：日期边界只经 `src/lib/dates.ts`。
@@ -56,7 +56,7 @@ pnpm dev                      # http://localhost:3001
 - `PATCH /api/admin/students/{id}` 修改姓名 / 启用 / 套餐 / PRO 到期（管理员账号 403）
 - `PUT /api/admin/students/{id}/access` 整体替换授权（内容不存在 400）
 - `GET /api/admin/materials` 全部资料
-- `GET /api/admin/courses` 全部课程（含课时）
+- `GET /api/admin/courses` 全部课程（含课时；过渡期返回旧字段 `videoUrl` / `durationMinutes`，由 `legacyVideoUrl` / `durationSeconds` 换算，网课管理接口重做后移除）
 - `POST /api/admin/content` 创建 / 更新资料或课程（带 `id` 为更新），返回 `201 { id }`
 - `DELETE /api/admin/content/{type}/{id}` 删除资料或课程，并清理对应授权
 - `GET /api/admin/quiz-meta` 公司 → 分类树（含题量 / 已发布题量）
@@ -76,6 +76,45 @@ pnpm dev                      # http://localhost:3001
 - `PATCH /api/admin/jobs/{id}` 修改岗位（只写提供的字段，`null` 清空；不存在 404）
 - `DELETE /api/admin/jobs/{id}` 删除岗位（收藏 / 投递级联删除；不存在 404）
 - `POST /api/admin/jobs/import` 上传 xlsx（`multipart/form-data` 的 `file` 字段，≤ 20 MB）导入岗位，返回各工作表新增 / 更新 / 跳过明细（无法解析或超限 400）
+
+## 网课 / VOD
+
+课程结构 **课程 → 章（可无）→ 课时**（`Course` / `CourseChapter` / `CourseLesson`），视频存腾讯云 VOD，后端只负责签名与状态回填，不中转视频。课程按门收费：`priceCents = 0` 为免费课，否则由管理端逐人开通（`AccessGrant{ COURSE }`）；学习进度 `LessonProgress` 按用户 × 课时记录，游客也能试看并记进度，手机号登录合并后保留。
+
+学生端（`requestUser` 之后，游客可访问）：
+
+- `GET /api/courses` 已发布课程目录，每张卡片带 `access`（`GRANTED` 免费 / 已开通 / 管理员；`PREVIEW` 有试看课时；`LOCKED`）与 `progressPercent`
+- `GET /api/courses/{id}` 课程详情：章 / 课时、每课时 `playable`（`videoStatus === "READY"` 且已开通或试看）与进度、`lastLessonId`；未发布 404
+- `GET /api/courses/{id}/lessons/{lessonId}/play` 播放签名 `{ appId, fileId, psign, expiresAt, positionSeconds }`；无权 403 `FORBIDDEN`，视频未就绪 409 `CONFLICT`
+- `PUT /api/courses/{id}/lessons/{lessonId}/progress` body `{ positionSeconds, completed? }` → 204；只接受可播课时；`completed` 只增不减
+- `GET /api/me/courses` 有授权或有进度的课程，按最近学习排序
+- `POST /api/vod/callback?token=…` 腾讯云事件通知（无需登录，在 `requestUser` 之前），处理 `ProcedureStateChanged`：`FINISH` → 课时 `READY` 并回填时长 / 封面，失败 → `FAILED`
+
+环境变量（`.env.example` 有注释）：
+
+| 变量 | 说明 |
+|---|---|
+| `VOD_MOCK` | `1` 走 mock：上传签名 `mock-upload`、播放签名 `mock-play`、媒体信息直接 READY / 600 秒；缺少 `VOD_SECRET_ID` 时也自动 mock。测试固定 mock |
+| `VOD_SECRET_ID` / `VOD_SECRET_KEY` | 子账号 API 密钥（只授 VOD 权限），用于上传签名与 `DescribeMediaInfos` |
+| `VOD_APP_ID` / `VOD_SUB_APP_ID` | VOD 应用 id；子应用可选 |
+| `VOD_PLAY_KEY` | 超级播放器签名密钥（控制台「超级播放器」里生成） |
+| `VOD_PLAY_DOMAIN` | 播放加速域名（已备案） |
+| `VOD_PROCEDURE` | 上传后自动执行的任务流名称 |
+| `VOD_CALLBACK_TOKEN` | 事件通知回调地址里的 `?token=`；mock 且未配置时接受 `mock-callback` |
+
+签名实现在 `src/lib/vod.ts`：上传签名为 VOD 官方算法（`base64(HMAC-SHA1(secretKey, query) + query)`，1 小时），播放签名为 HS256 JWT（`appId, fileId, currentTimeStamp, expireTimeStamp, urlAccessInfo.t`，2 小时）；纯函数 `buildUploadSignature` / `buildPlaySignature` 有固定输入快照测试。
+
+上线前置（用户侧，按顺序）：
+
+1. 腾讯云开通 VOD，建应用，记下 `VOD_APP_ID`
+2. 建任务流：转码 HLS 720p + 1080p、HLS 标准加密、封面截图；名称填到 `VOD_PROCEDURE`
+3. 「超级播放器」开启播放签名并生成密钥 → `VOD_PLAY_KEY`
+4. 绑定加速域名并备案 → `VOD_PLAY_DOMAIN`
+5. 事件通知：回调模式，地址 `https://<api 域名>/api/vod/callback?token=<VOD_CALLBACK_TOKEN>`
+6. 建子账号并只授 VOD 权限，生成 API 密钥 → `VOD_SECRET_ID` / `VOD_SECRET_KEY`
+7. 生产环境去掉 `VOD_MOCK`
+
+`pnpm db:seed` 会种一门免费示例课 `course-sample-free`（2 章 3 课时，`videoFileId` 为 `mock-1/2/3`），只在 `VOD_MOCK=1` 下可播。
 
 ## 迁移说明
 

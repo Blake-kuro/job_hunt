@@ -52,6 +52,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/vod/callback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description 腾讯云 VOD 事件通知（无需登录，`?token=` 须等于 VOD_CALLBACK_TOKEN）；只处理 ProcedureStateChanged */
+        post: operations["vodCallback"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/summary": {
         parameters: {
             query?: never;
@@ -372,6 +389,70 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/courses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listCourses"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/courses/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getCourse"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/courses/{id}/lessons/{lessonId}/play": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getLessonPlayInfo"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/courses/{id}/lessons/{lessonId}/progress": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["saveLessonProgress"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/me": {
         parameters: {
             query?: never;
@@ -380,6 +461,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["getMe"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me/courses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listMyCourses"];
         put?: never;
         post?: never;
         delete?: never;
@@ -593,6 +690,31 @@ export interface components {
             /** @example 13800138000 */
             phone: string;
             code: string;
+        };
+        VodCallbackResult: {
+            handled: boolean;
+        };
+        VodCallbackBody: {
+            EventType: string;
+            ProcedureStateChangeEvent?: {
+                FileId: string;
+                Status: string;
+                ErrCode?: number;
+                Message?: string;
+                MetaData?: {
+                    Duration?: number;
+                } | null;
+                MediaProcessResultSet?: {
+                    Type: string;
+                    CoverBySnapshotTask?: {
+                        Status?: string;
+                        ErrCode?: number;
+                        Output?: {
+                            CoverUrl?: string;
+                        } | null;
+                    } | null;
+                }[] | null;
+            } | null;
         };
         AdminSummary: {
             students: number;
@@ -909,6 +1031,93 @@ export interface components {
                 resourceUrl: string;
             }[];
         };
+        CourseCatalog: {
+            items: components["schemas"]["CourseCard"][];
+        };
+        CourseCard: {
+            id: string;
+            title: string;
+            summary: string | null;
+            coverUrl: string | null;
+            teacher: string | null;
+            priceCents: number;
+            lessonCount: number;
+            durationSeconds: number;
+            freePreviewCount: number;
+            access: components["schemas"]["CourseAccess"];
+            progressPercent: number | null;
+        };
+        /** @enum {string} */
+        CourseAccess: "GRANTED" | "PREVIEW" | "LOCKED";
+        CourseDetail: {
+            id: string;
+            title: string;
+            summary: string | null;
+            coverUrl: string | null;
+            teacher: string | null;
+            priceCents: number;
+            lessonCount: number;
+            durationSeconds: number;
+            freePreviewCount: number;
+            access: components["schemas"]["CourseAccess"];
+            progressPercent: number | null;
+            description: string | null;
+            chapters: components["schemas"]["CourseChapter"][];
+            unchaptered: components["schemas"]["CourseLesson"][];
+            lastLessonId: string | null;
+        };
+        CourseChapter: {
+            id: string;
+            title: string;
+            lessons: components["schemas"]["CourseLesson"][];
+        };
+        CourseLesson: {
+            id: string;
+            title: string;
+            durationSeconds: number | null;
+            freePreview: boolean;
+            videoStatus: components["schemas"]["VideoStatus"];
+            playable: boolean;
+            progress: components["schemas"]["LessonProgress"] | null;
+        };
+        /** @enum {string} */
+        VideoStatus: "NONE" | "UPLOADING" | "PROCESSING" | "READY" | "FAILED";
+        LessonProgress: {
+            positionSeconds: number;
+            completed: boolean;
+        };
+        PlayInfo: {
+            appId: string;
+            fileId: string;
+            psign: string;
+            /** Format: date-time */
+            expiresAt: string;
+            positionSeconds: number;
+        };
+        LessonProgressBody: {
+            positionSeconds: number;
+            completed?: boolean;
+        };
+        MyCourses: {
+            items: components["schemas"]["MyCourse"][];
+        };
+        MyCourse: {
+            id: string;
+            title: string;
+            summary: string | null;
+            coverUrl: string | null;
+            teacher: string | null;
+            priceCents: number;
+            lessonCount: number;
+            durationSeconds: number;
+            freePreviewCount: number;
+            access: components["schemas"]["CourseAccess"];
+            progressPercent: number | null;
+            lastLessonId: string | null;
+            lastLessonTitle: string | null;
+            /** Format: date-time */
+            updatedAt: string;
+        };
         JobListResult: {
             items: components["schemas"]["JobListItem"][];
             total: number;
@@ -1140,6 +1349,41 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    vodCallback: {
+        parameters: {
+            query?: {
+                token?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VodCallbackBody"];
+            };
+        };
+        responses: {
+            /** @description 已接收 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VodCallbackResult"];
+                };
+            };
+            /** @description token 无效 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
             };
         };
     };
@@ -1951,6 +2195,159 @@ export interface operations {
             };
         };
     };
+    listCourses: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 已发布课程目录，含当前用户权限与进度 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CourseCatalog"];
+                };
+            };
+        };
+    };
+    getCourse: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 课程详情（章 / 课时 / 进度） */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CourseDetail"];
+                };
+            };
+            /** @description 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    getLessonPlayInfo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                lessonId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 播放签名与续播位置 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlayInfo"];
+                };
+            };
+            /** @description 该课时需要开通课程后观看 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description 视频处理中 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    saveLessonProgress: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                lessonId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LessonProgressBody"];
+            };
+        };
+        responses: {
+            /** @description 已记录 */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 参数校验失败 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description 该课时不可播放 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
     getMe: {
         parameters: {
             query?: never;
@@ -1967,6 +2364,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["User"];
+                };
+            };
+        };
+    };
+    listMyCourses: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 有授权或有学习进度的课程，按最近学习排序 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyCourses"];
                 };
             };
         };
