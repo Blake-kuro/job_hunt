@@ -4,7 +4,7 @@ import { createHmac, randomInt, timingSafeEqual } from "node:crypto";
  * 腾讯云 VOD：上传签名 / 播放签名 / 媒体信息 / 回调 token。
  *
  * - `VOD_MOCK=1` 或（非生产环境）缺少 `VOD_SECRET_ID` 时走 mock：签名是固定假值，`fetchMediaInfo` 直接返回 READY；
- *   生产环境缺配置直接抛错，不会隐式进入 mock，且不接受 mock 回调 token。
+ *   生产环境（`NODE_ENV=production`）缺配置直接抛错，不会隐式进入 mock，显式 `VOD_MOCK=1` 也一律拒绝，且不接受 mock 回调 token。
  * - 真实签名算法见 https://cloud.tencent.com/document/product/266/9221（上传）与
  *   https://cloud.tencent.com/document/product/266/45554（超级播放器签名）；纯函数 `buildUploadSignature`
  *   / `buildPlaySignature` 不读环境变量，便于用固定输入做快照测试。
@@ -26,10 +26,17 @@ export const MOCK_CALLBACK_TOKEN = "mock-callback";
 const isProduction = () => process.env.NODE_ENV === "production";
 
 export function isMock(): boolean {
+  if (isProduction()) {
+    if (process.env.VOD_MOCK === "1") {
+      throw new Error(
+        "生产环境（NODE_ENV=production）不允许 VOD_MOCK=1：mock 签名会让所有学生无法播放、管理端上传写入假 fileId。请去掉 VOD_MOCK 并配置真实的腾讯云 VOD 变量",
+      );
+    }
+    if (!process.env.VOD_SECRET_ID) throw new Error("生产环境必须配置 VOD_SECRET_ID 等腾讯云 VOD 变量");
+    return false;
+  }
   if (process.env.VOD_MOCK === "1") return true;
-  if (process.env.VOD_SECRET_ID) return false;
-  if (isProduction()) throw new Error("生产环境必须配置 VOD_SECRET_ID 等腾讯云 VOD 变量（或显式设置 VOD_MOCK=1）");
-  return true;
+  return !process.env.VOD_SECRET_ID;
 }
 
 function requireEnv(name: string): string {

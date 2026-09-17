@@ -127,15 +127,29 @@ describe("mock 与环境变量", () => {
     expect(play.psign.split(".")).toHaveLength(3);
   });
 
-  it("生产环境：缺 VOD_SECRET_ID 抛错而不是隐式 mock；显式 VOD_MOCK=1 也不接受 mock 回调 token", () => {
+  it("生产环境：缺 VOD_SECRET_ID 抛错而不是隐式 mock", () => {
     process.env.NODE_ENV = "production";
     delete process.env.VOD_MOCK;
     delete process.env.VOD_SECRET_ID;
     expect(() => isMock()).toThrow(/VOD_SECRET_ID/);
     expect(() => signPlay("f1")).toThrow(/VOD_SECRET_ID/);
+    process.env.VOD_SECRET_ID = "AKIDtest";
+    process.env.VOD_SECRET_KEY = "secret-key";
+    process.env.VOD_APP_ID = "1250000000";
+    process.env.VOD_PLAY_KEY = "play-key";
+    expect(isMock()).toBe(false);
+    expect(signPlay("f1").psign.split(".")).toHaveLength(3);
+  });
+
+  it("生产环境：显式 VOD_MOCK=1 也拒绝 mock（签名 / 媒体信息全部抛错），回调不接受 mock token", async () => {
+    process.env.NODE_ENV = "production";
     process.env.VOD_MOCK = "1";
+    process.env.VOD_SECRET_ID = "AKIDtest";
     delete process.env.VOD_CALLBACK_TOKEN;
-    expect(isMock()).toBe(true);
+    expect(() => isMock()).toThrow(/不允许 VOD_MOCK=1/);
+    expect(() => signUpload()).toThrow(/不允许 VOD_MOCK=1/);
+    expect(() => signPlay("f1")).toThrow(/不允许 VOD_MOCK=1/);
+    await expect(fetchMediaInfo("f1")).rejects.toThrow(/不允许 VOD_MOCK=1/);
     expect(verifyCallbackToken(MOCK_CALLBACK_TOKEN)).toBe(false);
     process.env.VOD_CALLBACK_TOKEN = "real-token";
     expect(verifyCallbackToken("real-token")).toBe(true);

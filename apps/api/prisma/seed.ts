@@ -99,7 +99,8 @@ async function seedCourse() {
 async function main() {
   await seedUser();
   await seedQuiz();
-  await seedCourse();
+  if (process.env.VOD_MOCK === "1") await seedCourse();
+  else console.log("跳过示例课：VOD_MOCK 不是 1（示例课的 videoFileId 是 mock 值，真实 VOD 下不可播，不应种到生产）");
 }
 
 main()
