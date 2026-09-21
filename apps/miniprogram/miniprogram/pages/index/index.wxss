@@ -1,17 +1,16 @@
 .head { margin-top: 40rpx; }
 .head .muted { margin-top: 16rpx; }
 .dash { margin-top: 36rpx; }
-.streak { display: flex; align-items: baseline; gap: 10rpx; margin-top: 16rpx; }
-.streak-n { font-size: 76rpx; font-weight: 700; line-height: 1; letter-spacing: -2rpx; }
-.streak-u { color: var(--n700); font-size: 24rpx; }
 .week { display: flex; gap: 10rpx; margin-top: 28rpx; }
 .day { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 10rpx; }
 .day-box { width: 100%; height: 56rpx; border: 1rpx solid var(--divider); box-sizing: border-box; }
 .day-box.done { background: var(--accent); border-color: var(--accent); }
 .day-label { color: var(--n700); font-size: 20rpx; }
-.dash-foot { display: flex; justify-content: space-between; margin-top: 24rpx; color: var(--n700); font-size: 22rpx; }
+.dash .hairline { margin-top: 24rpx; }
+.dash-foot { display: flex; justify-content: space-between; margin-top: 18rpx; color: var(--n700); font-size: 22rpx; }
 .loading { margin-top: 40rpx; }
 .company { margin-top: 44rpx; }
+.company-name { font-size: 32rpx; }
 .cat-row { display: flex; align-items: center; gap: 24rpx; padding: 24rpx 0; border-bottom: 1rpx solid var(--hairline); }
 .cat-main { flex: 1; min-width: 0; }
 .cat-name { font-size: 30rpx; font-weight: 600; }

@@ -20,13 +20,13 @@ export function lessonStatus(
   lesson: Pick<CourseLesson, "durationSeconds" | "progress" | "freePreview" | "videoStatus" | "playable">,
   access: CourseAccess,
 ): LessonStatus {
-  if (lesson.progress?.completed) return { label: "✓ 已看完", tone: "done" };
+  if (lesson.progress?.completed) return { label: "已看完", tone: "done" };
   if (lesson.videoStatus !== "READY") {
     if (lesson.videoStatus === "NONE") return { label: "暂无视频", tone: "pending" };
     if (lesson.videoStatus === "FAILED") return { label: "视频异常", tone: "pending" };
     return { label: "处理中", tone: "pending" };
   }
-  if (!lesson.playable) return { label: "🔒 需开通", tone: "locked" };
+  if (!lesson.playable) return { label: "需开通", tone: "locked" };
   const percent = lessonPercent(lesson);
   if (percent !== null && percent > 0) return { label: `${percent}%`, tone: "progress" };
   if (lesson.freePreview && access !== "GRANTED") return { label: "试看", tone: "preview" };

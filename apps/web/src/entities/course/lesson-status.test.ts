@@ -31,7 +31,7 @@ describe("lessonStatus", () => {
       tone: "pending",
     });
     expect(lessonStatus({ ...base, videoStatus: "NONE", playable: false }, "GRANTED").label).toBe("暂无视频");
-    expect(lessonStatus({ ...base, playable: false }, "PREVIEW")).toEqual({ label: "🔒 需开通", tone: "locked" });
+    expect(lessonStatus({ ...base, playable: false }, "PREVIEW")).toEqual({ label: "需开通", tone: "locked" });
     expect(lessonStatus({ ...base, progress: { positionSeconds: 300, completed: false } }, "GRANTED")).toEqual({
       label: "50%",
       tone: "progress",

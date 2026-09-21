@@ -9,7 +9,7 @@
   <view class="head">
     <view class="kicker">题库</view>
     <view class="h1">选择公司与分类，按顺序刷题</view>
-    <view wx:if="{{dashboard}}" class="muted num">累计作答 {{dashboard.quota.used}} / {{quotaLimit}} 题 · {{tierLabel}}</view>
+    <view class="muted">按公司分题库，一个分类一口气刷完；答错的自动进错题本。</view>
   </view>
 
   <view wx:if="{{error}}" class="error">{{error}}</view>
@@ -20,26 +20,41 @@
     <button wx:if="{{tier==='GUEST'}}" class="btn" bindtap="login">登录</button>
   </view>
 
-  <view wx:if="{{dashboard}}" class="card dash">
-    <view class="kicker">打卡仪表盘</view>
-    <view class="streak"><text class="streak-n num">{{dashboard.streakDays}}</text><text class="streak-u">天连续</text></view>
+  <view wx:if="{{dashboard}}" class="blueprint dash">
+    <view class="corner tl"></view><view class="corner tr"></view><view class="corner bl"></view><view class="corner br"></view>
+    <view class="blueprint-title">打卡仪表盘</view>
+    <view class="stats">
+      <view><view class="stat-n num">{{dashboard.streakDays}}</view><view class="stat-l">天连续</view></view>
+      <view><view class="stat-n num">{{dashboard.weekSolved}}</view><view class="stat-l">本周作答</view></view>
+      <view><view class="stat-n num">{{dashboard.totalSolved}}</view><view class="stat-l">累计作答</view></view>
+    </view>
     <view class="week">
       <view wx:for="{{dashboard.week}}" wx:key="label" class="day">
         <view class="day-box {{item.done?'done':''}}"></view>
         <text class="day-label">{{item.label}}</text>
       </view>
     </view>
+    <view class="hairline"></view>
     <view class="dash-foot num">
-      <text>本周 {{dashboard.weekSolved}} / {{dashboard.weekTarget}} 题</text>
-      <text>累计 {{dashboard.totalSolved}} 题</text>
+      <text>本周目标 {{dashboard.weekTarget}} 题</text>
+      <text>{{dashboard.weekSolved >= dashboard.weekTarget ? '已达标' : '还差 ' + (dashboard.weekTarget - dashboard.weekSolved) + ' 题'}}</text>
     </view>
+  </view>
+
+  <view wx:if="{{dashboard}}" class="strip">
+    <text class="badge">配额</text>
+    <text class="strip-text num">累计作答 {{dashboard.quota.used}} / {{quotaLimit}} 题 · {{tierLabel}}</text>
+    <text wx:if="{{tier==='GUEST'}}" class="strip-link" bindtap="login">登录 →</text>
   </view>
 
   <view wx:if="{{loading && !companies.length}}" class="muted loading">正在加载题库…</view>
   <view wx:elif="{{!loading && !companies.length && !error}}" class="empty">还没有题库</view>
 
   <view wx:for="{{companies}}" wx:for-item="company" wx:key="id" class="company">
-    <view class="kicker">{{company.name}}</view>
+    <view class="section-head">
+      <text class="h2 company-name">{{company.name}}</text>
+      <text class="section-count num">{{company.categories.length}} 个分类</text>
+    </view>
     <view wx:for="{{company.categories}}" wx:for-item="category" wx:key="id" class="cat-row">
       <view class="cat-main">
         <view class="cat-name">{{category.name}}</view>

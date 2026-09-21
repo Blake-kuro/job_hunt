@@ -21,6 +21,16 @@ const toneClass = {
   none: "",
 } as const;
 
+/** 行首的小方块：看完实心、在看半填、可播空框、锁定 / 未就绪虚线 */
+const markClass = {
+  done: "border-accent bg-accent",
+  progress: "border-accent bg-[linear-gradient(to_right,var(--color-accent)_50%,transparent_50%)]",
+  preview: "border-accent",
+  none: "border-divider",
+  locked: "border-dashed border-neutral-500",
+  pending: "border-dashed border-neutral-500",
+} as const;
+
 function LessonRow({
   course,
   lesson,
@@ -38,12 +48,13 @@ function LessonRow({
 }) {
   const status = lessonStatus(lesson, course.access);
   const rowClass = cn(
-    "grid w-full grid-cols-[2rem_minmax(0,1fr)_auto] items-center gap-x-3 border-t border-hairline text-left first:border-t-0",
+    "grid w-full grid-cols-[0.75rem_2rem_minmax(0,1fr)_auto] items-center gap-x-3 border-t border-hairline text-left first:border-t-0",
     compact ? "px-3 py-2.5 text-[13px]" : "px-1 py-3 text-sm",
     current && "bg-accent-100",
   );
   const body = (
     <>
+      <i aria-hidden className={cn("size-2.5 border", markClass[status.tone])} />
       <span className="text-xs tabular-nums text-neutral-600">{String(index).padStart(2, "0")}</span>
       <span className="min-w-0">
         <span className={cn("block truncate", current && "font-medium text-accent-800")}>{lesson.title}</span>

@@ -1,4 +1,5 @@
 import type { JobProgress } from "@entities/job";
+import { BlueprintPanel, BlueprintStat } from "@job-hunt/ui/components/blueprint-panel";
 
 interface ProgressCardProps {
   progress: JobProgress;
@@ -12,19 +13,10 @@ export function ProgressCard({ progress }: ProgressCardProps) {
   ];
 
   return (
-    <div className="blueprint border border-divider px-5 py-[18px]">
-      <i className="corner tl" />
-      <i className="corner tr" />
-      <i className="corner bl" />
-      <i className="corner br" />
-      <p className="text-[10px] uppercase tracking-[0.1em] text-accent">我的进度</p>
-
+    <BlueprintPanel title="我的进度">
       <div className="mt-3.5 grid grid-cols-3 gap-3">
         {stats.map((s) => (
-          <div key={s.label}>
-            <div className="font-heading text-3xl leading-none tabular-nums">{s.value}</div>
-            <div className="mt-1 text-[11px] text-neutral-700">{s.label}</div>
-          </div>
+          <BlueprintStat key={s.label} value={s.value} label={s.label} />
         ))}
       </div>
 
@@ -40,6 +32,6 @@ export function ProgressCard({ progress }: ProgressCardProps) {
           <span>收藏岗位后这里会提醒最近的截止</span>
         )}
       </div>
-    </div>
+    </BlueprintPanel>
   );
 }

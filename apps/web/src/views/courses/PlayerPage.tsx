@@ -181,6 +181,55 @@ function LessonPlayer({
   );
 }
 
+/** 上一节 / 下一节；下一节锁定时点击弹开通提示 */
+function LessonNav({
+  course,
+  lessons,
+  index,
+  onLocked,
+}: {
+  course: CourseDetail;
+  lessons: CourseLesson[];
+  index: number;
+  onLocked: () => void;
+}) {
+  const prev = lessons[index - 2] ?? null;
+  const next = lessons[index] ?? null;
+  function link(target: CourseLesson | null, label: string) {
+    if (!target) {
+      return (
+        <Button size="sm" disabled>
+          {label}
+        </Button>
+      );
+    }
+    if (!target.playable) {
+      return (
+        <Button size="sm" onClick={onLocked} title={target.title}>
+          {label}
+        </Button>
+      );
+    }
+    return (
+      <Button asChild size="sm">
+        <Link
+          to="/courses/$courseId/$lessonId"
+          params={{ courseId: course.id, lessonId: target.id }}
+          title={target.title}
+        >
+          {label}
+        </Link>
+      </Button>
+    );
+  }
+  return (
+    <div className="flex shrink-0 gap-2">
+      {link(prev, "上一节")}
+      {link(next, "下一节")}
+    </div>
+  );
+}
+
 export function PlayerPage() {
   const { courseId, lessonId } = route.useParams();
   const { data: course } = useSuspenseQuery(courseQuery(courseId));
@@ -219,12 +268,17 @@ export function PlayerPage() {
                 guest={user.tier === "GUEST"}
                 onLocked={() => setEnrollOpen(true)}
               />
-              <div className="mt-5">
-                <Kicker className="text-accent-700">
-                  第 {index} / {lessons.length} 课时
-                  {lesson.durationSeconds ? ` · ${formatDuration(lesson.durationSeconds)}` : ""}
-                </Kicker>
-                <h1 className="mt-2 text-[24px] leading-tight sm:text-[30px]">{lesson.title}</h1>
+              <div className="mt-5 flex flex-wrap items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <Kicker className="text-accent-700">
+                    第 {index} / {lessons.length} 课时
+                    {lesson.durationSeconds ? ` · ${formatDuration(lesson.durationSeconds)}` : ""}
+                  </Kicker>
+                  <h1 className="mt-2 text-[24px] leading-tight sm:text-[30px]">{lesson.title}</h1>
+                </div>
+                <LessonNav course={course} lessons={lessons} index={index} onLocked={() => setEnrollOpen(true)} />
+              </div>
+              <div className="mt-3">
                 {(course.description ?? course.summary) && (
                   <p className="mt-3 max-w-[760px] whitespace-pre-line text-sm leading-relaxed text-neutral-700">
                     {course.description ?? course.summary}

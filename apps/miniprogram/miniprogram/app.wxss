@@ -61,3 +61,29 @@ page {
 .banner-title { font-size: 28rpx; font-weight: 700; }
 .banner-body { margin-top: 6rpx; color: var(--n700); font-size: 24rpx; }
 .banner .btn { margin-top: 20rpx; }
+
+/* 蓝图面板：四角刻度（对应 @job-hunt/ui 的 BlueprintPanel） */
+.blueprint { position: relative; padding: 28rpx; border: 1rpx solid var(--divider); }
+.blueprint .corner { position: absolute; width: 22rpx; height: 22rpx; color: rgba(29, 31, 32, 0.55); }
+.blueprint .corner::before, .blueprint .corner::after { content: ""; position: absolute; background: currentColor; }
+.blueprint .corner::before { left: 10rpx; top: 0; width: 2rpx; height: 100%; }
+.blueprint .corner::after { top: 10rpx; left: 0; width: 100%; height: 2rpx; }
+.blueprint .tl { top: -12rpx; left: -12rpx; }
+.blueprint .tr { top: -12rpx; right: -12rpx; }
+.blueprint .bl { bottom: -12rpx; left: -12rpx; }
+.blueprint .br { bottom: -12rpx; right: -12rpx; }
+.blueprint-title { color: var(--accent); font-size: 18rpx; letter-spacing: 3rpx; }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20rpx; margin-top: 24rpx; }
+.stat-n { font-size: 60rpx; font-weight: 700; line-height: 1; letter-spacing: -2rpx; }
+.stat-l { margin-top: 8rpx; color: var(--n700); font-size: 22rpx; }
+
+/* 强调横条（对应 web 首页「本周新增」条） */
+.strip { display: flex; align-items: center; gap: 16rpx; margin: 32rpx -32rpx 0; padding: 18rpx 32rpx; border-top: 1rpx solid var(--divider); border-bottom: 1rpx solid var(--divider); background: var(--accent-100); font-size: 24rpx; }
+.strip .badge { flex-shrink: 0; }
+.strip-text { flex: 1; min-width: 0; }
+.strip-link { flex-shrink: 0; color: var(--accent-700); }
+.badge { display: inline-flex; align-items: center; height: 40rpx; padding: 0 14rpx; background: var(--accent); color: var(--bg); font-size: 20rpx; line-height: 1; }
+
+/* 分组标题：小标题 + 右侧计数，下方细线 */
+.section-head { display: flex; align-items: baseline; justify-content: space-between; padding-bottom: 14rpx; border-bottom: 1rpx solid var(--divider); }
+.section-count { color: var(--n700); font-size: 22rpx; }
